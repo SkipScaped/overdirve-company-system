@@ -1,49 +1,55 @@
 import os
 import logging
+import uuid
+from datetime import datetime
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, abort
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
-from datetime import datetime
-import json
-import uuid
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# SQLAlchemy setup
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
 
 # Create Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configuration
+# Database configuration
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+
+# Configuration for file uploads
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB upload
 
 # Create upload directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Create data files if they don't exist
-DATA_DIR = 'data'
-os.makedirs(DATA_DIR, exist_ok=True)
-
-IMAGES_DATA_FILE = os.path.join(DATA_DIR, 'images.json')
-COMMENTS_DATA_FILE = os.path.join(DATA_DIR, 'comments.json')
-
-if not os.path.exists(IMAGES_DATA_FILE):
-    with open(IMAGES_DATA_FILE, 'w') as f:
-        json.dump([], f)
-
-if not os.path.exists(COMMENTS_DATA_FILE):
-    with open(COMMENTS_DATA_FILE, 'w') as f:
-        json.dump([], f)
-
-# Import other modules after app is created
-from models import load_images, save_image, load_comments, save_comment, get_image_by_id
+# Import other modules after db is initialized
+from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data
 from forms import UploadForm, CommentForm
 from utils import allowed_file, get_categories
+
+# Initialize database tables
+with app.app_context():
+    db.create_all()
+    initialize_sample_data()
 
 # Routes
 @app.route('/')
@@ -68,7 +74,7 @@ def upload():
             flash('No selected file', 'danger')
             return redirect(request.url)
         
-        if file and allowed_file(file.filename):
+        if file and file.filename and allowed_file(file.filename):
             # Generate a unique filename
             filename = secure_filename(file.filename)
             extension = filename.rsplit('.', 1)[1].lower()
@@ -95,7 +101,7 @@ def upload():
             flash('Image uploaded successfully!', 'success')
             return redirect(url_for('index'))
         else:
-            flash('Allowed file types are png, jpg, jpeg, gif', 'danger')
+            flash(f'Allowed file types are {", ".join(ALLOWED_EXTENSIONS)}', 'danger')
             
     images = load_images()
     categories = get_categories(images)
@@ -107,8 +113,7 @@ def image_detail(image_id):
     if not image:
         abort(404)
         
-    comments = load_comments()
-    image_comments = [c for c in comments if c['image_id'] == image_id]
+    image_comments = get_comments_for_image(image_id)
     
     form = CommentForm()
     if form.validate_on_submit():
