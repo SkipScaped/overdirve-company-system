@@ -2,24 +2,94 @@
 
 // Function to copy the server IP to clipboard
 function copyIp() {
-    const serverIp = document.getElementById('serverIp').textContent;
-    navigator.clipboard.writeText(serverIp).then(function() {
-        // Create a toast notification
-        const toast = document.createElement('div');
-        toast.className = 'minecraft-toast';
-        toast.innerHTML = '<i class="fas fa-check-circle"></i> Server IP copied to clipboard!';
-        document.body.appendChild(toast);
-        
-        // Show and hide toast
-        setTimeout(function() {
+    // Get IP from any of the possible elements (navbar, home page, or footer)
+    const serverIpElement = document.getElementById('serverIp') || 
+                          document.getElementById('serverIpHome') || 
+                          document.getElementById('footerIp');
+    
+    if (!serverIpElement) {
+        console.error('Server IP element not found');
+        return;
+    }
+    
+    const serverIp = serverIpElement.textContent;
+    
+    // Use modern clipboard API with fallback
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(serverIp)
+            .then(showCopyToast)
+            .catch(error => {
+                console.error('Failed to copy IP: ', error);
+                // Fallback method for secure contexts
+                fallbackCopyTextToClipboard(serverIp);
+            });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyTextToClipboard(serverIp);
+    }
+}
+
+// Fallback copy method
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopyToast();
+        } else {
+            console.error('Failed to copy with execCommand');
+        }
+    } catch (err) {
+        console.error('Error in fallback copy: ', err);
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// Show toast notification
+function showCopyToast() {
+    // Remove any existing toasts
+    const existingToast = document.querySelector('.minecraft-toast');
+    if (existingToast) {
+        document.body.removeChild(existingToast);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'minecraft-toast';
+    toast.innerHTML = '<i class="fas fa-check-circle"></i> Server IP copied to clipboard!';
+    document.body.appendChild(toast);
+    
+    // Animation timing with promises for better flow
+    return new Promise(resolve => {
+        setTimeout(() => {
             toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-                setTimeout(function() {
-                    document.body.removeChild(toast);
-                }, 500);
-            }, 2000);
+            resolve();
         }, 100);
+    }).then(() => {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                toast.classList.remove('show');
+                resolve();
+            }, 2000);
+        });
+    }).then(() => {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+                resolve();
+            }, 500);
+        });
     });
 }
 
