@@ -1,36 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-  <!-- Base dirt background -->
-  <rect width="100" height="100" fill="#694322"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dirt background pattern for Minecraft SMP Gallery -->
+  <rect width="100" height="100" fill="#694230" />
   
   <!-- Dirt texture pattern -->
-  <g fill="#5a3920" opacity="0.4">
-    <rect x="0" y="0" width="25" height="25"/>
-    <rect x="50" y="0" width="25" height="25"/>
-    <rect x="25" y="25" width="25" height="25"/>
-    <rect x="75" y="25" width="25" height="25"/>
-    <rect x="0" y="50" width="25" height="25"/>
-    <rect x="50" y="50" width="25" height="25"/>
-    <rect x="25" y="75" width="25" height="25"/>
-    <rect x="75" y="75" width="25" height="25"/>
+  <g fill="#513422" opacity="0.4">
+    <rect x="0" y="0" width="25" height="25" />
+    <rect x="50" y="0" width="25" height="25" />
+    <rect x="25" y="25" width="25" height="25" />
+    <rect x="75" y="25" width="25" height="25" />
+    <rect x="0" y="50" width="25" height="25" />
+    <rect x="50" y="50" width="25" height="25" />
+    <rect x="25" y="75" width="25" height="25" />
+    <rect x="75" y="75" width="25" height="25" />
   </g>
   
-  <!-- Small detail specks -->
-  <g fill="#7b5230" opacity="0.3">
-    <circle cx="10" cy="10" r="3"/>
-    <circle cx="35" cy="15" r="2"/>
-    <circle cx="65" cy="10" r="4"/>
-    <circle cx="85" cy="20" r="2"/>
-    <circle cx="20" cy="40" r="3"/>
-    <circle cx="45" cy="35" r="2"/>
-    <circle cx="70" cy="40" r="3"/>
-    <circle cx="90" cy="45" r="2"/>
-    <circle cx="15" cy="65" r="3"/>
-    <circle cx="35" cy="70" r="4"/>
-    <circle cx="60" cy="65" r="2"/>
-    <circle cx="85" cy="70" r="3"/>
-    <circle cx="10" cy="90" r="2"/>
-    <circle cx="40" cy="85" r="3"/>
-    <circle cx="65" cy="95" r="2"/>
-    <circle cx="90" cy="85" r="4"/>
+  <!-- Pebbles and details -->
+  <g fill="#7B5537" opacity="0.15">
+    <circle cx="10" cy="10" r="3" />
+    <circle cx="35" cy="15" r="2" />
+    <circle cx="60" cy="10" r="4" />
+    <circle cx="85" cy="15" r="2" />
+    <circle cx="15" cy="35" r="2" />
+    <circle cx="40" cy="40" r="3" />
+    <circle cx="65" cy="35" r="2" />
+    <circle cx="90" cy="40" r="3" />
+    <circle cx="10" cy="60" r="4" />
+    <circle cx="35" cy="65" r="2" />
+    <circle cx="60" cy="60" r="3" />
+    <circle cx="85" cy="65" r="2" />
+    <circle cx="15" cy="85" r="2" />
+    <circle cx="40" cy="90" r="3" />
+    <circle cx="65" cy="85" r="2" />
+    <circle cx="90" cy="90" r="4" />
+  </g>
+  
+  <!-- Pixel grid overlay -->
+  <g stroke="#000000" stroke-width="0.5" opacity="0.03">
+    <line x1="0" y1="25" x2="100" y2="25" />
+    <line x1="0" y1="50" x2="100" y2="50" />
+    <line x1="0" y1="75" x2="100" y2="75" />
+    <line x1="25" y1="0" x2="25" y2="100" />
+    <line x1="50" y1="0" x2="50" y2="100" />
+    <line x1="75" y1="0" x2="75" y2="100" />
   </g>
 </svg>

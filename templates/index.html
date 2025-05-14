@@ -19,37 +19,43 @@
         {% endif %}
     </div>
     
-    {% if images %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            {% for image in images %}
-                <div class="col">
-                    <div class="gallery-item">
-                        <a href="{{ url_for('image_detail', image_id=image.id) }}" data-toggle="lightbox" data-title="{{ image.title }}">
-                            <img src="{{ image.filepath }}" alt="{{ image.title }}" class="img-fluid">
-                        </a>
-                        <div class="gallery-item-caption">
-                            <div class="gallery-item-category">{{ image.category }}</div>
-                            <h3 class="gallery-item-title">{{ image.title }}</h3>
-                            <div class="gallery-item-uploader">
-                                <i class="fas fa-user"></i> 
-                                {% if image.user_id %}
-                                    <a href="{{ url_for('user_profile', user_id=image.user_id) }}">{{ image.uploader }}</a>
-                                {% else %}
-                                    {{ image.uploader }}
-                                {% endif %}
-                            </div>
-                            <p class="gallery-item-description">{{ image.description|truncate(100) }}</p>
-                            <a href="{{ url_for('image_detail', image_id=image.id) }}" class="btn btn-sm btn-minecraft">
-                                <i class="fas fa-eye"></i> View Details
+    <!-- React Gallery -->
+    <div id="react-gallery" data-images="{{ images|tojson }}"></div>
+    
+    <!-- Fallback for JS disabled browsers -->
+    <noscript>
+        {% if images %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for image in images %}
+                    <div class="col">
+                        <div class="gallery-item">
+                            <a href="{{ url_for('image_detail', image_id=image.id) }}" data-toggle="lightbox" data-title="{{ image.title }}">
+                                <img src="{{ image.filepath }}" alt="{{ image.title }}" class="img-fluid">
                             </a>
+                            <div class="gallery-item-caption">
+                                <div class="gallery-item-category">{{ image.category }}</div>
+                                <h3 class="gallery-item-title">{{ image.title }}</h3>
+                                <div class="gallery-item-uploader">
+                                    <i class="fas fa-user"></i> 
+                                    {% if image.user_id %}
+                                        <a href="{{ url_for('user_profile', user_id=image.user_id) }}">{{ image.uploader }}</a>
+                                    {% else %}
+                                        {{ image.uploader }}
+                                    {% endif %}
+                                </div>
+                                <p class="gallery-item-description">{{ image.description|truncate(100) }}</p>
+                                <a href="{{ url_for('image_detail', image_id=image.id) }}" class="btn btn-sm btn-minecraft">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> No images have been uploaded yet. Be the first to share your Minecraft creations!
-        </div>
-    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> No images have been uploaded yet. Be the first to share your Minecraft creations!
+            </div>
+        {% endif %}
+    </noscript>
 {% endblock %}

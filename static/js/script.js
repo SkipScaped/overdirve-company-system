@@ -1,7 +1,7 @@
 // Minecraft SMP Gallery - Custom JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Image preview for upload form
+    // Image upload preview
     const imageInput = document.getElementById('image');
     const imagePreview = document.getElementById('imagePreview');
     
@@ -10,92 +10,82 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
-                
-                reader.addEventListener('load', function() {
-                    imagePreview.setAttribute('src', this.result);
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
                     imagePreview.style.display = 'block';
-                });
-                
+                }
                 reader.readAsDataURL(file);
             }
         });
     }
     
-    // Bootstrap Tooltips initialization
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+    // React comment form submission handler
+    document.addEventListener('react-comment-submit', function(e) {
+        const hiddenUsernameField = document.getElementById('hidden_username');
+        const hiddenTextField = document.getElementById('hidden_text');
+        
+        if (hiddenUsernameField && hiddenTextField && e.detail) {
+            hiddenUsernameField.value = e.detail.username;
+            hiddenTextField.value = e.detail.text;
+            
+            // Submit the form
+            document.querySelector('form.comment-form').submit();
+        }
     });
     
-    // Lightbox for image previews
-    document.querySelectorAll('[data-toggle="lightbox"]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const galleryImg = this.querySelector('img');
-            const title = this.getAttribute('data-title') || '';
-            
-            // Create modal elements
-            const modal = document.createElement('div');
-            modal.classList.add('modal', 'fade');
-            modal.id = 'imageModal';
-            modal.setAttribute('tabindex', '-1');
-            modal.setAttribute('aria-labelledby', 'imageModalLabel');
-            modal.setAttribute('aria-hidden', 'true');
-            
-            modal.innerHTML = `
-                <div class="modal-dialog modal-dialog-centered modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="imageModalLabel">${title}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <img src="${this.href}" class="img-fluid" alt="${title}">
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // Initialize and show the modal
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-            
-            // Clean up after the modal is closed
-            modal.addEventListener('hidden.bs.modal', function() {
-                document.body.removeChild(modal);
-            });
+    // Profile image hover effect
+    const profileImage = document.querySelector('.profile-image');
+    if (profileImage) {
+        profileImage.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.borderColor = '#00cfcf'; // Diamond color
         });
-    });
-    
-    // Confirm delete action
-    document.querySelectorAll('.delete-confirm').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
-                e.preventDefault();
-            }
-        });
-    });
-    
-    // Auto-resize textarea
-    document.querySelectorAll('textarea').forEach(function(textarea) {
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-    });
-    
-    // Search form validation
-    const searchForm = document.querySelector('.search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            const searchInput = this.querySelector('input[name="q"]');
-            if (!searchInput.value.trim()) {
-                e.preventDefault();
-                searchInput.focus();
-            }
+        
+        profileImage.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.borderColor = '';
         });
     }
+    
+    // Make gallery items pixel perfect on mobile
+    function adjustGalleryItems() {
+        const galleryItems = document.querySelectorAll('.gallery-item');
+        if (window.innerWidth < 576) {
+            galleryItems.forEach(item => {
+                item.style.imageRendering = 'pixelated';
+            });
+        } else {
+            galleryItems.forEach(item => {
+                item.style.imageRendering = '';
+            });
+        }
+    }
+    
+    // Initial call and listen for resize
+    adjustGalleryItems();
+    window.addEventListener('resize', adjustGalleryItems);
+    
+    // Add pixel border animation to buttons
+    const minecraftButtons = document.querySelectorAll('.btn-minecraft');
+    minecraftButtons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2), inset -2px -2px 0 rgba(0,0,0,0.3)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.boxShadow = 'inset -2px -2px 0 rgba(0,0,0,0.3)';
+        });
+        
+        button.addEventListener('mousedown', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2), inset 2px 2px 0 rgba(0,0,0,0.3)';
+        });
+        
+        button.addEventListener('mouseup', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2), inset -2px -2px 0 rgba(0,0,0,0.3)';
+        });
+    });
 });
