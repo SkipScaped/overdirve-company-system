@@ -1,0 +1,341 @@
+/* Minecraft SMP Gallery - Custom CSS */
+
+/* Minecraft Font */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+:root {
+    /* Minecraft color palette */
+    --grass-green: #5bae4a;
+    --dirt-brown: #856043;
+    --stone-gray: #828282;
+    --wood-brown: #a0734c;
+    --water-blue: #3d75c0;
+    --text-color: #322b24;
+    --accent-color: #f9c042;
+    --bg-dark: #222222;
+    --shadow: rgba(0, 0, 0, 0.2);
+}
+
+body {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    background-color: var(--bg-dark);
+    background-image: url('../images/dirt_background.svg');
+    background-repeat: repeat;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* Minecraft-style container */
+.minecraft-container {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 4px solid var(--stone-gray);
+    border-radius: 0px;
+    box-shadow: 0 0 15px var(--shadow);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* Minecraft-style headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'VT323', monospace;
+    color: var(--dirt-brown);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+h1 {
+    font-size: 42px;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 0px var(--shadow);
+}
+
+/* Minecraft-style buttons */
+.btn-minecraft {
+    background-color: var(--grass-green);
+    border: 3px solid #3e8234;
+    color: white;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 18px;
+    transition: all 0.2s;
+}
+
+.btn-minecraft:hover {
+    background-color: #489e3b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+    color: white;
+}
+
+.btn-minecraft:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+/* Navbar styling */
+.navbar {
+    background-color: var(--dirt-brown);
+    border-bottom: 4px solid #634731;
+    padding: 15px 0;
+}
+
+.navbar-brand img {
+    height: 40px;
+}
+
+.nav-link {
+    color: white !important;
+    font-size: 20px;
+    margin: 0 10px;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--accent-color) !important;
+    transform: scale(1.05);
+}
+
+/* Image Gallery */
+.gallery-item {
+    margin-bottom: 30px;
+    transition: all 0.3s;
+    background-color: white;
+    border: 3px solid var(--stone-gray);
+    box-shadow: 0 5px 15px var(--shadow);
+    height: 100%;
+    position: relative;
+}
+
+.gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px var(--shadow);
+    border-color: var(--grass-green);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 3px solid var(--stone-gray);
+}
+
+.gallery-item-caption {
+    padding: 15px;
+    color: var(--text-color);
+}
+
+.gallery-item-title {
+    font-size: 24px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--dirt-brown);
+}
+
+.gallery-item-category {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    padding: 2px 10px;
+    border-radius: 0;
+    font-size: 16px;
+}
+
+.gallery-item-uploader {
+    font-size: 16px;
+    color: var(--stone-gray);
+    margin-bottom: 10px;
+}
+
+/* Image detail page */
+.image-detail-container {
+    background-color: white;
+    border: 4px solid var(--stone-gray);
+    padding: 20px;
+    box-shadow: 0 5px 15px var(--shadow);
+}
+
+.image-detail-img {
+    width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    border: 3px solid var(--stone-gray);
+    margin-bottom: 20px;
+}
+
+.image-meta {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eee;
+}
+
+/* Comments section */
+.comments-section {
+    margin-top: 30px;
+}
+
+.comment {
+    background-color: #f5f5f5;
+    border-left: 4px solid var(--grass-green);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.comment-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: var(--stone-gray);
+    font-size: 16px;
+}
+
+.comment-username {
+    font-weight: bold;
+    color: var(--dirt-brown);
+}
+
+/* Form styling */
+.form-control {
+    border: 2px solid var(--stone-gray);
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+}
+
+.form-control:focus {
+    border-color: var(--grass-green);
+    box-shadow: 0 0 0 0.25rem rgba(91, 174, 74, 0.25);
+}
+
+.form-label {
+    font-size: 20px;
+    color: var(--dirt-brown);
+}
+
+/* Category sidebar */
+.category-list {
+    background-color: white;
+    border: 3px solid var(--stone-gray);
+    padding: 15px;
+}
+
+.category-list-title {
+    font-size: 24px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.category-list-item {
+    display: block;
+    padding: 8px 15px;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.category-list-item:hover,
+.category-list-item.active {
+    background-color: #f5f5f5;
+    border-left-color: var(--grass-green);
+    color: var(--dirt-brown);
+    font-weight: bold;
+}
+
+/* Search bar */
+.search-form {
+    margin-bottom: 30px;
+}
+
+.search-input {
+    padding: 10px 15px;
+    border: 3px solid var(--stone-gray);
+    font-size: 18px;
+}
+
+.search-btn {
+    padding: 10px 20px;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--dirt-brown);
+    color: white;
+    padding: 30px 0;
+    margin-top: 50px;
+    border-top: 4px solid #634731;
+}
+
+.footer a {
+    color: var(--accent-color);
+}
+
+/* Upload form preview */
+#imagePreview {
+    max-width: 100%;
+    max-height: 300px;
+    display: none;
+    margin-top: 15px;
+    border: 3px solid var(--stone-gray);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .gallery-item img {
+        height: 180px;
+    }
+    
+    h1 {
+        font-size: 32px;
+    }
+    
+    .navbar-brand img {
+        height: 30px;
+    }
+}
+
+/* Flash messages */
+.alert {
+    border-radius: 0;
+    border-width: 3px;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+}
+
+.alert-success {
+    background-color: var(--grass-green);
+    border-color: #3e8234;
+    color: white;
+}
+
+.alert-danger {
+    background-color: #c64343;
+    border-color: #a13232;
+    color: white;
+}
+
+/* Lightbox custom styling */
+.ekko-lightbox .modal-content {
+    border-radius: 0;
+    border: 4px solid var(--stone-gray);
+}
+
+.ekko-lightbox .modal-header {
+    background-color: var(--dirt-brown);
+    color: white;
+    border-bottom: 4px solid #634731;
+}
+
+.ekko-lightbox .modal-title {
+    font-family: 'VT323', monospace;
+    text-transform: uppercase;
+}
+
+.ekko-lightbox .close {
+    color: white;
+}

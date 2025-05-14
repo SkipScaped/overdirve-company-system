@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60">
+  <style>
+    .minecraft-text {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 36px;
+      fill: #52A33C;
+      text-shadow: 2px 2px #333;
+    }
+    .smp-text {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 24px;
+      fill: #8C5A2D;
+    }
+    .gallery-text {
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      fill: #555;
+    }
+  </style>
+  <rect x="5" y="5" width="290" height="50" rx="5" ry="5" fill="#222" stroke="#555" stroke-width="2"/>
+  <text x="20" y="40" class="minecraft-text">MINECRAFT</text>
+  <text x="190" y="33" class="smp-text">SMP</text>
+  <text x="190" y="50" class="gallery-text">Gallery</text>
+  
+  <!-- Pickaxe icon -->
+  <g transform="translate(250, 30) scale(0.5) rotate(45)">
+    <rect x="-5" y="-25" width="10" height="50" fill="#8C5A2D"/>
+    <rect x="-15" y="-25" width="30" height="10" fill="#777"/>
+  </g>
+</svg>

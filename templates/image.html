@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ image.title }} - Private Java SMP Gallery{% endblock %}
+
+{% block content %}
+    <div class="image-detail-container">
+        <div class="row">
+            <div class="col-md-12">
+                <h1>{{ image.title }}</h1>
+                
+                <div class="image-meta">
+                    <div class="badge bg-success mb-2">{{ image.category }}</div>
+                    <div><strong>Uploaded by:</strong> {{ image.uploader }}</div>
+                    <div><strong>Uploaded on:</strong> {{ image.uploaded_at }}</div>
+                </div>
+                
+                <img src="{{ image.filepath }}" alt="{{ image.title }}" class="image-detail-img">
+                
+                <div class="description mb-4">
+                    <h4>About this build/screenshot:</h4>
+                    <p>{{ image.description }}</p>
+                </div>
+                
+                <hr>
+                
+                <!-- Comments Section -->
+                <div class="comments-section">
+                    <h3><i class="fas fa-comments"></i> Comments ({{ comments|length }})</h3>
+                    
+                    <!-- Comment Form -->
+                    <div class="comment-form mb-4">
+                        <form method="POST">
+                            {{ form.csrf_token }}
+                            
+                            <div class="mb-3">
+                                <label for="username" class="form-label">{{ form.username.label }}</label>
+                                {{ form.username(class="form-control", placeholder="Your Minecraft username") }}
+                                {% if form.username.errors %}
+                                    <div class="alert alert-danger mt-2">
+                                        {% for error in form.username.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="text" class="form-label">{{ form.text.label }}</label>
+                                {{ form.text(class="form-control", rows="3", placeholder="Share your thoughts about this image...") }}
+                                {% if form.text.errors %}
+                                    <div class="alert alert-danger mt-2">
+                                        {% for error in form.text.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {{ form.submit(class="btn btn-minecraft") }}
+                        </form>
+                    </div>
+                    
+                    <!-- Comments List -->
+                    {% if comments %}
+                        {% for comment in comments %}
+                            <div class="comment">
+                                <div class="comment-meta">
+                                    <span class="comment-username">{{ comment.username }}</span>
+                                    <span class="comment-date">{{ comment.created_at }}</span>
+                                </div>
+                                <div class="comment-text">
+                                    {{ comment.text }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-light">
+                            <i class="fas fa-info-circle"></i> No comments yet. Be the first to comment!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Gallery
+            </a>
+        </div>
+    </div>
+{% endblock %}

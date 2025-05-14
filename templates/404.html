@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Not Found - Private Java SMP Gallery{% endblock %}
+
+{% block content %}
+    <div class="text-center">
+        <h1><i class="fas fa-exclamation-triangle"></i> 404 - Page Not Found</h1>
+        
+        <div class="my-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                <!-- Creeper face SVG -->
+                <rect width="200" height="200" fill="#5bae4a"/>
+                <!-- Eyes -->
+                <rect x="40" y="60" width="40" height="40" fill="#222"/>
+                <rect x="120" y="60" width="40" height="40" fill="#222"/>
+                <!-- Mouth -->
+                <rect x="80" y="100" width="40" height="40" fill="#222"/>
+                <rect x="60" y="120" width="20" height="40" fill="#222"/>
+                <rect x="120" y="120" width="20" height="40" fill="#222"/>
+            </svg>
+        </div>
+        
+        <p class="lead">Oops! Looks like the page you're looking for has been blown up by a creeper!</p>
+        
+        <div class="mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-minecraft">
+                <i class="fas fa-home"></i> Return to Homepage
+            </a>
+        </div>
+    </div>
+{% endblock %}
