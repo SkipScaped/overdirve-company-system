@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
@@ -32,6 +33,18 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(user_id)
+
 # Configuration for file uploads
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -50,6 +63,134 @@ from utils import allowed_file, get_categories
 with app.app_context():
     db.create_all()
     initialize_sample_data()
+
+# Authentication routes
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
+    from forms import RegistrationForm
+    form = RegistrationForm()
+    
+    if form.validate_on_submit():
+        from models import User
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            password=form.password.data,
+            minecraft_username=form.minecraft_username.data
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        flash('Your account has been created! You can now log in.', 'success')
+        return redirect(url_for('login'))
+    
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('auth/register.html', form=form, categories=categories)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    from forms import LoginForm
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        from models import User
+        user = User.query.filter_by(email=form.email.data).first()
+        
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next')
+            flash('You have been logged in!', 'success')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+        else:
+            flash('Login unsuccessful. Please check your email and password.', 'danger')
+    
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('auth/login.html', form=form, categories=categories)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    images = load_images()
+    categories = get_categories(images)
+    
+    # Get user's uploaded images
+    user_images = [img for img in images if img.get('user_id') == current_user.id]
+    
+    return render_template('auth/profile.html', user=current_user, 
+                           user_images=user_images, categories=categories)
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    from forms import ProfileForm
+    form = ProfileForm(original_username=current_user.username, original_email=current_user.email)
+    
+    if form.validate_on_submit():
+        if form.profile_pic.data:
+            # Save profile picture
+            filename = secure_filename(form.profile_pic.data.filename)
+            extension = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"profile_{current_user.id}.{extension}"
+            
+            # Save the file
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            form.profile_pic.data.save(filepath)
+            
+            # Update user profile pic path
+            current_user.profile_pic = '/'.join(['static', 'uploads', unique_filename])
+        
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        current_user.minecraft_username = form.minecraft_username.data
+        current_user.bio = form.bio.data
+        
+        db.session.commit()
+        flash('Your profile has been updated!', 'success')
+        return redirect(url_for('profile'))
+    
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+        form.minecraft_username.data = current_user.minecraft_username
+        form.bio.data = current_user.bio
+    
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('auth/edit_profile.html', form=form, categories=categories)
+
+@app.route('/profile/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    from forms import ChangePasswordForm
+    form = ChangePasswordForm()
+    
+    if form.validate_on_submit():
+        if current_user.check_password(form.current_password.data):
+            current_user.set_password(form.new_password.data)
+            db.session.commit()
+            flash('Your password has been updated!', 'success')
+            return redirect(url_for('profile'))
+        else:
+            flash('Current password is incorrect.', 'danger')
+    
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('auth/change_password.html', form=form, categories=categories)
 
 # Routes
 @app.route('/')
