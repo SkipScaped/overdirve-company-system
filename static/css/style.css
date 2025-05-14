@@ -2,18 +2,27 @@
 
 /* Minecraft Font */
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Minecraft&display=swap');
 
 :root {
-    /* Minecraft color palette */
+    /* Minecraft color palette - enhanced */
     --grass-green: #5bae4a;
+    --grass-hover: #4a9e3a;
     --dirt-brown: #856043;
+    --dirt-brown-hover: #795839;
     --stone-gray: #828282;
     --wood-brown: #a0734c;
     --water-blue: #3d75c0;
+    --water-hover: #3468ad;
     --text-color: #322b24;
     --accent-color: #f9c042;
+    --accent-hover: #f8b522;
+    --redstone: #ff3d00;
+    --diamond: #00cfcf;
     --bg-dark: #222222;
+    --creeper-green: #52e069;
     --shadow: rgba(0, 0, 0, 0.2);
+    --pixel-border: 3px;
 }
 
 body {
@@ -50,10 +59,10 @@ h1 {
     text-shadow: 2px 2px 0px var(--shadow);
 }
 
-/* Minecraft-style buttons */
+/* Minecraft-style buttons with pixel perfect borders */
 .btn-minecraft {
     background-color: var(--grass-green);
-    border: 3px solid #3e8234;
+    border: var(--pixel-border) solid #3e8234;
     color: white;
     font-family: 'VT323', monospace;
     font-size: 20px;
@@ -61,18 +70,42 @@ h1 {
     letter-spacing: 1px;
     padding: 8px 18px;
     transition: all 0.2s;
+    position: relative;
+    border-radius: 0;
+    box-shadow: inset -2px -2px 0 rgba(0,0,0,0.3);
 }
 
 .btn-minecraft:hover {
-    background-color: #489e3b;
+    background-color: var(--grass-hover);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--shadow);
+    box-shadow: 0 4px 8px var(--shadow), inset -2px -2px 0 rgba(0,0,0,0.3);
     color: white;
 }
 
 .btn-minecraft:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px var(--shadow);
+    box-shadow: 0 2px 4px var(--shadow), inset 2px 2px 0 rgba(0,0,0,0.3);
+}
+
+/* Additional button variants */
+.btn-minecraft-blue {
+    background-color: var(--water-blue);
+    border-color: #2a5d9c;
+}
+
+.btn-minecraft-blue:hover {
+    background-color: var(--water-hover);
+}
+
+.btn-minecraft-gold {
+    background-color: var(--accent-color);
+    border-color: #d9a639;
+    color: var(--text-color);
+}
+
+.btn-minecraft-gold:hover {
+    background-color: var(--accent-hover);
+    color: var(--text-color);
 }
 
 /* Navbar styling */
@@ -98,15 +131,30 @@ h1 {
     transform: scale(1.05);
 }
 
-/* Image Gallery */
+/* Image Gallery - Minecraft blocks style */
 .gallery-item {
     margin-bottom: 30px;
     transition: all 0.3s;
     background-color: white;
-    border: 3px solid var(--stone-gray);
+    border: var(--pixel-border) solid var(--stone-gray);
     box-shadow: 0 5px 15px var(--shadow);
     height: 100%;
     position: relative;
+    overflow: hidden;
+    /* Pixel-perfect borders */
+    image-rendering: pixelated;
+}
+
+.gallery-item:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,0.1);
+    pointer-events: none;
+    z-index: 1;
 }
 
 .gallery-item:hover {
@@ -115,11 +163,20 @@ h1 {
     border-color: var(--grass-green);
 }
 
+.gallery-item:hover:before {
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,0.2);
+}
+
 .gallery-item img {
     width: 100%;
     height: 200px;
     object-fit: cover;
-    border-bottom: 3px solid var(--stone-gray);
+    border-bottom: var(--pixel-border) solid var(--stone-gray);
+    transition: all 0.3s;
+}
+
+.gallery-item:hover img {
+    filter: brightness(1.1);
 }
 
 .gallery-item-caption {
@@ -284,34 +341,86 @@ h1 {
     border: 3px solid var(--stone-gray);
 }
 
-/* User profile styles */
+/* User profile styles - Minecraft player card */
 .profile-card {
-    border: 3px solid var(--stone-gray);
+    border: var(--pixel-border) solid var(--stone-gray);
     background-color: white;
     transition: all 0.3s;
+    position: relative;
+    box-shadow: 0 5px 10px var(--shadow);
+}
+
+.profile-card:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,0.2);
+    pointer-events: none;
+    z-index: 1;
 }
 
 .profile-card:hover {
-    box-shadow: 0 5px 15px var(--shadow);
+    box-shadow: 0 8px 20px var(--shadow);
     transform: translateY(-5px);
     border-color: var(--grass-green);
 }
 
 .profile-image {
-    border: 4px solid var(--grass-green);
+    border: var(--pixel-border) solid var(--grass-green);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+    image-rendering: pixelated;
+}
+
+.profile-card:hover .profile-image {
+    transform: scale(1.05);
+    border-color: var(--diamond);
 }
 
 .profile-username {
     font-family: 'VT323', monospace;
     font-size: 28px;
     color: var(--dirt-brown);
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+    letter-spacing: 1px;
 }
 
 .profile-bio {
     background-color: #f5f5f5;
     padding: 15px;
     border-radius: 0;
-    border-left: 4px solid var(--grass-green);
+    border-left: var(--pixel-border) solid var(--grass-green);
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,0.5);
+    position: relative;
+}
+
+.profile-bio:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 15px;
+    height: 15px;
+    background-color: var(--grass-green);
+    opacity: 0.3;
+    clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+}
+
+/* Minecraft stats display */
+.profile-stats {
+    background-color: rgba(0,0,0,0.05);
+    border: var(--pixel-border) solid rgba(0,0,0,0.1);
+    padding: 10px 0;
+    margin: 0 10px 20px;
+}
+
+.profile-stats h4 {
+    color: var(--dirt-brown);
+    margin-bottom: 0;
+    font-size: 22px;
 }
 
 .minecraft-form .form-control:focus {
