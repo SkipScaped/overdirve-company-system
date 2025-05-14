@@ -8,9 +8,15 @@
     <p class="lead">Welcome to our Private Java SMP Gallery! Browse amazing builds, landscapes, and server pictures from our Minecraft community.</p>
     
     <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
-        <a href="{{ url_for('upload') }}" class="btn btn-minecraft">
-            <i class="fas fa-upload"></i> Upload Image
-        </a>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('upload') }}" class="btn btn-minecraft">
+                <i class="fas fa-upload"></i> Upload Image
+            </a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-minecraft">
+                <i class="fas fa-sign-in-alt"></i> Login to Upload
+            </a>
+        {% endif %}
     </div>
     
     {% if images %}

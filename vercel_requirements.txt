@@ -1,0 +1,13 @@
+email-validator
+flask
+flask-dance
+flask-login
+flask-sqlalchemy
+flask-wtf
+gunicorn
+oauthlib
+psycopg2-binary
+pyjwt
+sqlalchemy
+werkzeug
+wtforms
