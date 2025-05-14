@@ -19,7 +19,12 @@
                             <div class="gallery-item-category">{{ image.category }}</div>
                             <h3 class="gallery-item-title">{{ image.title }}</h3>
                             <div class="gallery-item-uploader">
-                                <i class="fas fa-user"></i> {{ image.uploader }}
+                                <i class="fas fa-user"></i> 
+                                {% if image.user_id %}
+                                    <a href="{{ url_for('user_profile', user_id=image.user_id) }}">{{ image.uploader }}</a>
+                                {% else %}
+                                    {{ image.uploader }}
+                                {% endif %}
                             </div>
                             <p class="gallery-item-description">{{ image.description|truncate(100) }}</p>
                             <a href="{{ url_for('image_detail', image_id=image.id) }}" class="btn btn-sm btn-minecraft">

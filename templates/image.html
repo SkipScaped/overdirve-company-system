@@ -10,7 +10,14 @@
                 
                 <div class="image-meta">
                     <div class="badge bg-success mb-2">{{ image.category }}</div>
-                    <div><strong>Uploaded by:</strong> {{ image.uploader }}</div>
+                    <div>
+                        <strong>Uploaded by:</strong> 
+                        {% if image.user_id %}
+                            <a href="{{ url_for('user_profile', user_id=image.user_id) }}">{{ image.uploader }}</a>
+                        {% else %}
+                            {{ image.uploader }}
+                        {% endif %}
+                    </div>
                     <div><strong>Uploaded on:</strong> {{ image.uploaded_at }}</div>
                 </div>
                 
@@ -65,7 +72,13 @@
                         {% for comment in comments %}
                             <div class="comment">
                                 <div class="comment-meta">
-                                    <span class="comment-username">{{ comment.username }}</span>
+                                    <span class="comment-username">
+                                        {% if comment.user_id %}
+                                            <a href="{{ url_for('user_profile', user_id=comment.user_id) }}">{{ comment.username }}</a>
+                                        {% else %}
+                                            {{ comment.username }}
+                                        {% endif %}
+                                    </span>
                                     <span class="comment-date">{{ comment.created_at }}</span>
                                 </div>
                                 <div class="comment-text">

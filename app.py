@@ -125,6 +125,7 @@ def logout():
 @app.route('/profile')
 @login_required
 def profile():
+    """View current user's profile"""
     images = load_images()
     categories = get_categories(images)
     
@@ -132,6 +133,24 @@ def profile():
     user_images = [img for img in images if img.get('user_id') == current_user.id]
     
     return render_template('auth/profile.html', user=current_user, 
+                           user_images=user_images, categories=categories)
+
+@app.route('/user/<user_id>')
+def user_profile(user_id):
+    """View another user's profile"""
+    from models import User
+    user = User.query.get(user_id)
+    if not user:
+        flash('User not found', 'danger')
+        return redirect(url_for('index'))
+    
+    images = load_images()
+    categories = get_categories(images)
+    
+    # Get user's uploaded images
+    user_images = [img for img in images if img.get('user_id') == user.id]
+    
+    return render_template('auth/profile.html', user=user, 
                            user_images=user_images, categories=categories)
 
 @app.route('/profile/edit', methods=['GET', 'POST'])
@@ -263,13 +282,18 @@ def image_detail(image_id):
     image_comments = get_comments_for_image(image_id)
     
     form = CommentForm()
+    # Pre-fill username if logged in
+    if current_user.is_authenticated and not form.username.data:
+        form.username.data = current_user.username
+        
     if form.validate_on_submit():
         comment_data = {
             'id': str(uuid.uuid4()),
             'image_id': image_id,
             'username': form.username.data,
             'text': form.text.data,
-            'created_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat(),
+            'user_id': current_user.id if current_user.is_authenticated else None
         }
         save_comment(comment_data)
         flash('Comment added!', 'success')
