@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile - Private Java SMP Gallery{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1><i class="fas fa-user-edit"></i> Edit Profile</h1>
+        
+        <form method="POST" enctype="multipart/form-data" class="minecraft-form">
+            {{ form.csrf_token }}
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <img src="{{ url_for('static', filename=current_user.profile_pic.replace('static/', '')) if current_user.profile_pic.startswith('static/') else current_user.profile_pic }}" 
+                             alt="{{ current_user.username }}" id="profile-preview" class="img-thumbnail mb-2" style="width: 150px; height: 150px; object-fit: cover;">
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.profile_pic.id }}" class="form-label">{{ form.profile_pic.label }}</label>
+                            {{ form.profile_pic(class="form-control" + (" is-invalid" if form.profile_pic.errors else "")) }}
+                            {% if form.profile_pic.errors %}
+                                {% for error in form.profile_pic.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                            <div class="form-text">JPG, PNG, GIF, or WEBP - Max 2MB</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="{{ form.username.id }}" class="form-label">{{ form.username.label }}</label>
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                        {% if form.username.errors %}
+                            {% for error in form.username.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.email.id }}" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                            {% for error in form.email.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.minecraft_username.id }}" class="form-label">{{ form.minecraft_username.label }}</label>
+                        {{ form.minecraft_username(class="form-control" + (" is-invalid" if form.minecraft_username.errors else "")) }}
+                        {% if form.minecraft_username.errors %}
+                            {% for error in form.minecraft_username.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.bio.id }}" class="form-label">{{ form.bio.label }}</label>
+                {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""), rows=4, placeholder="Tell us about yourself and your Minecraft experience...") }}
+                {% if form.bio.errors %}
+                    {% for error in form.bio.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                {% endif %}
+                <div class="form-text">Maximum 500 characters</div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Profile
+                </a>
+                {{ form.submit(class="btn btn-minecraft") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const profileInput = document.getElementById('{{ form.profile_pic.id }}');
+        const profilePreview = document.getElementById('profile-preview');
+        
+        profileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    profilePreview.setAttribute('src', e.target.result);
+                }
+                
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -38,13 +38,46 @@
                             <i class="fas fa-upload"></i> Upload
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://private-java-smp.vercel.app" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-globe"></i> Main Website
+                        </a>
+                    </li>
                 </ul>
-                <form class="d-flex search-form" action="{{ url_for('search') }}" method="get">
-                    <input class="form-control me-2 search-input" type="search" name="q" placeholder="Search images..." aria-label="Search">
-                    <button class="btn btn-minecraft search-btn" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </form>
+                
+                <div class="d-flex align-items-center">
+                    <form class="d-flex search-form me-2" action="{{ url_for('search') }}" method="get">
+                        <input class="form-control me-2 search-input" type="search" name="q" placeholder="Search images..." aria-label="Search">
+                        <button class="btn btn-minecraft search-btn" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="nav-item dropdown">
+                        {% if current_user.is_authenticated %}
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="{{ url_for('static', filename=current_user.profile_pic.replace('static/', '')) if current_user.profile_pic.startswith('static/') else current_user.profile_pic }}" 
+                                     alt="{{ current_user.username }}" width="30" height="30" class="rounded-circle border border-light me-1">
+                                {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('edit_profile') }}"><i class="fas fa-user-edit"></i> Edit Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                            </ul>
+                        {% else %}
+                            <div class="d-flex">
+                                <a href="{{ url_for('login') }}" class="btn btn-outline-light me-2">
+                                    <i class="fas fa-sign-in-alt"></i> Login
+                                </a>
+                                <a href="{{ url_for('register') }}" class="btn btn-minecraft">
+                                    <i class="fas fa-user-plus"></i> Sign Up
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </nav>

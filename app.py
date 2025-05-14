@@ -200,8 +200,13 @@ def index():
     return render_template('index.html', images=images, categories=categories)
 
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     form = UploadForm()
+    # Pre-fill uploader with current user's username
+    if not form.uploader.data and current_user.is_authenticated:
+        form.uploader.data = current_user.username
+        
     if form.validate_on_submit():
         # Check if the post request has the file part
         if 'image' not in request.files:
@@ -234,7 +239,8 @@ def upload():
                 'filename': unique_filename,
                 'filepath': '/'.join(['static', 'uploads', unique_filename]),  # Web path
                 'uploaded_at': datetime.now().isoformat(),
-                'uploader': form.uploader.data
+                'uploader': form.uploader.data,
+                'user_id': current_user.id if current_user.is_authenticated else None
             }
             
             save_image(image_data)

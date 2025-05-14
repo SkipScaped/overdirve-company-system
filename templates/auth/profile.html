@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.username }}'s Profile - Private Java SMP Gallery{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="profile-card p-4 bg-white border rounded shadow-sm">
+            <div class="text-center mb-4">
+                <img src="{{ url_for('static', filename=user.profile_pic.replace('static/', '')) if user.profile_pic.startswith('static/') else user.profile_pic }}" 
+                     alt="{{ user.username }}" class="profile-image img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                <h2 class="profile-username">{{ user.username }}</h2>
+                {% if user.minecraft_username %}
+                    <p class="text-muted">Minecraft: {{ user.minecraft_username }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="profile-stats d-flex justify-content-around mb-4">
+                <div class="text-center">
+                    <h4>{{ user_images|length }}</h4>
+                    <small class="text-muted">Uploads</small>
+                </div>
+                <div class="text-center">
+                    <h4>{{ user.created_at.strftime('%d %b %Y') }}</h4>
+                    <small class="text-muted">Joined</small>
+                </div>
+            </div>
+            
+            {% if user.bio %}
+                <div class="profile-bio mb-4">
+                    <h5>About Me</h5>
+                    <p>{{ user.bio }}</p>
+                </div>
+            {% endif %}
+            
+            <div class="profile-actions d-grid gap-2">
+                {% if current_user.id == user.id %}
+                    <a href="{{ url_for('edit_profile') }}" class="btn btn-minecraft">
+                        <i class="fas fa-user-edit"></i> Edit Profile
+                    </a>
+                    <a href="{{ url_for('change_password') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-key"></i> Change Password
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <h3><i class="fas fa-camera-retro"></i> {{ user.username }}'s Uploads</h3>
+        
+        {% if user_images %}
+            <div class="row row-cols-1 row-cols-md-2 g-4">
+                {% for image in user_images %}
+                    <div class="col">
+                        <div class="gallery-item">
+                            <a href="{{ url_for('image_detail', image_id=image.id) }}" data-toggle="lightbox" data-title="{{ image.title }}">
+                                <img src="{{ image.filepath }}" alt="{{ image.title }}" class="img-fluid">
+                            </a>
+                            <div class="gallery-item-caption">
+                                <div class="gallery-item-category">{{ image.category }}</div>
+                                <h3 class="gallery-item-title">{{ image.title }}</h3>
+                                <p class="gallery-item-description">{{ image.description|truncate(100) }}</p>
+                                <a href="{{ url_for('image_detail', image_id=image.id) }}" class="btn btn-sm btn-minecraft">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-light">
+                <i class="fas fa-info-circle"></i> No images have been uploaded yet.
+                {% if current_user.id == user.id %}
+                    <a href="{{ url_for('upload') }}" class="alert-link">Upload your first image!</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
