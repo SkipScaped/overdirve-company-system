@@ -3,20 +3,97 @@
 {% block title %}Private Java SMP Gallery - Home{% endblock %}
 
 {% block content %}
-    <h1><i class="fas fa-cubes"></i> Minecraft SMP Gallery</h1>
+    <h1><i class="fas fa-cubes"></i> Private Java SMP</h1>
     
-    <p class="lead">Welcome to our Private Java SMP Gallery! Browse amazing builds, landscapes, and server pictures from our Minecraft community.</p>
+    <p class="lead">Welcome to our Private Java SMP! Browse amazing builds, landscapes, and server pictures from our Minecraft community.</p>
     
-    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('upload') }}" class="btn btn-minecraft">
-                <i class="fas fa-upload"></i> Upload Image
-            </a>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="btn btn-minecraft">
-                <i class="fas fa-sign-in-alt"></i> Login to Upload
-            </a>
-        {% endif %}
+    <!-- Server Info Section -->
+    <div class="server-info-container mb-5">
+        <div class="row">
+            <div class="col-md-7">
+                <div class="minecraft-container server-about p-4">
+                    <h2><i class="fas fa-server"></i> About Our Server</h2>
+                    <p>Join our active Minecraft SMP community with amazing builds, friendly players, and regular events!</p>
+                    
+                    <div class="server-features mb-4">
+                        <h3><i class="fas fa-star"></i> Server Features</h3>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Survival gameplay with land protection</li>
+                            <li><i class="fas fa-check"></i> Active community with friendly players</li>
+                            <li><i class="fas fa-check"></i> Regular events and competitions</li>
+                            <li><i class="fas fa-check"></i> Custom plugins and features</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="join-server">
+                        <h3><i class="fas fa-sign-in-alt"></i> Join Now!</h3>
+                        <div class="d-flex align-items-center server-ip-display">
+                            <div class="server-ip-box">
+                                <span id="serverIpHome">private-java-smp.aternos.me:40115</span>
+                            </div>
+                            <button class="btn btn-minecraft ms-3" onclick="copyIp()">
+                                <i class="fas fa-copy"></i> Copy IP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-5">
+                <div class="minecraft-container p-4">
+                    <h2><i class="fas fa-crown"></i> VIP Ranks</h2>
+                    <p>Support our server and get exclusive perks!</p>
+                    
+                    <div class="vip-ranks" id="vip">
+                        <div class="vip-rank mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ url_for('static', filename='images/vip/vip_gold.png') }}" alt="VIP Gold" class="vip-icon">
+                                <div class="ms-3">
+                                    <h4 class="vip-title gold-title">VIP GOLD</h4>
+                                    <ul class="vip-features">
+                                        <li>All Bronze features</li>
+                                        <li>Teleport anywhere</li>
+                                        <li>Custom colored name</li>
+                                        <li>Access to fly mode</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="vip-rank">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ url_for('static', filename='images/vip/vip_bronze.png') }}" alt="VIP Bronze" class="vip-icon">
+                                <div class="ms-3">
+                                    <h4 class="vip-title bronze-title">VIP BRONZE</h4>
+                                    <ul class="vip-features">
+                                        <li>Custom prefix</li>
+                                        <li>More land claims</li>
+                                        <li>Extra item storage</li>
+                                        <li>Access to /heal command</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gallery Section -->
+    <div class="gallery-header d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-images"></i> Gallery</h2>
+        <div>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('upload') }}" class="btn btn-minecraft">
+                    <i class="fas fa-upload"></i> Upload Image
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-minecraft">
+                    <i class="fas fa-sign-in-alt"></i> Login to Upload
+                </a>
+            {% endif %}
+        </div>
     </div>
     
     <!-- React Gallery -->
@@ -58,4 +135,72 @@
             </div>
         {% endif %}
     </noscript>
+    
+    <!-- Shop Section -->
+    <div id="shop" class="mt-5 pt-3">
+        <h2><i class="fas fa-shopping-cart"></i> Server Shop</h2>
+        <p class="lead">Check out our server shop items!</p>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            <div class="col">
+                <div class="shop-item">
+                    <div class="shop-item-img">
+                        <img src="{{ url_for('static', filename='images/vip/vip_gold.png') }}" alt="VIP Gold" class="img-fluid">
+                    </div>
+                    <div class="shop-item-content">
+                        <h3 class="shop-item-title">VIP Gold Rank</h3>
+                        <p class="shop-item-price">$10.00</p>
+                        <button class="btn btn-minecraft w-100">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="shop-item">
+                    <div class="shop-item-img">
+                        <img src="{{ url_for('static', filename='images/vip/vip_bronze.png') }}" alt="VIP Bronze" class="img-fluid">
+                    </div>
+                    <div class="shop-item-content">
+                        <h3 class="shop-item-title">VIP Bronze Rank</h3>
+                        <p class="shop-item-price">$5.00</p>
+                        <button class="btn btn-minecraft w-100">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="shop-item">
+                    <div class="shop-item-img minecraft-item">
+                        <i class="fas fa-gem fa-4x"></i>
+                    </div>
+                    <div class="shop-item-content">
+                        <h3 class="shop-item-title">5,000 Game Coins</h3>
+                        <p class="shop-item-price">$3.00</p>
+                        <button class="btn btn-minecraft w-100">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col">
+                <div class="shop-item">
+                    <div class="shop-item-img minecraft-item">
+                        <i class="fas fa-home fa-4x"></i>
+                    </div>
+                    <div class="shop-item-content">
+                        <h3 class="shop-item-title">Extra Land Claims</h3>
+                        <p class="shop-item-price">$2.00</p>
+                        <button class="btn btn-minecraft w-100">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

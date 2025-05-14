@@ -1,5 +1,31 @@
 // Minecraft SMP Gallery - Custom JavaScript
 
+// Function to copy the server IP to clipboard
+function copyIp() {
+    const serverIp = document.getElementById('serverIp').textContent;
+    navigator.clipboard.writeText(serverIp).then(function() {
+        // Create a toast notification
+        const toast = document.createElement('div');
+        toast.className = 'minecraft-toast';
+        toast.innerHTML = '<i class="fas fa-check-circle"></i> Server IP copied to clipboard!';
+        document.body.appendChild(toast);
+        
+        // Show and hide toast
+        setTimeout(function() {
+            toast.classList.add('show');
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    document.body.removeChild(toast);
+                }, 500);
+            }, 2000);
+        }, 100);
+    });
+}
+
+// Make copyIp function global
+window.copyIp = copyIp;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Image upload preview
     const imageInput = document.getElementById('image');

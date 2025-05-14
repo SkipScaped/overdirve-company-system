@@ -1,4 +1,4 @@
-/* Minecraft SMP Gallery - Custom CSS */
+/* Private Java SMP - Custom CSS */
 
 /* Minecraft Font */
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
@@ -23,6 +23,8 @@
     --creeper-green: #52e069;
     --shadow: rgba(0, 0, 0, 0.2);
     --pixel-border: 3px;
+    --gold: #FFD700;
+    --bronze: #CD7F32;
 }
 
 body {
@@ -330,6 +332,37 @@ h1 {
 
 .footer a {
     color: var(--accent-color);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.footer a:hover {
+    color: white;
+    text-decoration: none;
+}
+
+.footer-links {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.footer-links li {
+    margin-bottom: 8px;
+}
+
+.footer-links i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.server-ip-footer {
+    background-color: rgba(0,0,0,0.3);
+    padding: 8px 12px;
+    border-radius: 0;
+    margin-top: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
 }
 
 /* Upload form preview */
@@ -442,6 +475,183 @@ h1 {
     color: white;
 }
 
+/* Server Info Styles */
+.server-info-container {
+    margin-top: 30px;
+}
+
+.server-about {
+    height: 100%;
+}
+
+.feature-list {
+    list-style-type: none;
+    padding-left: 10px;
+}
+
+.feature-list li {
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.feature-list i {
+    color: var(--grass-green);
+    margin-right: 8px;
+}
+
+.server-ip-display {
+    margin-top: 15px;
+}
+
+.server-ip-box {
+    background-color: var(--bg-dark);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 0;
+    border: var(--pixel-border) solid var(--stone-gray);
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    letter-spacing: 1px;
+    position: relative;
+    flex-grow: 1;
+}
+
+/* VIP Rank Styles */
+.vip-ranks {
+    margin-top: 20px;
+}
+
+.vip-rank {
+    background-color: rgba(0,0,0,0.05);
+    border: var(--pixel-border) solid rgba(0,0,0,0.1);
+    padding: 15px;
+    border-radius: 0;
+    transition: all 0.3s;
+}
+
+.vip-rank:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px var(--shadow);
+}
+
+.vip-icon {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    border-radius: 50%;
+}
+
+.vip-title {
+    font-size: 22px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
+}
+
+.gold-title {
+    color: var(--gold);
+}
+
+.bronze-title {
+    color: var(--bronze);
+}
+
+.vip-features {
+    list-style-type: none;
+    padding-left: 0;
+    font-size: 14px;
+}
+
+.vip-features li {
+    margin-bottom: 3px;
+}
+
+.vip-features li:before {
+    content: '✓';
+    color: var(--grass-green);
+    margin-right: 5px;
+}
+
+/* Shop Item Styles */
+.shop-item {
+    background-color: white;
+    border: var(--pixel-border) solid var(--stone-gray);
+    transition: all 0.3s;
+    height: 100%;
+    box-shadow: 0 5px 15px var(--shadow);
+    overflow: hidden;
+}
+
+.shop-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px var(--shadow);
+    border-color: var(--grass-green);
+}
+
+.shop-item-img {
+    padding: 20px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0,0,0,0.03);
+    border-bottom: var(--pixel-border) solid var(--stone-gray);
+}
+
+.shop-item-img img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.minecraft-item {
+    color: var(--accent-color);
+}
+
+.shop-item-content {
+    padding: 15px;
+}
+
+.shop-item-title {
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.shop-item-price {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--dirt-brown);
+    margin-bottom: 15px;
+}
+
+/* Toast notification */
+.minecraft-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background-color: var(--grass-green);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 0;
+    border: var(--pixel-border) solid #3e8234;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    z-index: 9999;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.minecraft-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.minecraft-toast i {
+    margin-right: 8px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 992px) {
     .gallery-item img {
@@ -458,6 +668,15 @@ h1 {
     
     .search-form {
         margin-bottom: 10px;
+    }
+    
+    .vip-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .shop-item-img {
+        height: 150px;
     }
 }
 
@@ -481,6 +700,10 @@ h1 {
     .profile-card {
         margin-bottom: 20px;
     }
+    
+    .server-about {
+        margin-bottom: 20px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -501,6 +724,15 @@ h1 {
     }
     
     .gallery-item-description {
+        font-size: 14px;
+    }
+    
+    .server-ip-display {
+        flex-direction: column;
+    }
+    
+    .server-ip-box {
+        margin-bottom: 10px;
         font-size: 14px;
     }
 }
