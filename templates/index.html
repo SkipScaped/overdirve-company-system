@@ -39,44 +39,6 @@
                 </div>
             </div>
             
-            <div class="col-md-5">
-                <div class="minecraft-container p-4">
-                    <h2><i class="fas fa-crown"></i> VIP Ranks</h2>
-                    <p>Support our server and get exclusive perks!</p>
-                    
-                    <div class="vip-ranks" id="vip">
-                        <div class="vip-rank mb-3">
-                            <div class="d-flex align-items-center">
-                                <img src="{{ url_for('static', filename='images/vip/vip_gold.png') }}" alt="VIP Gold" class="vip-icon">
-                                <div class="ms-3">
-                                    <h4 class="vip-title gold-title">VIP GOLD</h4>
-                                    <ul class="vip-features">
-                                        <li>All Bronze features</li>
-                                        <li>Teleport anywhere</li>
-                                        <li>Custom colored name</li>
-                                        <li>Access to fly mode</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="vip-rank">
-                            <div class="d-flex align-items-center">
-                                <img src="{{ url_for('static', filename='images/vip/vip_bronze.png') }}" alt="VIP Bronze" class="vip-icon">
-                                <div class="ms-3">
-                                    <h4 class="vip-title bronze-title">VIP BRONZE</h4>
-                                    <ul class="vip-features">
-                                        <li>Custom prefix</li>
-                                        <li>More land claims</li>
-                                        <li>Extra item storage</li>
-                                        <li>Access to /heal command</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
     
@@ -136,71 +98,5 @@
         {% endif %}
     </noscript>
     
-    <!-- Shop Section -->
-    <div id="shop" class="mt-5 pt-3">
-        <h2><i class="fas fa-shopping-cart"></i> Server Shop</h2>
-        <p class="lead">Check out our server shop items!</p>
-        
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
-            <div class="col">
-                <div class="shop-item">
-                    <div class="shop-item-img">
-                        <img src="{{ url_for('static', filename='images/vip/vip_gold.png') }}" alt="VIP Gold" class="img-fluid">
-                    </div>
-                    <div class="shop-item-content">
-                        <h3 class="shop-item-title">VIP Gold Rank</h3>
-                        <p class="shop-item-price">$10.00</p>
-                        <button class="btn btn-minecraft w-100">
-                            <i class="fas fa-shopping-cart"></i> Buy Now
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col">
-                <div class="shop-item">
-                    <div class="shop-item-img">
-                        <img src="{{ url_for('static', filename='images/vip/vip_bronze.png') }}" alt="VIP Bronze" class="img-fluid">
-                    </div>
-                    <div class="shop-item-content">
-                        <h3 class="shop-item-title">VIP Bronze Rank</h3>
-                        <p class="shop-item-price">$5.00</p>
-                        <button class="btn btn-minecraft w-100">
-                            <i class="fas fa-shopping-cart"></i> Buy Now
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col">
-                <div class="shop-item">
-                    <div class="shop-item-img minecraft-item">
-                        <i class="fas fa-gem fa-4x"></i>
-                    </div>
-                    <div class="shop-item-content">
-                        <h3 class="shop-item-title">5,000 Game Coins</h3>
-                        <p class="shop-item-price">$3.00</p>
-                        <button class="btn btn-minecraft w-100">
-                            <i class="fas fa-shopping-cart"></i> Buy Now
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col">
-                <div class="shop-item">
-                    <div class="shop-item-img minecraft-item">
-                        <i class="fas fa-home fa-4x"></i>
-                    </div>
-                    <div class="shop-item-content">
-                        <h3 class="shop-item-title">Extra Land Claims</h3>
-                        <p class="shop-item-price">$2.00</p>
-                        <button class="btn btn-minecraft w-100">
-                            <i class="fas fa-shopping-cart"></i> Buy Now
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  
 {% endblock %}
