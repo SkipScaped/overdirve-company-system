@@ -132,7 +132,8 @@ def save_image(image_data):
             filename=image_data['filename'],
             filepath=image_data['filepath'],
             uploaded_at=uploaded_at,
-            uploader=image_data['uploader']
+            uploader=image_data['uploader'],
+            user_id=image_data.get('user_id')
         )
         
         db.session.add(image)
