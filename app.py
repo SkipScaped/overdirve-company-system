@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
@@ -23,6 +24,7 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+csrf = CSRFProtect(app)
 
 # Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
