@@ -57,7 +57,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB upload
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Import other modules after db is initialized
-from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data, ServerConfig
+from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data, ServerConfig, DirectMessage, GroupMessage
 from forms import UploadForm, CommentForm
 from utils import allowed_file, get_categories
 from profanity import contains_profanity
@@ -294,7 +294,7 @@ def upload():
                 'description': form.description.data,
                 'category': form.category.data,
                 'filename': unique_filename,
-                'filepath': '/'.join(['static', 'uploads', unique_filename]),
+                'filepath': '/static/uploads/' + unique_filename,
                 'uploaded_at': datetime.now().isoformat(),
                 'uploader': form.uploader.data,
                 'user_id': current_user.id if current_user.is_authenticated else None
@@ -370,6 +370,77 @@ def search():
                query.lower() in img['category'].lower()]
     
     return render_template('search.html', query=query, images=results, categories=categories)
+
+# ─── Messaging routes ────────────────────────────────────────────────────────
+
+@app.route('/messages')
+@login_required
+def inbox():
+    from models import User
+    # Get all users this person has exchanged DMs with
+    sent = DirectMessage.query.filter_by(sender_id=current_user.id).all()
+    received = DirectMessage.query.filter_by(receiver_id=current_user.id).all()
+    partner_ids = set()
+    for m in sent:
+        partner_ids.add(m.receiver_id)
+    for m in received:
+        partner_ids.add(m.sender_id)
+    partners = User.query.filter(User.id.in_(partner_ids)).all() if partner_ids else []
+    # Unread count
+    unread = DirectMessage.query.filter_by(receiver_id=current_user.id, is_read=False).count()
+    all_users = User.query.filter(User.id != current_user.id).order_by(User.username).all()
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('messages/inbox.html', partners=partners, all_users=all_users,
+                           unread=unread, categories=categories)
+
+@app.route('/messages/<user_id>', methods=['GET', 'POST'])
+@login_required
+def conversation(user_id):
+    from models import User
+    other = User.query.get(user_id)
+    if not other:
+        flash('User not found.', 'danger')
+        return redirect(url_for('inbox'))
+    if request.method == 'POST':
+        text = request.form.get('text', '').strip()
+        if text:
+            if contains_profanity(text):
+                flash('Message contains inappropriate language.', 'danger')
+            else:
+                msg = DirectMessage(sender_id=current_user.id, receiver_id=user_id, text=text)
+                db.session.add(msg)
+                db.session.commit()
+        return redirect(url_for('conversation', user_id=user_id))
+    # Mark received messages as read
+    DirectMessage.query.filter_by(sender_id=user_id, receiver_id=current_user.id, is_read=False)\
+        .update({'is_read': True})
+    db.session.commit()
+    msgs = DirectMessage.query.filter(
+        ((DirectMessage.sender_id == current_user.id) & (DirectMessage.receiver_id == user_id)) |
+        ((DirectMessage.sender_id == user_id) & (DirectMessage.receiver_id == current_user.id))
+    ).order_by(DirectMessage.created_at.asc()).all()
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('messages/conversation.html', other=other, messages=msgs, categories=categories)
+
+@app.route('/chat', methods=['GET', 'POST'])
+@login_required
+def group_chat():
+    if request.method == 'POST':
+        text = request.form.get('text', '').strip()
+        if text:
+            if contains_profanity(text):
+                flash('Message contains inappropriate language.', 'danger')
+            else:
+                msg = GroupMessage(sender_id=current_user.id, text=text)
+                db.session.add(msg)
+                db.session.commit()
+        return redirect(url_for('group_chat'))
+    msgs = GroupMessage.query.order_by(GroupMessage.created_at.asc()).all()
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('messages/group_chat.html', messages=msgs, categories=categories)
 
 # ─── Admin routes ────────────────────────────────────────────────────────────
 

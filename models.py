@@ -128,6 +128,41 @@ class Comment(db.Model):
         }
 
 # Utility functions to work with the database
+class DirectMessage(db.Model):
+    __tablename__ = 'direct_messages'
+
+    id = db.Column(db.String(36), primary_key=True)
+    sender_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    receiver_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class GroupMessage(db.Model):
+    __tablename__ = 'group_messages'
+
+    id = db.Column(db.String(36), primary_key=True)
+    sender_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='group_messages')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
 def load_images():
     """Load all images from the database"""
     try:
