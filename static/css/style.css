@@ -777,3 +777,63 @@ h1 {
 .ekko-lightbox .close {
     color: white;
 }
+
+/* ── Admin Panel ── */
+.admin-card {
+    border: 3px solid var(--stone-gray);
+    border-radius: 0;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.admin-card .card-header {
+    background-color: var(--dirt-brown);
+    color: white;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    border-bottom: 3px solid #634731;
+    padding: 10px 16px;
+}
+
+.admin-table {
+    font-family: 'VT323', monospace;
+    font-size: 17px;
+}
+
+.admin-table thead th {
+    background-color: var(--bg-dark);
+    color: var(--accent-color);
+    border-color: var(--stone-gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.admin-table tbody tr:hover {
+    background-color: rgba(91, 174, 74, 0.08);
+}
+
+.admin-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border: 2px solid var(--stone-gray);
+}
+
+#adminTabs .nav-link {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--dirt-brown);
+    border-radius: 0;
+    border: 2px solid transparent;
+}
+
+#adminTabs .nav-link.active {
+    background-color: var(--grass-green);
+    color: white;
+    border-color: var(--grass-hover);
+}
+
+#adminTabs .nav-link:hover:not(.active) {
+    background-color: rgba(91, 174, 74, 0.1);
+    border-color: var(--grass-green);
+}

@@ -55,14 +55,37 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB upload
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Import other modules after db is initialized
-from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data
+from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data, ServerConfig
 from forms import UploadForm, CommentForm
 from utils import allowed_file, get_categories
+from profanity import contains_profanity
 
 # Initialize database tables
 with app.app_context():
     db.create_all()
     initialize_sample_data()
+    # Seed default server IP if not set
+    if not ServerConfig.query.filter_by(key='server_ip').first():
+        ServerConfig.set('server_ip', 'private-java-smp.aternos.me:40115')
+
+# --- Admin decorator ---
+from functools import wraps
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
+# --- Inject server IP into every template ---
+@app.context_processor
+def inject_server_ip():
+    try:
+        ip = ServerConfig.get('server_ip', 'private-java-smp.aternos.me:40115')
+    except Exception:
+        ip = 'private-java-smp.aternos.me:40115'
+    return dict(server_ip=ip)
 
 # Authentication routes
 @app.route('/register', methods=['GET', 'POST'])
@@ -75,17 +98,23 @@ def register():
     
     if form.validate_on_submit():
         from models import User
+        # First user ever registered becomes admin automatically
+        is_first_user = User.query.count() == 0
         user = User(
             username=form.username.data,
             email=form.email.data,
             password=form.password.data,
-            minecraft_username=form.minecraft_username.data
+            minecraft_username=form.minecraft_username.data,
+            is_admin=is_first_user
         )
         
         db.session.add(user)
         db.session.commit()
         
-        flash('Your account has been created! You can now log in.', 'success')
+        if is_first_user:
+            flash('Account created! As the first user, you have been granted Admin access.', 'success')
+        else:
+            flash('Your account has been created! You can now log in.', 'success')
         return redirect(url_for('login'))
     
     images = load_images()
@@ -240,6 +269,13 @@ def upload():
             return redirect(request.url)
         
         if file and file.filename and allowed_file(file.filename):
+            # Profanity check on title and description
+            if contains_profanity(form.title.data) or contains_profanity(form.description.data):
+                flash('Your upload contains inappropriate language and was rejected.', 'danger')
+                images = load_images()
+                categories = get_categories(images)
+                return render_template('upload.html', form=form, categories=categories)
+
             # Generate a unique filename
             filename = secure_filename(file.filename)
             extension = filename.rsplit('.', 1)[1].lower()
@@ -256,7 +292,7 @@ def upload():
                 'description': form.description.data,
                 'category': form.category.data,
                 'filename': unique_filename,
-                'filepath': '/'.join(['static', 'uploads', unique_filename]),  # Web path
+                'filepath': '/'.join(['static', 'uploads', unique_filename]),
                 'uploaded_at': datetime.now().isoformat(),
                 'uploader': form.uploader.data,
                 'user_id': current_user.id if current_user.is_authenticated else None
@@ -287,6 +323,10 @@ def image_detail(image_id):
         form.username.data = current_user.username
         
     if form.validate_on_submit():
+        if contains_profanity(form.text.data):
+            flash('Your comment contains inappropriate language and was not posted.', 'danger')
+            return redirect(url_for('image_detail', image_id=image_id))
+
         comment_data = {
             'id': str(uuid.uuid4()),
             'image_id': image_id,
@@ -328,6 +368,92 @@ def search():
                query.lower() in img['category'].lower()]
     
     return render_template('search.html', query=query, images=results, categories=categories)
+
+# ─── Admin routes ────────────────────────────────────────────────────────────
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    from models import User, Image, Comment
+    images = Image.query.order_by(Image.uploaded_at.desc()).all()
+    comments = Comment.query.order_by(Comment.created_at.desc()).all()
+    users = User.query.order_by(User.created_at.desc()).all()
+    server_ip = ServerConfig.get('server_ip', 'private-java-smp.aternos.me:40115')
+    all_images = load_images()
+    categories = get_categories(all_images)
+    return render_template('admin/dashboard.html',
+                           images=images, comments=comments,
+                           users=users, server_ip=server_ip,
+                           categories=categories)
+
+@app.route('/admin/set-ip', methods=['POST'])
+@login_required
+@admin_required
+def admin_set_ip():
+    new_ip = request.form.get('server_ip', '').strip()
+    if new_ip:
+        ServerConfig.set('server_ip', new_ip)
+        flash(f'Server IP updated to {new_ip}', 'success')
+    else:
+        flash('IP address cannot be empty.', 'danger')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/delete/image/<image_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_image(image_id):
+    from models import Image
+    image = Image.query.get(image_id)
+    if image:
+        # Remove file from disk
+        disk_path = os.path.join(image.filepath)
+        if os.path.exists(disk_path):
+            os.remove(disk_path)
+        db.session.delete(image)
+        db.session.commit()
+        flash('Image deleted.', 'success')
+    else:
+        flash('Image not found.', 'danger')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/delete/comment/<comment_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_comment(comment_id):
+    from models import Comment
+    comment = Comment.query.get(comment_id)
+    if comment:
+        db.session.delete(comment)
+        db.session.commit()
+        flash('Comment deleted.', 'success')
+    else:
+        flash('Comment not found.', 'danger')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/toggle-admin/<user_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_toggle_admin(user_id):
+    from models import User
+    user = User.query.get(user_id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    if user.id == current_user.id:
+        flash('You cannot change your own admin status.', 'warning')
+        return redirect(url_for('admin_dashboard'))
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    status = 'granted' if user.is_admin else 'revoked'
+    flash(f'Admin access {status} for {user.username}.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.errorhandler(403)
+def forbidden(e):
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('403.html', categories=categories), 403
 
 @app.errorhandler(404)
 def page_not_found(e):

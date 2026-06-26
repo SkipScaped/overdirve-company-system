@@ -5,6 +5,29 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 
+class ServerConfig(db.Model):
+    __tablename__ = 'server_config'
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(64), unique=True, nullable=False)
+    value = db.Column(db.String(256), nullable=False)
+
+    @staticmethod
+    def get(key, default=''):
+        row = ServerConfig.query.filter_by(key=key).first()
+        return row.value if row else default
+
+    @staticmethod
+    def set(key, value):
+        row = ServerConfig.query.filter_by(key=key).first()
+        if row:
+            row.value = value
+        else:
+            row = ServerConfig(key=key, value=value)
+            db.session.add(row)
+        db.session.commit()
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
@@ -15,6 +38,7 @@ class User(UserMixin, db.Model):
     profile_pic = db.Column(db.String(255), default='static/images/default_avatar.png')
     bio = db.Column(db.Text, default='')
     minecraft_username = db.Column(db.String(50), default='')
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
