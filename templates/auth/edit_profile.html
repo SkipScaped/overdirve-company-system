@@ -13,8 +13,11 @@
             <div class="row mb-4">
                 <div class="col-md-4">
                     <div class="text-center">
-                        <img src="{{ url_for('static', filename=current_user.profile_pic.replace('static/', '')) if current_user.profile_pic.startswith('static/') else current_user.profile_pic }}" 
-                             alt="{{ current_user.username }}" id="profile-preview" class="img-thumbnail mb-2" style="width: 150px; height: 150px; object-fit: cover;">
+                        <img src="{{ current_user.profile_pic_url }}"
+                             alt="{{ current_user.username }}" id="profile-preview"
+                             class="img-thumbnail mb-2"
+                             style="width: 150px; height: 150px; object-fit: cover;"
+                             onerror="this.src='/static/images/default_avatar.png'">
                         
                         <div class="mb-3">
                             <label for="{{ form.profile_pic.id }}" class="form-label">{{ form.profile_pic.label }}</label>

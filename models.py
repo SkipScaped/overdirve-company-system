@@ -58,12 +58,19 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     
+    @property
+    def profile_pic_url(self):
+        pic = self.profile_pic or 'static/images/default_avatar.png'
+        if not pic.startswith('/'):
+            pic = '/' + pic
+        return pic
+
     def to_dict(self):
         return {
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'profile_pic': self.profile_pic,
+            'profile_pic': self.profile_pic_url,
             'bio': self.bio,
             'minecraft_username': self.minecraft_username,
             'created_at': self.created_at.isoformat()
@@ -266,7 +273,8 @@ def save_comment(comment_data):
             image_id=comment_data['image_id'],
             username=comment_data['username'],
             text=comment_data['text'],
-            created_at=created_at
+            created_at=created_at,
+            user_id=comment_data.get('user_id')
         )
         
         db.session.add(comment)
