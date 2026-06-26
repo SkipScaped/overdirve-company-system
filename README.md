@@ -1,6 +1,6 @@
 # Private Java SMP — Website
 
-A Minecraft community website built with Flask featuring a screenshot gallery, user authentication, VIP ranks, a server shop, and server join information.
+A Minecraft community website built with Flask featuring a screenshot gallery, user authentication, admin panel, direct messaging, group chat, VIP ranks, server shop, and server join functionality.
 
 ---
 
@@ -13,6 +13,8 @@ A Minecraft community website built with Flask featuring a screenshot gallery, u
 - [Running Locally](#running-locally)
 - [Environment Variables](#environment-variables)
 - [File Uploads](#file-uploads)
+- [Admin Panel](#admin-panel)
+- [Content Moderation](#content-moderation)
 
 ---
 
@@ -23,9 +25,9 @@ A Minecraft community website built with Flask featuring a screenshot gallery, u
 | Web Framework | Flask |
 | ORM | Flask-SQLAlchemy |
 | Auth | Flask-Login + Werkzeug password hashing |
-| Forms | Flask-WTF |
+| Forms & CSRF | Flask-WTF + CSRFProtect |
 | Database | PostgreSQL |
-| Frontend | Jinja2 templates, Bootstrap 5, Babel (React Virtual DOM) |
+| Frontend | Jinja2 templates, Bootstrap 5, React (via Babel standalone) |
 | Server | Gunicorn |
 
 ---
@@ -34,127 +36,182 @@ A Minecraft community website built with Flask featuring a screenshot gallery, u
 
 ```
 /
-├── main.py                  # Entry point — imports app from app.py
-├── app.py                   # App factory, config, login manager, all routes
-├── models.py                # SQLAlchemy ORM models (User, Image, Comment)
-├── forms.py                 # Flask-WTF form definitions
-├── utils.py                 # Helper functions (file validation, formatting)
+├── main.py                    # Entry point — imports app from app.py
+├── app.py                     # App factory, config, all routes
+├── models.py                  # SQLAlchemy ORM models
+├── forms.py                   # Flask-WTF form definitions
+├── utils.py                   # File validation, category helpers
+├── profanity.py               # Bad-word filter (used on uploads, comments, messages)
 │
 ├── static/
-│   ├── css/style.css        # Minecraft-themed custom styles
-│   ├── js/script.js         # Client-side JS (copy IP, image preview, etc.)
-│   ├── js/react/            # React Virtual DOM components (via Babel standalone)
-│   │   ├── gallery.jsx      # Gallery grid component
-│   │   ├── comments.jsx     # Comments component
-│   │   └── profile.jsx      # Profile component
-│   ├── uploads/             # User-uploaded images (auto-created)
+│   ├── css/style.css          # Minecraft-themed custom styles
+│   ├── js/script.js           # Client-side JS (copy IP, image preview)
+│   ├── js/react/              # React Virtual DOM components (Babel standalone)
+│   │   ├── gallery.jsx        # Gallery grid component
+│   │   ├── comments.jsx       # Comments display component
+│   │   └── profile.jsx        # Profile component
+│   ├── uploads/               # User-uploaded images (auto-created on startup)
 │   └── images/
-│       ├── vip/             # VIP rank badge images
-│       └── favicon.ico      # Site favicon (logo.webp)
+│       ├── vip/               # VIP rank badge images (vip_gold.png, vip_bronze.png)
+│       ├── logo.webp          # Site logo
+│       └── favicon.ico        # Site favicon
 │
 ├── templates/
-│   ├── base.html            # Base layout (navbar, footer, scripts)
-│   ├── index.html           # Homepage (server info, VIP, gallery, shop)
-│   ├── upload.html          # Image upload form
-│   ├── image_detail.html    # Single image view + comments
-│   ├── login.html           # Login page
-│   ├── register.html        # Registration page
-│   ├── profile.html         # User profile page
-│   ├── edit_profile.html    # Edit profile form
-│   ├── search_results.html  # Search results
-│   └── category.html        # Category-filtered gallery
+│   ├── base.html              # Base layout (navbar, footer, scripts)
+│   ├── index.html             # Homepage (server info, VIP ranks, gallery, shop)
+│   ├── upload.html            # Image upload form
+│   ├── image.html             # Single image view + comments
+│   ├── search.html            # Search results
+│   ├── category.html          # Category-filtered gallery
+│   ├── 403.html               # 403 Forbidden page
+│   ├── 404.html               # 404 Not Found page
+│   ├── auth/
+│   │   ├── login.html
+│   │   ├── register.html
+│   │   ├── profile.html
+│   │   ├── edit_profile.html
+│   │   └── change_password.html
+│   ├── messages/
+│   │   ├── inbox.html         # DM inbox + new message user list
+│   │   ├── conversation.html  # 1-on-1 private chat
+│   │   └── group_chat.html    # Server-wide group chat
+│   └── admin/
+│       └── dashboard.html     # Admin panel (IP, images, comments, users)
 │
 └── migrations/
-    ├── run_migration.py     # Manual migration runner script
-    └── db_update.sql        # SQL for schema changes
+    ├── run_migration.py        # Manual migration runner
+    └── db_update.sql           # SQL schema changes
 ```
 
-### Key Files Explained
+### Key Files
 
-**`main.py`** — The gunicorn entry point. Just one line:
-```python
-from app import app
-```
+**`main.py`** — One line: `from app import app`. Used by gunicorn.
 
 **`app.py`** — Does everything at startup:
-- Creates the Flask app and sets `SECRET_KEY` from env
-- Applies `ProxyFix` middleware for correct HTTPS URL generation behind a proxy
+- Creates the Flask app, applies CSRF protection, applies `ProxyFix`
 - Connects to PostgreSQL via `DATABASE_URL`
-- Initialises Flask-Login and sets the login redirect route
-- Runs `db.create_all()` to auto-create tables if they don't exist
-- Seeds sample data if the database is empty
+- Initialises Flask-Login
+- Runs `db.create_all()` to auto-create any missing tables
+- Seeds the default server IP into `server_config` if not present
 - Defines all route handlers
 
-**`models.py`** — Three SQLAlchemy models with relationships.
-
-**`forms.py`** — WTForms classes for registration, login, upload, comments, and profile editing with CSRF protection.
-
-**`utils.py`** — Shared helpers: allowed file extension check, category slug extraction, human-readable date formatting.
+**`profanity.py`** — Regex-based bad-word filter. `contains_profanity(text)` returns `True` if the text contains a banned word. Applied to image titles/descriptions, comments, and all chat messages before saving.
 
 ---
 
 ## Database Models
 
-### `User`
+### `ServerConfig`
+Stores key/value configuration (e.g. the server IP). Editable by admins through the admin panel.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | Integer | Primary key |
-| `username` | String(64) | Unique, required |
+| `key` | String(64) | Unique config key |
+| `value` | String(256) | Config value |
+
+### `User`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | String(36) | UUID primary key |
+| `username` | String(50) | Unique, required |
 | `email` | String(120) | Unique, required |
 | `password_hash` | String(256) | Werkzeug hashed |
 | `profile_pic` | String(255) | Path to avatar |
 | `bio` | Text | Optional |
-| `minecraft_username` | String(64) | Optional |
+| `minecraft_username` | String(50) | Optional |
+| `is_admin` | Boolean | Default False; first registered user gets True |
+| `created_at` | DateTime | Auto-set |
 
 ### `Image`
 | Column | Type | Notes |
 |---|---|---|
-| `id` | Integer | Primary key |
-| `title` | String(128) | Required |
-| `description` | Text | Optional |
-| `category` | String(64) | e.g. Builds, Redstone |
-| `filename` | String(256) | Stored filename |
-| `filepath` | String(512) | URL path to file |
-| `uploader` | String(64) | Display name |
-| `user_id` | Integer | FK → `user.id` |
+| `id` | String(36) | UUID primary key |
+| `title` | String(100) | Required |
+| `description` | Text | Required |
+| `category` | String(50) | e.g. Builds, Redstone |
+| `filename` | String(255) | Stored filename |
+| `filepath` | String(255) | `/static/uploads/<uuid>.<ext>` |
+| `uploaded_at` | DateTime | Auto-set |
+| `uploader` | String(50) | Display name |
+| `user_id` | String(36) | FK → `users.id` |
 
 ### `Comment`
 | Column | Type | Notes |
 |---|---|---|
-| `id` | Integer | Primary key |
-| `image_id` | Integer | FK → `image.id` |
-| `username` | String(64) | Display name |
+| `id` | String(36) | UUID primary key |
+| `image_id` | String(36) | FK → `images.id` |
+| `username` | String(50) | Display name |
 | `text` | Text | Required |
-| `user_id` | Integer | FK → `user.id` |
+| `created_at` | DateTime | Auto-set |
+| `user_id` | String(36) | FK → `users.id` |
+
+### `DirectMessage`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | String(36) | UUID primary key |
+| `sender_id` | String(36) | FK → `users.id` |
+| `receiver_id` | String(36) | FK → `users.id` |
+| `text` | Text | Required |
+| `created_at` | DateTime | Auto-set |
+| `is_read` | Boolean | Default False; marked True when recipient opens conversation |
+
+### `GroupMessage`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | String(36) | UUID primary key |
+| `sender_id` | String(36) | FK → `users.id` |
+| `text` | Text | Required |
+| `created_at` | DateTime | Auto-set |
 
 ---
 
 ## Routes Reference
 
+### Public
+| Method | Route | Description |
+|---|---|---|
+| GET | `/` | Homepage — server info, VIP ranks, gallery, shop |
+| GET | `/image/<id>` | Image detail page with comments |
+| GET | `/category/<name>` | Gallery filtered by category |
+| GET | `/search?q=...` | Search images by title, description, category |
+
 ### Authentication
 | Method | Route | Description |
 |---|---|---|
-| GET/POST | `/register` | New user sign-up |
-| GET/POST | `/login` | User login |
-| GET | `/logout` | End session |
+| GET/POST | `/register` | Sign up (first user auto-gets admin) |
+| GET/POST | `/login` | Log in |
+| GET | `/logout` | Log out |
 
 ### Gallery
 | Method | Route | Description |
 |---|---|---|
-| GET | `/` | Homepage with gallery |
-| GET/POST | `/upload` | Upload image (login required) |
-| GET | `/image/<id>` | Image detail + comments |
-| GET/POST | `/image/<id>/comment` | Post a comment (login required) |
-| GET | `/category/<category>` | Filter by category |
-| GET | `/search?q=...` | Full-text search |
+| GET/POST | `/upload` | Upload image — login required, profanity checked |
+| GET/POST | `/image/<id>` | View image; POST submits a comment |
 
 ### Profiles
 | Method | Route | Description |
 |---|---|---|
 | GET | `/profile` | Current user's profile |
-| GET | `/user/<id>` | Public profile view |
+| GET | `/user/<id>` | Another user's public profile |
 | GET/POST | `/profile/edit` | Edit bio, Minecraft username, avatar |
-| GET/POST | `/profile/change_password` | Update password |
+| GET/POST | `/profile/change_password` | Change password |
+
+### Messaging (login required)
+| Method | Route | Description |
+|---|---|---|
+| GET | `/messages` | Inbox — existing conversations + all users to DM |
+| GET/POST | `/messages/<user_id>` | 1-on-1 private chat; POST sends a message |
+| GET/POST | `/chat` | Server-wide group chat; POST sends a message |
+
+### Admin (admin only)
+| Method | Route | Description |
+|---|---|---|
+| GET | `/admin` | Dashboard — images, comments, users, IP |
+| POST | `/admin/set-ip` | Update the server IP stored in DB |
+| POST | `/admin/delete/image/<id>` | Delete image + file from disk |
+| POST | `/admin/delete/comment/<id>` | Delete a comment |
+| POST | `/admin/toggle-admin/<user_id>` | Grant or revoke admin for a user |
 
 ---
 
@@ -163,7 +220,7 @@ from app import app
 ### 1. Prerequisites
 
 - Python 3.11+
-- PostgreSQL running locally (or a connection string to a remote DB)
+- PostgreSQL running locally (or a remote connection string)
 
 ### 2. Clone and install dependencies
 
@@ -175,45 +232,37 @@ pip install -r requirements.txt
 
 ### 3. Set environment variables
 
-Create a `.env` file in the project root (or export them in your shell):
+Create a `.env` file or export in your shell:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/your_db_name
-SESSION_SECRET=any-random-secret-string
+SESSION_SECRET=any-long-random-string
 ```
 
-> If you use a `.env` file, install `python-dotenv` and add `load_dotenv()` to the top of `main.py`, or export them manually before running.
-
-### 4. Create the database
-
-Make sure your PostgreSQL database exists, then the app will auto-create all tables on first run via `db.create_all()`.
+### 4. Create the database and run migrations
 
 ```bash
-# Example: create the database in psql
+# Create DB (if it doesn't exist)
 createdb your_db_name
+
+# The app auto-creates all tables on first startup via db.create_all()
+# For adding columns to an existing DB, run:
+python migrations/run_migration.py
 ```
 
-### 5. Run the development server
+### 5. Start the server
 
 ```bash
+# Development
 python main.py
-```
 
-Or with gunicorn (matches the production command):
-
-```bash
+# Production-style (matches the deployment command)
 gunicorn --bind 0.0.0.0:5000 --reload main:app
 ```
 
-Then open `http://localhost:5000` in your browser.
+Open `http://localhost:5000` in your browser.
 
-### 6. (Optional) Run database migrations manually
-
-If you need to apply schema changes to an existing database:
-
-```bash
-python migrations/run_migration.py
-```
+**First registered account is automatically made admin.**
 
 ---
 
@@ -228,15 +277,44 @@ python migrations/run_migration.py
 
 ## File Uploads
 
-- Uploaded images are saved to `static/uploads/`
+- Saved to `static/uploads/` (created automatically on startup)
 - Allowed formats: `png`, `jpg`, `jpeg`, `gif`, `webp`
-- Maximum upload size: **16 MB**
-- The `uploads/` directory is created automatically on first run if it doesn't exist
+- Maximum size: **16 MB**
+- Stored with a UUID filename to avoid collisions
+- Filepath stored in DB as `/static/uploads/<uuid>.<ext>` (absolute URL path)
+
+---
+
+## Admin Panel
+
+Access at `/admin` — requires an account with `is_admin = True`.
+
+**Features:**
+- **Server IP tab** — change the IP shown site-wide (stored in DB, not hardcoded)
+- **Images tab** — view all uploads with previews; delete any image (also removes file from disk)
+- **Comments tab** — view all comments; delete inappropriate ones
+- **Users tab** — view all accounts; grant or revoke admin privileges
+
+**How to become admin:**
+- The first account ever registered is automatically granted admin
+- Existing accounts can be promoted by another admin via the Users tab
+- Or run directly: `UPDATE users SET is_admin = TRUE WHERE username = 'yourname';`
+
+---
+
+## Content Moderation
+
+`profanity.py` provides a regex word-list filter applied **before saving** to:
+- Image titles and descriptions (upload rejected if triggered)
+- Comments (comment rejected if triggered)
+- Direct messages and group chat messages (message rejected if triggered)
+
+To add or remove banned words, edit the `BAD_WORDS` list in `profanity.py`.
 
 ---
 
 ## Notes
 
-- The React components in `static/js/react/` use **Babel standalone** (compiled in the browser). This is fine for development but the console will show a warning about precompiling for production — this is expected and harmless.
-- The server IP (`private-java-smp.aternos.me:40115`) is hardcoded in the templates and can be changed in `templates/base.html` and `templates/index.html`.
-- VIP rank badge images live in `static/images/vip/`.
+- The Babel standalone warning in the browser console (`You are using the in-browser Babel transformer…`) is expected — the React components compile in-browser for development convenience. It does not affect functionality.
+- Server IP is stored in the `server_config` database table and injected into every template via a Flask context processor — changing it in the admin panel updates it everywhere instantly.
+- The navbar shows **Messages**, **Group Chat**, and (for admins) **Admin Panel** only when logged in.
