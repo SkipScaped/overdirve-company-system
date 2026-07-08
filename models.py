@@ -170,6 +170,38 @@ class GroupMessage(db.Model):
         super().__init__(**kwargs)
 
 
+class ShopCategory(db.Model):
+    __tablename__ = 'shop_categories'
+    id          = db.Column(db.String(36), primary_key=True)
+    name        = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, default='')
+    image_path  = db.Column(db.String(255), default='')
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    products    = db.relationship('ShopProduct', backref='category', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class ShopProduct(db.Model):
+    __tablename__ = 'shop_products'
+    id          = db.Column(db.String(36), primary_key=True)
+    category_id = db.Column(db.String(36), db.ForeignKey('shop_categories.id'), nullable=False)
+    name        = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, default='')
+    price       = db.Column(db.String(50), nullable=False, default='Free')
+    image_path  = db.Column(db.String(255), default='')
+    in_stock    = db.Column(db.Boolean, default=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
 def load_images():
     """Load all images from the database"""
     try:

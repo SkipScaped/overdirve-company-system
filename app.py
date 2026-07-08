@@ -57,7 +57,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB upload
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Import other modules after db is initialized
-from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data, ServerConfig, DirectMessage, GroupMessage
+from models import load_images, save_image, get_image_by_id, load_comments, save_comment, get_comments_for_image, initialize_sample_data, ServerConfig, DirectMessage, GroupMessage, ShopCategory, ShopProduct
 from forms import UploadForm, CommentForm
 from utils import allowed_file, get_categories
 from profanity import contains_profanity
@@ -400,19 +400,35 @@ def conversation(user_id):
     from models import User
     other = User.query.get(user_id)
     if not other:
+        if request.form.get('ajax') == '1':
+            return jsonify({'ok': False, 'error': 'User not found'})
         flash('User not found.', 'danger')
         return redirect(url_for('inbox'))
     if request.method == 'POST':
+        is_ajax = request.form.get('ajax') == '1'
         text = request.form.get('text', '').strip()
-        if text:
-            if contains_profanity(text):
-                flash('Message contains inappropriate language.', 'danger')
-            else:
-                msg = DirectMessage(sender_id=current_user.id, receiver_id=user_id, text=text)
-                db.session.add(msg)
-                db.session.commit()
+        if not text:
+            if is_ajax:
+                return jsonify({'ok': False, 'error': 'Empty message'})
+            return redirect(url_for('conversation', user_id=user_id))
+        if contains_profanity(text):
+            if is_ajax:
+                return jsonify({'ok': False, 'error': 'Message contains inappropriate language.'})
+            flash('Message contains inappropriate language.', 'danger')
+            return redirect(url_for('conversation', user_id=user_id))
+        msg = DirectMessage(sender_id=current_user.id, receiver_id=user_id, text=text)
+        db.session.add(msg)
+        db.session.commit()
+        if is_ajax:
+            return jsonify({'ok': True, 'message': {
+                'id': msg.id,
+                'sender_id': msg.sender_id,
+                'sender_username': current_user.username,
+                'text': text,
+                'time': msg.created_at.strftime('%d %b %H:%M')
+            }})
         return redirect(url_for('conversation', user_id=user_id))
-    # Mark received messages as read
+    # GET: mark received messages as read
     DirectMessage.query.filter_by(sender_id=user_id, receiver_id=current_user.id, is_read=False)\
         .update({'is_read': True})
     db.session.commit()
@@ -424,23 +440,86 @@ def conversation(user_id):
     categories = get_categories(images)
     return render_template('messages/conversation.html', other=other, messages=msgs, categories=categories)
 
+
+@app.route('/messages/<user_id>/poll')
+@login_required
+def message_poll(user_id):
+    from models import User
+    after_id = request.args.get('after', '')
+    other = User.query.get(user_id)
+    if not other:
+        return jsonify({'messages': []})
+    base_q = DirectMessage.query.filter(
+        ((DirectMessage.sender_id == current_user.id) & (DirectMessage.receiver_id == user_id)) |
+        ((DirectMessage.sender_id == user_id) & (DirectMessage.receiver_id == current_user.id))
+    )
+    if after_id:
+        last = DirectMessage.query.get(after_id)
+        if last:
+            base_q = base_q.filter(DirectMessage.created_at > last.created_at)
+        else:
+            return jsonify({'messages': []})
+    msgs = base_q.order_by(DirectMessage.created_at.asc()).all()
+    # Mark as read
+    DirectMessage.query.filter_by(sender_id=user_id, receiver_id=current_user.id, is_read=False)\
+        .update({'is_read': True})
+    db.session.commit()
+    result = [{'id': m.id, 'sender_id': m.sender_id,
+               'sender_username': other.username if m.sender_id == user_id else current_user.username,
+               'text': m.text, 'time': m.created_at.strftime('%d %b %H:%M')} for m in msgs]
+    return jsonify({'messages': result})
+
+
 @app.route('/chat', methods=['GET', 'POST'])
 @login_required
 def group_chat():
     if request.method == 'POST':
+        is_ajax = request.form.get('ajax') == '1'
         text = request.form.get('text', '').strip()
-        if text:
-            if contains_profanity(text):
-                flash('Message contains inappropriate language.', 'danger')
-            else:
-                msg = GroupMessage(sender_id=current_user.id, text=text)
-                db.session.add(msg)
-                db.session.commit()
+        if not text:
+            if is_ajax:
+                return jsonify({'ok': False, 'error': 'Empty message'})
+            return redirect(url_for('group_chat'))
+        if contains_profanity(text):
+            if is_ajax:
+                return jsonify({'ok': False, 'error': 'Message contains inappropriate language.'})
+            flash('Message contains inappropriate language.', 'danger')
+            return redirect(url_for('group_chat'))
+        msg = GroupMessage(sender_id=current_user.id, text=text)
+        db.session.add(msg)
+        db.session.commit()
+        if is_ajax:
+            return jsonify({'ok': True, 'message': {
+                'id': msg.id,
+                'sender_id': msg.sender_id,
+                'sender_username': current_user.username,
+                'text': text,
+                'time': msg.created_at.strftime('%d %b %H:%M')
+            }})
         return redirect(url_for('group_chat'))
     msgs = GroupMessage.query.order_by(GroupMessage.created_at.asc()).all()
     images = load_images()
     categories = get_categories(images)
     return render_template('messages/group_chat.html', messages=msgs, categories=categories)
+
+
+@app.route('/chat/poll')
+@login_required
+def group_poll():
+    after_id = request.args.get('after', '')
+    if after_id:
+        last = GroupMessage.query.get(after_id)
+        if last:
+            msgs = GroupMessage.query.filter(GroupMessage.created_at > last.created_at)\
+                       .order_by(GroupMessage.created_at.asc()).all()
+        else:
+            msgs = []
+    else:
+        msgs = []
+    result = [{'id': m.id, 'sender_id': m.sender_id,
+               'sender_username': m.sender.username,
+               'text': m.text, 'time': m.created_at.strftime('%d %b %H:%M')} for m in msgs]
+    return jsonify({'messages': result})
 
 # ─── Admin routes ────────────────────────────────────────────────────────────
 
@@ -522,28 +601,108 @@ def admin_toggle_admin(user_id):
     flash(f'Admin access {status} for {user.username}.', 'success')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/bot')
-@login_required
-@admin_required
-def admin_bot():
-    import json
-    status = {'connected': False, 'status': 'not started', 'username': None,
-              'messages_sent': 0, 'position': None, 'updated': None}
-    try:
-        with open('bot/status.json', 'r') as f:
-            status = json.load(f)
-    except Exception:
-        pass
-    log_content = ''
-    try:
-        with open('bot/bot.log', 'r') as f:
-            lines = f.readlines()
-            log_content = ''.join(lines[-100:])
-    except Exception:
-        log_content = '(Log file not found — start the bot to see output)'
+@app.route('/shop')
+def shop():
+    shop_categories = ShopCategory.query.order_by(ShopCategory.name).all()
     images = load_images()
     categories = get_categories(images)
-    return render_template('admin/bot.html', status=status, log_content=log_content, categories=categories)
+    return render_template('shop.html', shop_categories=shop_categories, categories=categories)
+
+@app.route('/admin/shop')
+@login_required
+@admin_required
+def admin_shop():
+    shop_categories = ShopCategory.query.order_by(ShopCategory.name).all()
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('admin/shop.html', shop_categories=shop_categories, categories=categories)
+
+@app.route('/admin/shop/category/add', methods=['POST'])
+@login_required
+@admin_required
+def admin_shop_add_category():
+    name = request.form.get('name', '').strip()
+    description = request.form.get('description', '').strip()
+    if not name:
+        flash('Category name is required.', 'danger')
+        return redirect(url_for('admin_shop'))
+    image_path = ''
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename and allowed_file(file.filename):
+            ext = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+            fname = f"shop_cat_{uuid.uuid4().hex}.{ext}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+            image_path = f"/static/uploads/{fname}"
+    cat = ShopCategory(name=name, description=description, image_path=image_path)
+    db.session.add(cat)
+    db.session.commit()
+    flash(f'Category "{name}" created.', 'success')
+    return redirect(url_for('admin_shop'))
+
+@app.route('/admin/shop/category/delete/<cat_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_shop_delete_category(cat_id):
+    cat = ShopCategory.query.get(cat_id)
+    if cat:
+        db.session.delete(cat)
+        db.session.commit()
+        flash('Category deleted.', 'success')
+    else:
+        flash('Category not found.', 'danger')
+    return redirect(url_for('admin_shop'))
+
+@app.route('/admin/shop/product/add', methods=['POST'])
+@login_required
+@admin_required
+def admin_shop_add_product():
+    name = request.form.get('name', '').strip()
+    description = request.form.get('description', '').strip()
+    price = request.form.get('price', 'Free').strip() or 'Free'
+    category_id = request.form.get('category_id', '').strip()
+    in_stock = request.form.get('in_stock') == '1'
+    if not name or not category_id:
+        flash('Product name and category are required.', 'danger')
+        return redirect(url_for('admin_shop'))
+    image_path = ''
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename and allowed_file(file.filename):
+            ext = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+            fname = f"shop_prod_{uuid.uuid4().hex}.{ext}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+            image_path = f"/static/uploads/{fname}"
+    product = ShopProduct(name=name, description=description, price=price,
+                          category_id=category_id, image_path=image_path, in_stock=in_stock)
+    db.session.add(product)
+    db.session.commit()
+    flash(f'Product "{name}" added.', 'success')
+    return redirect(url_for('admin_shop'))
+
+@app.route('/admin/shop/product/delete/<prod_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_shop_delete_product(prod_id):
+    prod = ShopProduct.query.get(prod_id)
+    if prod:
+        db.session.delete(prod)
+        db.session.commit()
+        flash('Product deleted.', 'success')
+    else:
+        flash('Product not found.', 'danger')
+    return redirect(url_for('admin_shop'))
+
+@app.route('/admin/shop/product/toggle/<prod_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_shop_toggle_product(prod_id):
+    prod = ShopProduct.query.get(prod_id)
+    if prod:
+        prod.in_stock = not prod.in_stock
+        db.session.commit()
+        flash(f'"{prod.name}" marked {"in stock" if prod.in_stock else "out of stock"}.', 'success')
+    return redirect(url_for('admin_shop'))
 
 @app.route('/ping')
 def ping():

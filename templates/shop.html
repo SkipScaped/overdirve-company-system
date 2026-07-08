@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}Shop — Private Java SMP{% endblock %}
+
+{% block extra_css %}
+<style>
+.shop-hero {
+    background: linear-gradient(135deg, var(--dirt-brown) 0%, #5a3a1a 100%);
+    color: #fff; padding: 32px 24px; margin-bottom: 28px; border: 3px solid var(--stone-gray);
+    text-align: center;
+}
+.shop-hero h1 { font-family: var(--font-minecraft); font-size: 2rem; margin-bottom: 8px; }
+.shop-hero p  { opacity: .85; font-size: 16px; margin: 0; }
+.cat-section  { margin-bottom: 40px; }
+.cat-header   {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--stone-gray); color: #fff;
+    padding: 14px 20px; margin-bottom: 20px; border: 3px solid #6b6b6b;
+}
+.cat-header img { width: 52px; height: 52px; object-fit: cover; border: 2px solid #fff; }
+.cat-header h2  { font-family: var(--font-minecraft); font-size: 1.3rem; margin: 0; }
+.cat-header p   { font-size: 14px; opacity: .8; margin: 0; }
+.product-card {
+    border: 3px solid var(--stone-gray); background: #fff;
+    transition: transform .15s, box-shadow .15s;
+    height: 100%;
+}
+.product-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+.product-img {
+    width: 100%; height: 180px; object-fit: cover;
+    border-bottom: 3px solid var(--stone-gray);
+    background: #e0dcd4;
+}
+.product-img.placeholder {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; color: var(--stone-gray);
+}
+.product-body { padding: 14px 16px; }
+.product-name { font-family: var(--font-minecraft); font-size: 1rem; color: var(--dirt-brown); margin-bottom: 6px; }
+.product-desc { font-size: 13px; color: #555; margin-bottom: 10px; line-height: 1.4; }
+.product-price {
+    display: inline-block; background: var(--grass-green); color: #fff;
+    padding: 4px 12px; font-weight: 700; font-size: 15px; margin-bottom: 8px;
+}
+.badge-oos { background: #c64343; color: #fff; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+.empty-shop { text-align: center; padding: 60px 20px; color: var(--stone-gray); }
+.empty-shop i { font-size: 4rem; margin-bottom: 16px; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shop-hero">
+    <h1><i class="fas fa-store"></i> Private Java SMP Shop</h1>
+    <p>Browse exclusive ranks, perks, and items for our server community.</p>
+</div>
+
+{% if shop_categories %}
+    {% for cat in shop_categories %}
+    <div class="cat-section">
+        <div class="cat-header">
+            {% if cat.image_path %}
+            <img src="{{ cat.image_path }}" alt="{{ cat.name }}"
+                 onerror="this.style.display='none'">
+            {% else %}
+            <i class="fas fa-tag fa-2x me-1"></i>
+            {% endif %}
+            <div>
+                <h2>{{ cat.name }}</h2>
+                {% if cat.description %}<p>{{ cat.description }}</p>{% endif %}
+            </div>
+        </div>
+
+        {% if cat.products %}
+        <div class="row g-3">
+            {% for p in cat.products %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="product-card">
+                    {% if p.image_path %}
+                    <img src="{{ p.image_path }}" alt="{{ p.name }}" class="product-img"
+                         onerror="this.src=''; this.className='product-img placeholder'; this.innerHTML='<i class=\'fas fa-cube\'></i>'">
+                    {% else %}
+                    <div class="product-img placeholder"><i class="fas fa-cube"></i></div>
+                    {% endif %}
+
+                    <div class="product-body">
+                        <div class="product-name">{{ p.name }}</div>
+                        {% if p.description %}
+                        <div class="product-desc">{{ p.description }}</div>
+                        {% endif %}
+                        <div class="product-price">{{ p.price }}</div>
+                        <div>
+                            {% if p.in_stock %}
+                            <span class="badge bg-success">In Stock</span>
+                            {% else %}
+                            <span class="badge-oos">Out of Stock</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted ms-2">No products in this category yet.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+<div class="empty-shop">
+    <i class="fas fa-store-slash"></i>
+    <h3>Shop Coming Soon!</h3>
+    <p>The admin is setting up the shop. Check back later for ranks, perks, and more.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-minecraft mt-3">
+        <i class="fas fa-home"></i> Back to Gallery
+    </a>
+</div>
+{% endif %}
+{% endblock %}
