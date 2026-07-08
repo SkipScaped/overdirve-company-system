@@ -74,5 +74,10 @@
     // Auto-scroll to bottom of chat
     const box = document.getElementById('chatBox');
     if (box) box.scrollTop = box.scrollHeight;
+
+    // Auto-refresh every 4 seconds for new messages (only when tab is active)
+    setInterval(function() {
+        if (!document.hidden) location.reload();
+    }, 4000);
 </script>
 {% endblock %}

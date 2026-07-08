@@ -837,3 +837,172 @@ h1 {
     background-color: rgba(91, 174, 74, 0.1);
     border-color: var(--grass-green);
 }
+
+/* ══════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS — comprehensive overrides
+   ══════════════════════════════════════════════════ */
+
+/* Ensure images never overflow */
+img { max-width: 100%; }
+
+/* Sidebar: hide on mobile, show as horizontal scroll strip */
+@media (max-width: 767px) {
+    /* Stack sidebar AFTER content on mobile */
+    .col-md-3 { order: 2; }
+    .col-md-9 { order: 1; }
+
+    /* Sidebar becomes horizontal scrollable pills */
+    .category-list {
+        border: 2px solid var(--stone-gray);
+        padding: 8px;
+        overflow-x: auto;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .category-list-title {
+        font-size: 16px;
+        margin-bottom: 0;
+        border-bottom: none;
+        padding-bottom: 0;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .category-list-item {
+        display: inline-block;
+        border: 2px solid var(--stone-gray);
+        border-left: 2px solid transparent;
+        margin-bottom: 0;
+        padding: 4px 12px;
+        border-radius: 0;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .category-list-item.active,
+    .category-list-item:hover {
+        background-color: var(--grass-green);
+        color: white;
+        border-color: var(--grass-hover);
+    }
+
+    /* Navbar: tighten up */
+    .navbar { padding: 8px 0; }
+    .navbar-brand img { height: 36px; }
+    .nav-link { font-size: 16px; margin: 0 4px; }
+
+    /* Search bar: full width below navbar on mobile */
+    .search-form { width: 100%; }
+    .search-input { font-size: 15px; }
+
+    /* Hide search in top bar on very small screens, keep it functional */
+    .d-flex.align-items-center .search-form { display: none !important; }
+
+    /* Main container padding */
+    .container { padding-left: 12px; padding-right: 12px; }
+    .minecraft-container { padding: 12px; }
+
+    /* Gallery: 1 column on mobile */
+    .row-cols-md-2 > .col,
+    .row-cols-md-3 > .col { flex: 0 0 100%; max-width: 100%; }
+
+    /* Gallery image height */
+    .gallery-item img { height: 200px; }
+    .gallery-item-title { font-size: 20px; }
+
+    /* Profile: stack everything */
+    .col-lg-4, .col-lg-8 { flex: 0 0 100%; max-width: 100%; }
+
+    /* Chat boxes: shorter on mobile */
+    .chat-box { height: 280px !important; }
+
+    /* H1 sizing */
+    h1 { font-size: 28px; }
+    h2 { font-size: 24px; }
+    h3 { font-size: 20px; }
+
+    /* Buttons: easier to tap */
+    .btn-minecraft { font-size: 17px; padding: 10px 16px; }
+
+    /* VIP ranks: stack vertically */
+    .vip-rank { margin-bottom: 16px; }
+
+    /* Admin tabs: scroll horizontally */
+    #adminTabs { flex-wrap: nowrap; overflow-x: auto; }
+    #adminTabs .nav-link { font-size: 14px; padding: 6px 10px; white-space: nowrap; }
+
+    /* Admin table: allow horizontal scroll */
+    .admin-table { font-size: 14px; }
+
+    /* Footer: center everything */
+    .footer .col-md-4 { text-align: center !important; margin-bottom: 20px; }
+    .footer .col-md-4:last-child { margin-bottom: 0; }
+    .d-flex.server-ip-footer { justify-content: center; }
+
+    /* Image detail */
+    .image-detail-img { max-height: 300px; }
+
+    /* Messaging input row */
+    .chat-input-row { flex-direction: row; }
+    .chat-input-row input { font-size: 15px; }
+}
+
+@media (max-width: 480px) {
+    /* Extra small phones */
+    .gallery-item img { height: 180px; }
+    h1 { font-size: 24px; }
+    .btn-minecraft { font-size: 15px; padding: 8px 12px; }
+
+    /* Profile card */
+    .card.shadow { margin-left: 0; margin-right: 0; }
+
+    /* Remove pixel-perfect borders on tiny screens for clarity */
+    .gallery-item { border-width: 2px; }
+    .minecraft-container { border-width: 2px; padding: 10px; }
+
+    /* Chat box */
+    .chat-box { height: 240px !important; font-size: 14px !important; }
+}
+
+/* ── Navbar search: add a mobile search bar below nav ── */
+@media (max-width: 767px) {
+    .mobile-search-bar {
+        display: block;
+        background: var(--dirt-brown-hover);
+        padding: 8px 12px;
+        border-bottom: 2px solid #634731;
+    }
+    .mobile-search-bar form {
+        display: flex;
+        gap: 6px;
+    }
+    .mobile-search-bar input {
+        flex: 1;
+        font-size: 15px;
+        border: 2px solid var(--stone-gray);
+        padding: 6px 10px;
+    }
+}
+@media (min-width: 768px) {
+    .mobile-search-bar { display: none; }
+}
+
+/* PWA install prompt polish */
+.pwa-install-banner {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dirt-brown);
+    color: white;
+    border: 3px solid var(--accent-color);
+    padding: 12px 20px;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    max-width: 90vw;
+}

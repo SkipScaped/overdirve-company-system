@@ -1,0 +1,38 @@
+{
+  "name": "Private Java SMP",
+  "short_name": "PJ SMP",
+  "description": "Private Java SMP Minecraft server community gallery and hub.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#222222",
+  "theme_color": "#856043",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/images/logo.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "social"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Gallery",
+      "url": "/",
+      "description": "Browse community screenshots"
+    },
+    {
+      "name": "Group Chat",
+      "url": "/chat",
+      "description": "Server group chat"
+    }
+  ]
+}

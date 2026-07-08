@@ -522,6 +522,29 @@ def admin_toggle_admin(user_id):
     flash(f'Admin access {status} for {user.username}.', 'success')
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/admin/bot')
+@login_required
+@admin_required
+def admin_bot():
+    import json
+    status = {'connected': False, 'status': 'not started', 'username': None,
+              'messages_sent': 0, 'position': None, 'updated': None}
+    try:
+        with open('bot/status.json', 'r') as f:
+            status = json.load(f)
+    except Exception:
+        pass
+    log_content = ''
+    try:
+        with open('bot/bot.log', 'r') as f:
+            lines = f.readlines()
+            log_content = ''.join(lines[-100:])
+    except Exception:
+        log_content = '(Log file not found — start the bot to see output)'
+    images = load_images()
+    categories = get_categories(images)
+    return render_template('admin/bot.html', status=status, log_content=log_content, categories=categories)
+
 @app.errorhandler(403)
 def forbidden(e):
     images = load_images()
