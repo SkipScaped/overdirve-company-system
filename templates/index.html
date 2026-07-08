@@ -1,102 +1,155 @@
 {% extends 'base.html' %}
+{% block title %}Private Java SMP — Home{% endblock %}
 
-{% block title %}Private Java SMP Gallery - Home{% endblock %}
+{% block extra_css %}
+<style>
+.server-about-card {
+    background: #fff;
+    border: 3px solid var(--stone-light);
+    border-bottom-color: #999;
+    padding: 24px;
+    height: 100%;
+    box-shadow: var(--shadow-sm);
+}
+.ip-row { display: flex; align-items: stretch; }
+.ip-row .server-ip-box { flex: 1; min-width: 0; }
+
+.section-label {
+    font-family: var(--font-mc);
+    font-size: .85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-label::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: var(--stone-light);
+}
+</style>
+{% endblock %}
 
 {% block content %}
+
+<!-- ── Hero ──────────────────────────────────────────── -->
+<div class="site-hero">
     <h1><i class="fas fa-cubes"></i> Private Java SMP</h1>
-    
-    <p class="lead">Welcome to our Private Java SMP! Browse amazing builds, landscapes, and server pictures from our Minecraft community.</p>
-    
-    <!-- Server Info Section -->
-    <div class="server-info-container mb-5">
-        <div class="row">
-            <div class="col-md-7">
-                <div class="minecraft-container server-about p-4">
-                    <h2><i class="fas fa-server"></i> About Our Server</h2>
-                    <p>Join our active Minecraft SMP community with amazing builds, friendly players, and regular events!</p>
-                    
-                    <div class="server-features mb-4">
-                        <h3><i class="fas fa-star"></i> Server Features</h3>
-                        <ul class="feature-list">
-                            <li><i class="fas fa-check"></i> Survival gameplay with land protection</li>
-                            <li><i class="fas fa-check"></i> Active community with friendly players</li>
-                            <li><i class="fas fa-check"></i> Regular events and competitions</li>
-                            <li><i class="fas fa-check"></i> Custom plugins and features</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="join-server">
-                        <h3><i class="fas fa-sign-in-alt"></i> Join Now!</h3>
-                        <div class="d-flex align-items-center server-ip-display">
-                            <div class="server-ip-box">
-                                <span id="serverIpHome">private-java-smp.aternos.me:40115</span>
-                            </div>
-                            <button class="btn btn-minecraft ms-3" onclick="copyIp()">
-                                <i class="fas fa-copy"></i> Copy IP
-                            </button>
-                        </div>
-                    </div>
+    <p class="lead">A whitelisted survival community — explore amazing builds, join events, and play with friends.</p>
+    <div class="hero-actions">
+        <button class="btn btn-minecraft-gold" onclick="copyIp()">
+            <i class="fas fa-copy"></i> Copy Server IP
+        </button>
+        <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener" class="btn btn-discord">
+            <i class="fab fa-discord"></i> Join Discord
+        </a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('upload') }}" class="btn btn-minecraft">
+            <i class="fas fa-upload"></i> Upload Image
+        </a>
+        {% else %}
+        <a href="{{ url_for('register') }}" class="btn btn-minecraft">
+            <i class="fas fa-user-plus"></i> Sign Up
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Server info + Features ───────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="server-about-card">
+            <h3 class="mb-3"><i class="fas fa-server"></i> Server Info</h3>
+            <p class="mb-3" style="font-size:14px;color:var(--text-muted);">
+                Join our active SMP — survival gameplay with land protection, friendly players, and regular events.
+            </p>
+            <p class="mb-1" style="font-size:13px;font-weight:600;color:var(--text-muted);">SERVER IP</p>
+            <div class="ip-row mb-3">
+                <div class="server-ip-box">
+                    <span id="serverIpHome">{{ server_ip }}</span>
+                </div>
+                <button class="btn btn-minecraft" onclick="copyIp()" style="border-left:0;">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener"
+               class="btn btn-discord w-100">
+                <i class="fab fa-discord"></i> Join our Discord
+            </a>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="row g-3 h-100">
+            {% set features = [
+              ('fas fa-shield-alt', 'Land Protection', 'Claim your territory so no griefers can ruin your builds.'),
+              ('fas fa-trophy', 'Events & Comps', 'Regular building competitions and community challenges.'),
+              ('fas fa-store', 'Server Shop', 'Exclusive VIP ranks and perks available for members.'),
+              ('fas fa-users', 'Community', 'Friendly whitelisted players — active Discord community.'),
+            ] %}
+            {% for icon, title, desc in features %}
+            <div class="col-6">
+                <div class="feature-card">
+                    <div class="icon"><i class="{{ icon }}"></i></div>
+                    <h4>{{ title }}</h4>
+                    <p>{{ desc }}</p>
                 </div>
             </div>
-            
+            {% endfor %}
         </div>
     </div>
-    
-    <!-- Gallery Section -->
-    <div class="gallery-header d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-images"></i> Gallery</h2>
-        <div>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('upload') }}" class="btn btn-minecraft">
-                    <i class="fas fa-upload"></i> Upload Image
-                </a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="btn btn-minecraft">
-                    <i class="fas fa-sign-in-alt"></i> Login to Upload
-                </a>
-            {% endif %}
+</div>
+
+<!-- ── Gallery ───────────────────────────────────────── -->
+<div class="gallery-header d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="fas fa-images"></i> Gallery</h2>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('upload') }}" class="btn btn-minecraft btn-sm">
+        <i class="fas fa-upload"></i> Upload
+    </a>
+    {% else %}
+    <a href="{{ url_for('login') }}" class="btn btn-minecraft btn-sm">
+        <i class="fas fa-sign-in-alt"></i> Login to Upload
+    </a>
+    {% endif %}
+</div>
+
+<!-- React Gallery mount point -->
+<div id="react-gallery" data-images="{{ images|tojson }}"></div>
+
+<!-- Noscript fallback -->
+<noscript>
+    {% if images %}
+    <div class="row row-cols-2 row-cols-md-2 row-cols-lg-3 g-3">
+        {% for image in images %}
+        <div class="col">
+            <div class="gallery-item">
+                <div class="img-wrap position-relative">
+                    <img src="{{ image.filepath }}" alt="{{ image.title }}">
+                    <span class="gallery-item-category">{{ image.category }}</span>
+                    <div class="img-overlay"><span><i class="fas fa-eye"></i> View</span></div>
+                </div>
+                <div class="gallery-item-caption">
+                    <div class="gallery-item-title">{{ image.title }}</div>
+                    <div class="gallery-item-uploader"><i class="fas fa-user"></i> {{ image.uploader }}</div>
+                    <div class="gallery-item-description">{{ image.description|truncate(80) }}</div>
+                    <a href="{{ url_for('image_detail', image_id=image.id) }}" class="btn btn-minecraft">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                </div>
+            </div>
         </div>
+        {% endfor %}
     </div>
-    
-    <!-- React Gallery -->
-    <div id="react-gallery" data-images="{{ images|tojson }}"></div>
-    
-    <!-- Fallback for JS disabled browsers -->
-    <noscript>
-        {% if images %}
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                {% for image in images %}
-                    <div class="col">
-                        <div class="gallery-item">
-                            <a href="{{ url_for('image_detail', image_id=image.id) }}" data-toggle="lightbox" data-title="{{ image.title }}">
-                                <img src="{{ image.filepath }}" alt="{{ image.title }}" class="img-fluid">
-                            </a>
-                            <div class="gallery-item-caption">
-                                <div class="gallery-item-category">{{ image.category }}</div>
-                                <h3 class="gallery-item-title">{{ image.title }}</h3>
-                                <div class="gallery-item-uploader">
-                                    <i class="fas fa-user"></i> 
-                                    {% if image.user_id %}
-                                        <a href="{{ url_for('user_profile', user_id=image.user_id) }}">{{ image.uploader }}</a>
-                                    {% else %}
-                                        {{ image.uploader }}
-                                    {% endif %}
-                                </div>
-                                <p class="gallery-item-description">{{ image.description|truncate(100) }}</p>
-                                <a href="{{ url_for('image_detail', image_id=image.id) }}" class="btn btn-sm btn-minecraft">
-                                    <i class="fas fa-eye"></i> View Details
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i> No images have been uploaded yet. Be the first to share your Minecraft creations!
-            </div>
-        {% endif %}
-    </noscript>
-    
-  
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        No images yet — be the first to upload a screenshot!
+    </div>
+    {% endif %}
+</noscript>
+
 {% endblock %}

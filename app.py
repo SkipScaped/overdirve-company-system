@@ -2,7 +2,7 @@ import os
 import logging
 import uuid
 from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, abort
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, abort, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -192,16 +192,19 @@ def edit_profile():
     
     if form.validate_on_submit():
         if form.profile_pic.data:
-            # Save profile picture
+            # Read binary for DB storage
+            form.profile_pic.data.seek(0)
+            pic_bytes = form.profile_pic.data.read()
+            pic_mime = form.profile_pic.data.content_type or 'image/jpeg'
+            current_user.pic_data = pic_bytes
+            current_user.pic_mime = pic_mime
+            # Also save to disk as fallback
             filename = secure_filename(form.profile_pic.data.filename)
             extension = filename.rsplit('.', 1)[1].lower()
             unique_filename = f"profile_{current_user.id}.{extension}"
-            
-            # Save the file
+            form.profile_pic.data.seek(0)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             form.profile_pic.data.save(filepath)
-            
-            # Update user profile pic path
             current_user.profile_pic = '/'.join(['static', 'uploads', unique_filename])
         
         current_user.username = form.username.data
@@ -283,11 +286,17 @@ def upload():
             extension = filename.rsplit('.', 1)[1].lower()
             unique_filename = f"{uuid.uuid4().hex}.{extension}"
             
-            # Save the file
+            # Read binary data for permanent DB storage
+            file.seek(0)
+            file_data = file.read()
+            mime_type = file.content_type or f'image/{extension}'
+            
+            # Also save to disk as fallback
+            file.seek(0)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             file.save(filepath)
             
-            # Save image metadata
+            # Save image metadata + binary data
             image_data = {
                 'id': str(uuid.uuid4()),
                 'title': form.title.data,
@@ -295,6 +304,8 @@ def upload():
                 'category': form.category.data,
                 'filename': unique_filename,
                 'filepath': '/static/uploads/' + unique_filename,
+                'file_data': file_data,
+                'mime_type': mime_type,
                 'uploaded_at': datetime.now().isoformat(),
                 'uploader': form.uploader.data,
                 'user_id': current_user.id if current_user.is_authenticated else None
@@ -703,6 +714,33 @@ def admin_shop_toggle_product(prod_id):
         db.session.commit()
         flash(f'"{prod.name}" marked {"in stock" if prod.in_stock else "out of stock"}.', 'success')
     return redirect(url_for('admin_shop'))
+
+@app.route('/img/<image_id>')
+def serve_image(image_id):
+    from models import Image as ImageModel
+    img = ImageModel.query.get(image_id)
+    if not img:
+        abort(404)
+    if img.file_data:
+        return Response(img.file_data,
+                        mimetype=img.mime_type or 'image/jpeg',
+                        headers={'Cache-Control': 'public, max-age=31536000'})
+    if img.filepath:
+        static_path = img.filepath.lstrip('/').replace('static/', '', 1)
+        return redirect(url_for('static', filename=static_path))
+    abort(404)
+
+
+@app.route('/profile-pic/<user_id>')
+def serve_profile_pic(user_id):
+    from models import User
+    user = User.query.get(user_id)
+    if user and user.pic_data:
+        return Response(user.pic_data,
+                        mimetype=user.pic_mime or 'image/jpeg',
+                        headers={'Cache-Control': 'public, max-age=86400'})
+    return redirect(url_for('static', filename='images/default_avatar.png'))
+
 
 @app.route('/ping')
 def ping():

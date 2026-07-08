@@ -36,6 +36,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     profile_pic = db.Column(db.String(255), default='static/images/default_avatar.png')
+    pic_data = db.Column(db.LargeBinary)
+    pic_mime = db.Column(db.String(50), default='image/jpeg')
     bio = db.Column(db.Text, default='')
     minecraft_username = db.Column(db.String(50), default='')
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
@@ -60,6 +62,8 @@ class User(UserMixin, db.Model):
     
     @property
     def profile_pic_url(self):
+        if self.pic_data:
+            return f'/profile-pic/{self.id}'
         pic = self.profile_pic or 'static/images/default_avatar.png'
         if not pic.startswith('/'):
             pic = '/' + pic
@@ -85,6 +89,8 @@ class Image(db.Model):
     category = db.Column(db.String(50), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     filepath = db.Column(db.String(255), nullable=False)
+    file_data = db.Column(db.LargeBinary)
+    mime_type = db.Column(db.String(50), default='image/jpeg')
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     uploader = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'))
@@ -104,7 +110,7 @@ class Image(db.Model):
             'description': self.description,
             'category': self.category,
             'filename': self.filename,
-            'filepath': self.filepath,
+            'filepath': f'/img/{self.id}',
             'uploaded_at': self.uploaded_at.isoformat(),
             'uploader': self.uploader,
             'user_id': self.user_id
@@ -229,6 +235,8 @@ def save_image(image_data):
             category=image_data['category'],
             filename=image_data['filename'],
             filepath=image_data['filepath'],
+            file_data=image_data.get('file_data'),
+            mime_type=image_data.get('mime_type', 'image/jpeg'),
             uploaded_at=uploaded_at,
             uploader=image_data['uploader'],
             user_id=image_data.get('user_id')
