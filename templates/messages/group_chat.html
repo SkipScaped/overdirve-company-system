@@ -3,20 +3,21 @@
 
 {% block extra_css %}
 <style>
-.chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 340px; }
+.chat-outer { display: flex; flex-direction: column; height: calc(100vh - 200px); min-height: 380px; }
 .chat-box {
     flex: 1; overflow-y: auto;
-    border: 3px solid var(--stone-gray);
-    background: #1a1a1a; padding: 16px;
-    display: flex; flex-direction: column; gap: 10px;
+    border: 3px solid var(--stone-gray); background: #1a1a1a;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
 }
-.chat-bubble { max-width: 75%; padding: 10px 14px; border-radius: 4px; font-size: 15px; word-break: break-word; }
+.chat-bubble { max-width: 75%; padding: 9px 14px; border-radius: 4px; font-size: 15px; word-break: break-word; animation: popIn .15s ease; }
+@keyframes popIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: none; } }
 .chat-bubble.mine   { align-self: flex-end; background: var(--grass-green); color: #fff; border: 2px solid var(--grass-hover); }
 .chat-bubble.theirs { align-self: flex-start; background: #3a3a3a; color: #eee; border: 2px solid #555; }
-.bubble-meta { font-size: 11px; opacity: 0.65; margin-bottom: 3px; }
+.bubble-meta { font-size: 11px; opacity: .6; margin-bottom: 3px; }
 .bubble-meta a { color: inherit; text-decoration: underline; }
-.chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
-.chat-input-row input { flex: 1; }
+.chat-input-wrap { display: flex; gap: 8px; margin-top: 10px; }
+.chat-input-wrap input { flex: 1; }
+.typing-status { font-size: 12px; color: var(--grass-green); height: 18px; padding: 0 2px; }
 </style>
 {% endblock %}
 
@@ -26,26 +27,28 @@
     <h2 class="mb-0"><i class="fas fa-users"></i> Server Group Chat</h2>
 </div>
 
-<div class="chat-wrap">
+<div class="chat-outer">
     <div class="chat-box" id="chatBox">
         {% for m in messages %}
         <div class="chat-bubble {{ 'mine' if m.sender_id == current_user.id else 'theirs' }}" data-id="{{ m.id }}">
             <div class="bubble-meta">
                 <a href="{{ url_for('user_profile', user_id=m.sender_id) }}">{{ m.sender.username }}</a>
-                · {{ m.created_at.strftime('%d %b %H:%M') }}
+                &middot; {{ m.created_at.strftime('%d %b %H:%M') }}
             </div>
             {{ m.text | e }}
         </div>
         {% else %}
-        <p class="text-muted text-center my-auto" id="emptyMsg">No messages yet — be the first! 🎉</p>
+        <p class="text-muted text-center m-auto" id="emptyMsg">No messages yet — be the first! 🎉</p>
         {% endfor %}
     </div>
-
-    <form id="msgForm" method="POST" class="chat-input-row" autocomplete="off">
+    <div class="typing-status" id="typingStatus"></div>
+    <form id="msgForm" class="chat-input-wrap" autocomplete="off">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" id="msgInput" name="text" class="form-control"
-               placeholder="Say something to everyone…" required maxlength="500" autofocus>
-        <button class="btn btn-minecraft" type="submit"><i class="fas fa-paper-plane"></i> Send</button>
+               placeholder="Message the whole server…" maxlength="500" autofocus>
+        <button class="btn btn-minecraft" type="submit" id="sendBtn">
+            <i class="fas fa-paper-plane"></i> Send
+        </button>
     </form>
 </div>
 
@@ -54,43 +57,75 @@ const myId    = "{{ current_user.id }}";
 const pollUrl = "{{ url_for('group_poll') }}";
 const sendUrl = "{{ url_for('group_chat') }}";
 const csrf    = document.querySelector('[name=csrf_token]').value;
+
 const box     = document.getElementById('chatBox');
 const form    = document.getElementById('msgForm');
 const input   = document.getElementById('msgInput');
-let lastId    = box.querySelector('[data-id]:last-of-type')?.dataset.id || '';
+const sendBtn = document.getElementById('sendBtn');
+const typing  = document.getElementById('typingStatus');
+
+const knownIds = new Set(
+    [...box.querySelectorAll('[data-id]')].map(el => el.dataset.id)
+);
+let lastId = [...knownIds].at(-1) || '';
 
 function scrollBot() { box.scrollTop = box.scrollHeight; }
 scrollBot();
-function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function escHtml(t) {
+    return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function makeBubble(m) {
     const mine = m.sender_id === myId;
     const d = document.createElement('div');
     d.className = 'chat-bubble ' + (mine ? 'mine' : 'theirs');
     d.dataset.id = m.id;
-    d.innerHTML = `<div class="bubble-meta"><a href="/user/${m.sender_id}">${escHtml(m.sender_username)}</a> · ${m.time}</div>${escHtml(m.text)}`;
+    d.innerHTML = `<div class="bubble-meta"><a href="/user/${m.sender_id}">${escHtml(m.sender_username)}</a> &middot; ${m.time}</div>${escHtml(m.text)}`;
     return d;
 }
-function poll() {
-    fetch(pollUrl + '?after=' + encodeURIComponent(lastId))
-        .then(r => r.json()).then(data => {
-            if (data.messages && data.messages.length > 0) {
-                const e = document.getElementById('emptyMsg'); if(e) e.remove();
-                data.messages.forEach(m => { box.appendChild(makeBubble(m)); lastId = m.id; });
-                scrollBot();
-            }
-        }).catch(()=>{});
+
+function appendMessage(m) {
+    if (knownIds.has(m.id)) return;
+    knownIds.add(m.id);
+    lastId = m.id;
+    const e = document.getElementById('emptyMsg'); if (e) e.remove();
+    box.appendChild(makeBubble(m));
+    scrollBot();
 }
-setInterval(poll, 3500);
+
+function poll() {
+    if (!lastId) return;
+    fetch(pollUrl + '?after=' + encodeURIComponent(lastId))
+        .then(r => r.json())
+        .then(data => { (data.messages || []).forEach(appendMessage); })
+        .catch(() => {});
+}
+
+setInterval(poll, 3000);
+
 form.addEventListener('submit', function(e) {
     e.preventDefault();
-    const text = input.value.trim(); if (!text) return;
+    const text = input.value.trim();
+    if (!text) return;
     input.value = '';
-    fetch(sendUrl, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'csrf_token='+encodeURIComponent(csrf)+'&text='+encodeURIComponent(text)+'&ajax=1'})
-    .then(r => r.json()).then(data => {
-        if (data.ok) { const e = document.getElementById('emptyMsg'); if(e) e.remove(); box.appendChild(makeBubble(data.message)); lastId = data.message.id; scrollBot(); }
-        else if (data.error) alert(data.error);
-    }).catch(()=>{});
+    sendBtn.disabled = true;
+    fetch(sendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'csrf_token=' + encodeURIComponent(csrf) + '&text=' + encodeURIComponent(text) + '&ajax=1'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) appendMessage(data.message);
+        else if (data.error) { typing.textContent = '⚠ ' + data.error; setTimeout(() => typing.textContent = '', 3000); }
+    })
+    .catch(() => {})
+    .finally(() => { sendBtn.disabled = false; input.focus(); });
+});
+
+input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.dispatchEvent(new Event('submit')); }
 });
 </script>
 {% endblock %}

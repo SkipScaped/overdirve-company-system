@@ -4,113 +4,168 @@
 {% block extra_css %}
 <style>
 .shop-hero {
-    background: linear-gradient(135deg, var(--dirt-brown) 0%, #5a3a1a 100%);
-    color: #fff; padding: 32px 24px; margin-bottom: 28px; border: 3px solid var(--stone-gray);
-    text-align: center;
+    background: linear-gradient(135deg, #3d2b1a 0%, #5a3e25 60%, #2e4a1a 100%);
+    color: #fff; padding: 36px 28px; margin-bottom: 32px;
+    border: 3px solid var(--stone-gray); text-align: center; position: relative; overflow: hidden;
 }
-.shop-hero h1 { font-family: var(--font-minecraft); font-size: 2rem; margin-bottom: 8px; }
-.shop-hero p  { opacity: .85; font-size: 16px; margin: 0; }
-.cat-section  { margin-bottom: 40px; }
-.cat-header   {
-    display: flex; align-items: center; gap: 16px;
-    background: var(--stone-gray); color: #fff;
-    padding: 14px 20px; margin-bottom: 20px; border: 3px solid #6b6b6b;
+.shop-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,.02) 0, rgba(255,255,255,.02) 1px, transparent 1px, transparent 8px);
+    pointer-events: none;
 }
-.cat-header img { width: 52px; height: 52px; object-fit: cover; border: 2px solid #fff; }
-.cat-header h2  { font-family: var(--font-minecraft); font-size: 1.3rem; margin: 0; }
-.cat-header p   { font-size: 14px; opacity: .8; margin: 0; }
-.product-card {
-    border: 3px solid var(--stone-gray); background: #fff;
-    transition: transform .15s, box-shadow .15s;
-    height: 100%;
+.shop-hero h1 { font-family: var(--font-minecraft); font-size: 2.2rem; margin-bottom: 8px; text-shadow: 2px 2px #000; }
+.shop-hero p  { opacity: .85; font-size: 16px; max-width: 480px; margin: 0 auto 16px; }
+.shop-hero .discord-cta {
+    background: #5865f2; color: #fff; border: none; padding: 10px 24px;
+    font-weight: 700; font-size: 15px; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    transition: background .15s;
 }
-.product-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.15); }
-.product-img {
-    width: 100%; height: 180px; object-fit: cover;
+.shop-hero .discord-cta:hover { background: #4752c4; color: #fff; }
+
+.cat-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.cat-nav .cat-btn {
+    background: #f0ece6; border: 2px solid var(--stone-gray);
+    padding: 6px 16px; font-size: 14px; cursor: pointer; font-weight: 600;
+    transition: background .12s, color .12s;
+}
+.cat-nav .cat-btn.active, .cat-nav .cat-btn:hover {
+    background: var(--grass-green); color: #fff; border-color: var(--grass-hover);
+}
+
+.cat-section { margin-bottom: 40px; }
+.cat-section.hidden { display: none; }
+.cat-label {
+    font-family: var(--font-minecraft); font-size: 1.15rem; color: var(--dirt-brown);
+    padding-bottom: 8px; margin-bottom: 18px;
     border-bottom: 3px solid var(--stone-gray);
-    background: #e0dcd4;
+    display: flex; align-items: center; gap: 10px;
 }
-.product-img.placeholder {
-    display: flex; align-items: center; justify-content: center;
-    font-size: 3rem; color: var(--stone-gray);
+.cat-label img { width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--stone-gray); }
+
+.product-card {
+    border: 3px solid var(--stone-gray); background: #fff; height: 100%;
+    display: flex; flex-direction: column;
+    transition: transform .15s, box-shadow .15s;
 }
-.product-body { padding: 14px 16px; }
-.product-name { font-family: var(--font-minecraft); font-size: 1rem; color: var(--dirt-brown); margin-bottom: 6px; }
-.product-desc { font-size: 13px; color: #555; margin-bottom: 10px; line-height: 1.4; }
-.product-price {
-    display: inline-block; background: var(--grass-green); color: #fff;
-    padding: 4px 12px; font-weight: 700; font-size: 15px; margin-bottom: 8px;
+.product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.13); }
+
+.product-img-wrap { position: relative; }
+.product-img-wrap img { width: 100%; height: 160px; object-fit: cover; border-bottom: 3px solid var(--stone-gray); display: block; }
+.product-img-placeholder { width: 100%; height: 160px; background: #e8e3db; border-bottom: 3px solid var(--stone-gray); display: flex; align-items: center; justify-content: center; font-size: 2.8rem; color: var(--stone-gray); }
+.badge-stock { position: absolute; top: 8px; right: 8px; padding: 3px 9px; font-size: 12px; font-weight: 700; }
+.badge-in  { background: var(--grass-green); color: #fff; }
+.badge-out { background: #c64343; color: #fff; }
+
+.product-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; }
+.product-name { font-family: var(--font-minecraft); font-size: .95rem; color: var(--dirt-brown); margin-bottom: 5px; }
+.product-desc { font-size: 13px; color: #666; line-height: 1.4; flex: 1; margin-bottom: 10px; }
+.product-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.product-price { background: var(--grass-green); color: #fff; padding: 4px 12px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.btn-get {
+    background: #5865f2; color: #fff; border: none; padding: 5px 12px;
+    font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap;
+    transition: background .12s;
 }
-.badge-oos { background: #c64343; color: #fff; padding: 4px 10px; font-size: 12px; font-weight: 600; }
-.empty-shop { text-align: center; padding: 60px 20px; color: var(--stone-gray); }
-.empty-shop i { font-size: 4rem; margin-bottom: 16px; display: block; }
+.btn-get:hover { background: #4752c4; color: #fff; }
+.btn-get-disabled { background: #aaa; color: #fff; padding: 5px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+.empty-shop { text-align: center; padding: 70px 20px; color: var(--stone-gray); }
+.empty-shop i { font-size: 4rem; margin-bottom: 18px; display: block; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="shop-hero">
     <h1><i class="fas fa-store"></i> Private Java SMP Shop</h1>
-    <p>Browse exclusive ranks, perks, and items for our server community.</p>
+    <p>Exclusive ranks, perks &amp; cosmetics for our server community. To purchase, join our Discord!</p>
+    <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener" class="discord-cta">
+        <i class="fab fa-discord"></i> Join Discord to Buy
+    </a>
 </div>
 
 {% if shop_categories %}
+
+<!-- Category quick-nav -->
+<div class="cat-nav" id="catNav">
+    <button class="cat-btn active" data-cat="all">All</button>
     {% for cat in shop_categories %}
-    <div class="cat-section">
-        <div class="cat-header">
-            {% if cat.image_path %}
-            <img src="{{ cat.image_path }}" alt="{{ cat.name }}"
-                 onerror="this.style.display='none'">
-            {% else %}
-            <i class="fas fa-tag fa-2x me-1"></i>
-            {% endif %}
-            <div>
-                <h2>{{ cat.name }}</h2>
-                {% if cat.description %}<p>{{ cat.description }}</p>{% endif %}
-            </div>
-        </div>
+    <button class="cat-btn" data-cat="{{ cat.id }}">{{ cat.name }}</button>
+    {% endfor %}
+</div>
 
-        {% if cat.products %}
-        <div class="row g-3">
-            {% for p in cat.products %}
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="product-card">
+{% for cat in shop_categories %}
+<div class="cat-section" id="cat-{{ cat.id }}">
+    <div class="cat-label">
+        {% if cat.image_path %}
+        <img src="{{ cat.image_path }}" alt="{{ cat.name }}" onerror="this.style.display='none'">
+        {% endif %}
+        <i class="fas fa-tag me-1"></i> {{ cat.name }}
+        {% if cat.description %}<small style="font-family:sans-serif;font-weight:400;font-size:13px;opacity:.7;">— {{ cat.description }}</small>{% endif %}
+    </div>
+
+    {% if cat.products %}
+    <div class="row g-3">
+        {% for p in cat.products %}
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="product-card">
+                <div class="product-img-wrap">
                     {% if p.image_path %}
-                    <img src="{{ p.image_path }}" alt="{{ p.name }}" class="product-img"
-                         onerror="this.src=''; this.className='product-img placeholder'; this.innerHTML='<i class=\'fas fa-cube\'></i>'">
+                    <img src="{{ p.image_path }}" alt="{{ p.name }}"
+                         onerror="this.parentNode.innerHTML='<div class=\'product-img-placeholder\'><i class=\'fas fa-cube\'></i></div>'">
                     {% else %}
-                    <div class="product-img placeholder"><i class="fas fa-cube"></i></div>
+                    <div class="product-img-placeholder"><i class="fas fa-cube"></i></div>
                     {% endif %}
-
-                    <div class="product-body">
-                        <div class="product-name">{{ p.name }}</div>
-                        {% if p.description %}
-                        <div class="product-desc">{{ p.description }}</div>
+                    <span class="badge-stock {{ 'badge-in' if p.in_stock else 'badge-out' }}">
+                        {{ 'In Stock' if p.in_stock else 'Out of Stock' }}
+                    </span>
+                </div>
+                <div class="product-body">
+                    <div class="product-name">{{ p.name }}</div>
+                    {% if p.description %}
+                    <div class="product-desc">{{ p.description }}</div>
+                    {% endif %}
+                    <div class="product-footer">
+                        <span class="product-price">{{ p.price }}</span>
+                        {% if p.in_stock %}
+                        <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener" class="btn-get">
+                            <i class="fab fa-discord"></i> Get
+                        </a>
+                        {% else %}
+                        <span class="btn-get-disabled">Sold Out</span>
                         {% endif %}
-                        <div class="product-price">{{ p.price }}</div>
-                        <div>
-                            {% if p.in_stock %}
-                            <span class="badge bg-success">In Stock</span>
-                            {% else %}
-                            <span class="badge-oos">Out of Stock</span>
-                            {% endif %}
-                        </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
-        {% else %}
-        <p class="text-muted ms-2">No products in this category yet.</p>
-        {% endif %}
+        {% endfor %}
     </div>
-    {% endfor %}
+    {% else %}
+    <p class="text-muted" style="font-size:14px;">No products in this category yet.</p>
+    {% endif %}
+</div>
+{% endfor %}
+
+<script>
+document.getElementById('catNav').addEventListener('click', function(e) {
+    const btn = e.target.closest('.cat-btn');
+    if (!btn) return;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.dataset.cat;
+    document.querySelectorAll('.cat-section').forEach(s => {
+        s.classList.toggle('hidden', cat !== 'all' && s.id !== 'cat-' + cat);
+    });
+});
+</script>
+
 {% else %}
 <div class="empty-shop">
     <i class="fas fa-store-slash"></i>
     <h3>Shop Coming Soon!</h3>
-    <p>The admin is setting up the shop. Check back later for ranks, perks, and more.</p>
-    <a href="{{ url_for('index') }}" class="btn btn-minecraft mt-3">
-        <i class="fas fa-home"></i> Back to Gallery
+    <p>The admin is setting up the shop. Check back later for exclusive ranks, perks, and more.</p>
+    <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener" class="btn btn-minecraft mt-3">
+        <i class="fab fa-discord"></i> Join our Discord
     </a>
 </div>
 {% endif %}

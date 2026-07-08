@@ -449,16 +449,16 @@ def message_poll(user_id):
     other = User.query.get(user_id)
     if not other:
         return jsonify({'messages': []})
+    if not after_id:
+        return jsonify({'messages': []})
     base_q = DirectMessage.query.filter(
         ((DirectMessage.sender_id == current_user.id) & (DirectMessage.receiver_id == user_id)) |
         ((DirectMessage.sender_id == user_id) & (DirectMessage.receiver_id == current_user.id))
     )
-    if after_id:
-        last = DirectMessage.query.get(after_id)
-        if last:
-            base_q = base_q.filter(DirectMessage.created_at > last.created_at)
-        else:
-            return jsonify({'messages': []})
+    last = DirectMessage.query.get(after_id)
+    if not last:
+        return jsonify({'messages': []})
+    base_q = base_q.filter(DirectMessage.created_at > last.created_at)
     msgs = base_q.order_by(DirectMessage.created_at.asc()).all()
     # Mark as read
     DirectMessage.query.filter_by(sender_id=user_id, receiver_id=current_user.id, is_read=False)\
