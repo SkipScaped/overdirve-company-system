@@ -545,6 +545,12 @@ def admin_bot():
     categories = get_categories(images)
     return render_template('admin/bot.html', status=status, log_content=log_content, categories=categories)
 
+@app.route('/ping')
+def ping():
+    """Keep-alive endpoint — ping this URL every 5 minutes to keep the app awake."""
+    from flask import jsonify
+    return jsonify({'status': 'ok', 'app': 'Private Java SMP', 'timestamp': datetime.now().isoformat()})
+
 @app.errorhandler(403)
 def forbidden(e):
     images = load_images()

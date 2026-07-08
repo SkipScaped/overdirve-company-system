@@ -7,12 +7,22 @@
 .status-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 8px; }
 .status-dot.online  { background: var(--grass-green); box-shadow: 0 0 8px var(--grass-green); }
 .status-dot.offline { background: #c64343; box-shadow: 0 0 8px #c64343; }
+.status-dot.reconnecting { background: #f5a623; box-shadow: 0 0 8px #f5a623; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .bot-stat { background: rgba(0,0,0,0.05); border: 2px solid var(--stone-gray); padding: 12px 18px; margin-bottom: 10px; }
 .bot-stat label { font-size: 14px; color: var(--stone-gray); display: block; margin-bottom: 2px; }
 .bot-stat .val { font-size: 22px; color: var(--dirt-brown); }
 .log-box { background: #1a1a1a; color: #00ff41; font-family: 'Courier New', monospace;
            font-size: 13px; padding: 14px; height: 320px; overflow-y: auto;
            border: 3px solid var(--stone-gray); white-space: pre-wrap; word-break: break-all; }
+.ping-url-box { background: #1a1a1a; color: #00ff41; font-family: monospace;
+                padding: 10px 14px; border-radius: 4px; font-size: 14px;
+                border: 2px solid var(--stone-gray); word-break: break-all; }
+.copy-btn { cursor: pointer; }
+.step-badge { display: inline-flex; align-items: center; justify-content: center;
+              width: 26px; height: 26px; border-radius: 50%; background: var(--grass-green);
+              color: #fff; font-weight: bold; font-size: 13px; margin-right: 8px; flex-shrink: 0; }
+.step-row { display: flex; align-items: flex-start; margin-bottom: 14px; }
 </style>
 {% endblock %}
 
@@ -26,49 +36,48 @@
 
 <!-- Status Bar -->
 <div class="bot-status-card mb-4">
+    {% set dot = 'online' if status.connected else ('reconnecting' if 'reconnect' in (status.status or '') else 'offline') %}
     <div class="d-flex align-items-center mb-3">
-        <span class="status-dot {{ 'online' if status.connected else 'offline' }}"></span>
-        <h3 class="mb-0">Bot is <strong>{{ 'ONLINE' if status.connected else 'OFFLINE' }}</strong></h3>
-        <span class="ms-3 text-muted" style="font-size:14px;">{{ status.status | upper }}</span>
+        <span class="status-dot {{ dot }}"></span>
+        <h3 class="mb-0">Bot is <strong>{{ 'ONLINE' if status.connected else status.status | upper }}</strong></h3>
+        {% if status.mc_version %}
+            <span class="ms-3 badge bg-success">MC {{ status.mc_version }}</span>
+        {% endif %}
         <button class="btn btn-sm btn-minecraft ms-auto" onclick="location.reload()">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>
 
     <div class="row g-3">
-        <div class="col-sm-3">
+        <div class="col-6 col-sm-3">
             <div class="bot-stat">
                 <label>Username</label>
-                <div class="val">{{ status.username or '—' }}</div>
+                <div class="val" style="font-size:16px;">{{ status.username or '—' }}</div>
             </div>
         </div>
-        <div class="col-sm-3">
+        <div class="col-6 col-sm-3">
             <div class="bot-stat">
                 <label>Messages Sent</label>
                 <div class="val">{{ status.messages_sent or 0 }}</div>
             </div>
         </div>
-        <div class="col-sm-3">
+        <div class="col-6 col-sm-3">
             <div class="bot-stat">
                 <label>Position</label>
-                <div class="val" style="font-size:16px;">
+                <div class="val" style="font-size:14px;">
                     {% if status.position %}
-                        X:{{ status.position.x }} Y:{{ status.position.y }} Z:{{ status.position.z }}
-                    {% else %}
-                        —
-                    {% endif %}
+                        X:{{ status.position.x }}<br>Y:{{ status.position.y }} Z:{{ status.position.z }}
+                    {% else %}—{% endif %}
                 </div>
             </div>
         </div>
-        <div class="col-sm-3">
+        <div class="col-6 col-sm-3">
             <div class="bot-stat">
                 <label>Health / Food</label>
-                <div class="val">
-                    {% if status.health is defined and status.health %}
-                        ❤ {{ status.health | round(1) }} / 🍗 {{ status.food | round(1) }}
-                    {% else %}
-                        —
-                    {% endif %}
+                <div class="val" style="font-size:16px;">
+                    {% if status.health %}
+                        ❤ {{ status.health }} / 🍗 {{ status.food }}
+                    {% else %}—{% endif %}
                 </div>
             </div>
         </div>
@@ -76,18 +85,57 @@
 
     <div class="mt-2 text-muted" style="font-size:13px;">
         Last updated: {{ status.updated or 'Never' }}
+        &nbsp;·&nbsp; Node.js v22 &nbsp;·&nbsp; mineflayer@latest &nbsp;·&nbsp; MC 1.21.5 ✓
     </div>
 </div>
 
-<!-- Live Log Box (auto-refresh) -->
+<!-- Keep-Alive / Ping URL -->
 <div class="card admin-card mb-4">
-    <div class="card-header"><i class="fas fa-terminal"></i> Live Bot Log</div>
-    <div class="card-body p-0">
-        <div class="log-box" id="logBox">{{ log_content or '(No log output yet — bot may not have started)' }}</div>
+    <div class="card-header"><i class="fas fa-heartbeat"></i> 24/7 Keep-Alive — Ping URL</div>
+    <div class="card-body">
+        <p class="mb-2">To keep the bot running 24/7, ping this URL every <strong>5 minutes</strong> using a free uptime monitor like <a href="https://uptimerobot.com" target="_blank">UptimeRobot</a> or <a href="https://cron-job.org" target="_blank">cron-job.org</a>:</p>
+
+        <div class="ping-url-box mb-3" id="pingUrl">{{ request.host_url.rstrip('/') }}/ping</div>
+        <button class="btn btn-sm btn-outline-secondary copy-btn mb-3" onclick="copyPing()">
+            <i class="fas fa-copy"></i> Copy URL
+        </button>
+
+        <hr>
+        <p class="mb-3"><strong><i class="fas fa-list-ol"></i> Set-up steps (free, 2 minutes):</strong></p>
+
+        <div class="step-row">
+            <span class="step-badge">1</span>
+            <div>Go to <a href="https://uptimerobot.com/signUp" target="_blank"><strong>UptimeRobot.com</strong></a> → Create a free account</div>
+        </div>
+        <div class="step-row">
+            <span class="step-badge">2</span>
+            <div>Click <strong>+ Add New Monitor</strong> → choose <strong>HTTP(s)</strong></div>
+        </div>
+        <div class="step-row">
+            <span class="step-badge">3</span>
+            <div>Paste the URL above into the <strong>URL</strong> field → set interval to <strong>5 minutes</strong></div>
+        </div>
+        <div class="step-row">
+            <span class="step-badge">4</span>
+            <div>Click <strong>Create Monitor</strong> — done! Your app and bot stay alive forever.</div>
+        </div>
+
+        <div class="alert alert-success mt-3 mb-0">
+            <i class="fas fa-check-circle"></i>
+            The <code>/ping</code> endpoint returns <code>{"status": "ok"}</code> — UptimeRobot will see it as green (up) and prevent Replit from sleeping.
+        </div>
     </div>
 </div>
 
-<!-- Bot Info -->
+<!-- Live Log Box -->
+<div class="card admin-card mb-4">
+    <div class="card-header"><i class="fas fa-terminal"></i> Live Bot Log <small class="text-muted ms-2">(auto-refreshes every 10s)</small></div>
+    <div class="card-body p-0">
+        <div class="log-box" id="logBox">{{ log_content or '(No log output yet — start the Run Bot workflow)' }}</div>
+    </div>
+</div>
+
+<!-- Bot Config -->
 <div class="card admin-card">
     <div class="card-header"><i class="fas fa-info-circle"></i> Bot Configuration</div>
     <div class="card-body">
@@ -95,21 +143,28 @@
             <div class="col-md-6">
                 <table class="table admin-table mb-0">
                     <tr><td><strong>Server</strong></td><td>private-java-smp.aternos.me:40115</td></tr>
-                    <tr><td><strong>Version</strong></td><td>Minecraft 1.21.5</td></tr>
-                    <tr><td><strong>Auth</strong></td><td>Offline (cracked)</td></tr>
+                    <tr><td><strong>MC Version</strong></td><td><span class="badge bg-success">1.21.5 ✓</span></td></tr>
+                    <tr><td><strong>Node.js</strong></td><td><span class="badge bg-primary">v22</span></td></tr>
+                    <tr><td><strong>Auth</strong></td><td>Offline (cracked / Aternos free)</td></tr>
+                    <tr><td><strong>Version detect</strong></td><td>Auto (from server handshake)</td></tr>
                     <tr><td><strong>Movement</strong></td><td>Pathfinder (random walk)</td></tr>
-                    <tr><td><strong>Chat</strong></td><td>Every 45–75 seconds</td></tr>
-                    <tr><td><strong>Username pool</strong></td><td>5,000+ generated names</td></tr>
+                    <tr><td><strong>Chat</strong></td><td>Every 50–90 seconds</td></tr>
+                    <tr><td><strong>Username pool</strong></td><td>8,000+ generated names</td></tr>
                     <tr><td><strong>Reconnect</strong></td><td>Exponential backoff (3s → 60s)</td></tr>
                 </table>
             </div>
             <div class="col-md-6">
+                <div class="alert alert-warning border mb-3">
+                    <strong><i class="fas fa-moon"></i> Aternos server sleeping?</strong><br>
+                    When no real players are online, Aternos puts the server to sleep. The bot will get
+                    <code>ETIMEDOUT</code> — this is normal. Start the server in Aternos, then the bot
+                    will auto-connect within 60 seconds.
+                </div>
                 <div class="alert alert-light border">
-                    <strong><i class="fas fa-play"></i> Starting the bot:</strong><br>
-                    <code>cd bot && npm install && npm start</code><br><br>
-                    <strong><i class="fas fa-cog"></i> Or use the <em>Run Bot</em> workflow in Replit.</strong><br><br>
-                    The bot auto-reconnects on disconnect, rotates usernames if rejected,
-                    walks around randomly using pathfinding, and sends chat messages every ~60s.
+                    <strong><i class="fas fa-play"></i> Workflow:</strong><br>
+                    Use the <strong>"Run Bot"</strong> workflow tab in Replit to start/stop the bot.<br><br>
+                    <strong><i class="fas fa-terminal"></i> Manual:</strong><br>
+                    <code>cd bot && node bot.js</code>
                 </div>
             </div>
         </div>
@@ -117,10 +172,17 @@
 </div>
 
 <script>
-    // Auto-scroll log to bottom
     const lb = document.getElementById('logBox');
     if (lb) lb.scrollTop = lb.scrollHeight;
-    // Auto-refresh status every 10 seconds
     setInterval(() => location.reload(), 10000);
+
+    function copyPing() {
+        const url = document.getElementById('pingUrl').innerText.trim();
+        navigator.clipboard.writeText(url).then(() => {
+            const btn = document.querySelector('.copy-btn');
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy URL', 2000);
+        });
+    }
 </script>
 {% endblock %}
