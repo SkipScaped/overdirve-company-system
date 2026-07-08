@@ -33,11 +33,6 @@
         </button>
     </li>
     <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-aternos">
-            <i class="fas fa-globe"></i> Aternos
-        </button>
-    </li>
-    <li class="nav-item">
         <a class="nav-link" href="{{ url_for('admin_bot') }}">
             <i class="fas fa-robot"></i> Bot Status
         </a>
@@ -241,37 +236,6 @@
         </div>
     </div>
 
-    <!-- ── Aternos ── -->
-    <div class="tab-pane fade" id="tab-aternos">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-globe"></i> Aternos Server Panel</div>
-            <div class="card-body p-0">
-                <div class="alert alert-info m-3" style="font-size:15px;">
-                    <i class="fas fa-info-circle"></i>
-                    Aternos blocks embedding in iframes for security reasons. Use the button below to open it in a new tab, or log in directly on their site.
-                </div>
-                <div class="text-center p-4">
-                    <a href="https://aternos.org/server/" target="_blank" class="btn btn-minecraft btn-lg me-2">
-                        <i class="fas fa-external-link-alt"></i> Open Aternos Panel
-                    </a>
-                    <a href="https://aternos.org/" target="_blank" class="btn btn-outline-secondary btn-lg">
-                        <i class="fas fa-home"></i> Aternos Home
-                    </a>
-                    <div class="mt-4">
-                        <iframe src="https://aternos.org/server/"
-                                width="100%" height="600"
-                                style="border: 3px solid var(--stone-gray);"
-                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-                                title="Aternos Panel">
-                        </iframe>
-                        <p class="text-muted mt-2" style="font-size:13px;">
-                            If the panel above is blank, Aternos is blocking the embed — use the button above instead.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
 {% endblock %}

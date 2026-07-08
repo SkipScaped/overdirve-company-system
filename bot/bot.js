@@ -162,14 +162,14 @@ function createBot() {
   writeStatus({ connected: false, username, status: 'connecting',
     messages_sent: messagesSent, position: null });
 
-  // Use version: false so mineflayer auto-detects from server handshake
-  // This avoids hardcoded version mismatch entirely
+  // Specify version explicitly — skips the status-ping step that causes ETIMEDOUT
+  // when the Aternos server is sleeping. mineflayer@latest + Node 22 supports 1.21.5.
   const opts = {
     host:                   SERVER_HOST,
     port:                   SERVER_PORT,
     username,
     auth:                   'offline',
-    version:                false,          // auto-detect server version
+    version:                '1.21.5',
     hideErrors:             false,
     checkTimeoutInterval:   30000,
     connectTimeout:         25000,
