@@ -1,109 +1,178 @@
 {% extends 'base.html' %}
+{% block title %}Edit Profile — Private Java SMP{% endblock %}
 
-{% block title %}Edit Profile - Private Java SMP Gallery{% endblock %}
+{% block extra_css %}
+<style>
+.edit-profile-wrap {
+    max-width: 540px;
+    margin: 0 auto;
+}
+.avatar-picker {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 24px;
+    cursor: pointer;
+}
+.avatar-picker img {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--grass-green);
+    display: block;
+    transition: filter .2s;
+}
+.avatar-picker:hover img { filter: brightness(.75); }
+.avatar-picker-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .2s;
+    color: #fff;
+    font-size: 11px;
+    gap: 4px;
+    pointer-events: none;
+}
+.avatar-picker:hover .avatar-picker-overlay { opacity: 1; }
+.avatar-picker-overlay i { font-size: 22px; }
+#picInput { display: none; }
+
+.field-card {
+    background: var(--container-bg);
+    border: 2px solid var(--stone-light);
+    border-bottom-color: #bbb;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+}
+.field-card .form-label {
+    font-family: var(--font-mc);
+    font-size: 14px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 4px;
+}
+.field-card .form-control {
+    border: none;
+    border-bottom: 2px solid var(--stone-light);
+    border-radius: 0;
+    padding: 6px 0;
+    background: transparent;
+    font-size: 16px;
+}
+.field-card .form-control:focus {
+    border-bottom-color: var(--grass-green);
+    box-shadow: none;
+    background: transparent;
+}
+.save-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 20px;
+    letter-spacing: 1px;
+    border-radius: 12px !important;
+}
+.back-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+    text-decoration: none;
+    margin-bottom: 20px;
+}
+.back-link:hover { color: var(--dirt-brown); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <h1><i class="fas fa-user-edit"></i> Edit Profile</h1>
-        
-        <form method="POST" enctype="multipart/form-data" class="minecraft-form">
-            {{ form.csrf_token }}
-            
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="text-center">
-                        <img src="{{ current_user.profile_pic_url }}"
-                             alt="{{ current_user.username }}" id="profile-preview"
-                             class="img-thumbnail mb-2"
-                             style="width: 150px; height: 150px; object-fit: cover;"
-                             onerror="this.src='/static/images/default_avatar.png'">
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.profile_pic.id }}" class="form-label">{{ form.profile_pic.label }}</label>
-                            {{ form.profile_pic(class="form-control" + (" is-invalid" if form.profile_pic.errors else "")) }}
-                            {% if form.profile_pic.errors %}
-                                {% for error in form.profile_pic.errors %}
-                                    <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
-                            {% endif %}
-                            <div class="form-text">JPG, PNG, GIF, or WEBP - Max 2MB</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-8">
-                    <div class="mb-3">
-                        <label for="{{ form.username.id }}" class="form-label">{{ form.username.label }}</label>
-                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
-                        {% if form.username.errors %}
-                            {% for error in form.username.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.email.id }}" class="form-label">{{ form.email.label }}</label>
-                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
-                        {% if form.email.errors %}
-                            {% for error in form.email.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.minecraft_username.id }}" class="form-label">{{ form.minecraft_username.label }}</label>
-                        {{ form.minecraft_username(class="form-control" + (" is-invalid" if form.minecraft_username.errors else "")) }}
-                        {% if form.minecraft_username.errors %}
-                            {% for error in form.minecraft_username.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
+<div class="edit-profile-wrap">
+    <a href="{{ url_for('profile') }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Profile
+    </a>
+
+    <h2 class="mb-4 text-center"><i class="fas fa-user-edit"></i> Edit Profile</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+
+        <!-- Avatar picker -->
+        <div class="text-center">
+            <div class="avatar-picker" onclick="document.getElementById('picInput').click()">
+                <img src="{{ current_user.profile_pic_url }}"
+                     alt="{{ current_user.username }}"
+                     id="avatarPreview"
+                     onerror="this.src='/static/images/default_avatar.png'">
+                <div class="avatar-picker-overlay">
+                    <i class="fas fa-camera"></i>
+                    Change photo
                 </div>
             </div>
-            
-            <div class="mb-3">
-                <label for="{{ form.bio.id }}" class="form-label">{{ form.bio.label }}</label>
-                {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""), rows=4, placeholder="Tell us about yourself and your Minecraft experience...") }}
-                {% if form.bio.errors %}
-                    {% for error in form.bio.errors %}
-                        <div class="invalid-feedback">{{ error }}</div>
-                    {% endfor %}
-                {% endif %}
-                <div class="form-text">Maximum 500 characters</div>
-            </div>
-            
-            <div class="d-flex justify-content-between mt-4">
-                <a href="{{ url_for('profile') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Profile
-                </a>
-                {{ form.submit(class="btn btn-minecraft") }}
-            </div>
-        </form>
-    </div>
+            <input type="file" id="picInput" name="{{ form.profile_pic.name }}"
+                   accept="image/jpeg,image/png,image/gif,image/webp">
+            {% if form.profile_pic.errors %}
+                {% for error in form.profile_pic.errors %}
+                <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+            <p class="text-muted small mt-1">Tap photo to change</p>
+        </div>
+
+        <!-- Fields -->
+        <div class="field-card">
+            <label class="form-label">Username</label>
+            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""),
+                            value=current_user.username) }}
+            {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="field-card">
+            <label class="form-label">Email</label>
+            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
+                          value=current_user.email) }}
+            {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="field-card">
+            <label class="form-label">Minecraft Username</label>
+            {{ form.minecraft_username(class="form-control" + (" is-invalid" if form.minecraft_username.errors else ""),
+                                       value=current_user.minecraft_username or '',
+                                       placeholder='YourMinecraftName') }}
+            {% for e in form.minecraft_username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="field-card">
+            <label class="form-label">Bio</label>
+            {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""),
+                        rows=3,
+                        placeholder="Tell us about yourself…") }}
+            {% for e in form.bio.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">Max 500 characters</div>
+        </div>
+
+        <button type="submit" class="btn btn-minecraft save-btn">
+            <i class="fas fa-check"></i> Save Changes
+        </button>
+    </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const profileInput = document.getElementById('{{ form.profile_pic.id }}');
-        const profilePreview = document.getElementById('profile-preview');
-        
-        profileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    profilePreview.setAttribute('src', e.target.result);
-                }
-                
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
-    });
+document.getElementById('picInput').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => document.getElementById('avatarPreview').src = e.target.result;
+        reader.readAsDataURL(this.files[0]);
+    }
+});
 </script>
 {% endblock %}
