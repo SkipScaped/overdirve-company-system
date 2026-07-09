@@ -727,8 +727,12 @@ def serve_image(image_id):
                         headers={'Cache-Control': 'public, max-age=31536000'})
     if img.filepath:
         static_path = img.filepath.lstrip('/').replace('static/', '', 1)
-        return redirect(url_for('static', filename=static_path))
-    abort(404)
+        disk_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', *static_path.split('/'))
+        if os.path.exists(disk_path):
+            return redirect(url_for('static', filename=static_path))
+    # Serve pixel-art placeholder when file is gone
+    placeholder = b'<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#1a1714"/><rect x="155" y="75" width="90" height="70" fill="#2a2a2a"/><rect x="170" y="90" width="18" height="18" fill="#3d2610"/><rect x="212" y="90" width="18" height="18" fill="#3d2610"/><rect x="170" y="118" width="60" height="8" fill="#3d2610"/><text x="200" y="190" text-anchor="middle" font-family="monospace" font-size="13" fill="#4a4a4a">No Image Available</text></svg>'
+    return Response(placeholder, mimetype='image/svg+xml', headers={'Cache-Control': 'public, max-age=3600'})
 
 
 @app.route('/profile-pic/<user_id>')

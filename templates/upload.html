@@ -1,127 +1,289 @@
 {% extends 'base.html' %}
+{% block title %}Upload — Private Java SMP{% endblock %}
 
-{% block title %}Upload New Image - Private Java SMP Gallery{% endblock %}
+{% block extra_css %}
+<style>
+.upload-wrap { max-width: 560px; margin: 0 auto; }
+
+/* Drop zone */
+.drop-zone {
+    border: 3px dashed #5bae4a;
+    border-radius: 16px;
+    background: rgba(91,174,74,.06);
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+.drop-zone.drag-over {
+    background: rgba(91,174,74,.15);
+    border-color: #3d8b2e;
+}
+.drop-zone.has-image { border-style: solid; }
+.drop-zone-placeholder {
+    text-align: center;
+    padding: 24px;
+    pointer-events: none;
+}
+.drop-zone-placeholder i {
+    font-size: 3rem;
+    color: #5bae4a;
+    display: block;
+    margin-bottom: 12px;
+}
+.drop-zone-placeholder p {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: #5bae4a;
+    margin: 0 0 4px;
+}
+.drop-zone-placeholder small {
+    color: #999;
+    font-size: 13px;
+}
+#previewImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    border-radius: 13px;
+}
+.remove-preview {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    z-index: 2;
+}
+.drop-zone.has-image .remove-preview { display: flex; }
+.drop-zone.has-image .drop-zone-placeholder { display: none; }
+
+/* Field cards */
+.upload-field {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+.upload-field-label {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: #7d5736;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.upload-field .form-control,
+.upload-field .form-select {
+    border: none;
+    border-bottom: 2px solid #e8e4e0;
+    border-radius: 0;
+    padding: 6px 0;
+    background: transparent;
+    font-size: 15px;
+}
+.upload-field .form-control:focus,
+.upload-field .form-select:focus {
+    box-shadow: none;
+    border-bottom-color: #5bae4a;
+    background: transparent;
+}
+.upload-field textarea.form-control { min-height: 70px; }
+
+.char-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 2px; }
+
+.submit-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 22px;
+    border-radius: 14px !important;
+    justify-content: center;
+    margin-top: 8px;
+}
+.tips-card {
+    background: #1a1714;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-top: 12px;
+}
+.tips-card h5 {
+    color: #f5a623;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+.tips-card ul { padding-left: 18px; margin: 0; }
+.tips-card li { color: rgba(255,255,255,.7); font-size: 13px; margin-bottom: 5px; }
+</style>
+{% endblock %}
 
 {% block content %}
-    <h1><i class="fas fa-upload"></i> Upload New Image</h1>
-    
-    <p class="lead">Share your amazing Minecraft builds, landscapes, or server pictures with the community!</p>
-    
-    <div class="row">
-        <div class="col-lg-8">
-            <form method="POST" enctype="multipart/form-data">
-                {{ form.csrf_token }}
-                
-                <div class="mb-3">
-                    <label for="title" class="form-label">{{ form.title.label }}</label>
-                    {{ form.title(class="form-control", placeholder="Enter a catchy title") }}
-                    {% if form.title.errors %}
-                        <div class="alert alert-danger mt-2">
-                            {% for error in form.title.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="description" class="form-label">{{ form.description.label }}</label>
-                    {{ form.description(class="form-control", rows="4", placeholder="Describe your image, build techniques used, coordinates, etc.") }}
-                    {% if form.description.errors %}
-                        <div class="alert alert-danger mt-2">
-                            {% for error in form.description.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="category" class="form-label">{{ form.category.label }}</label>
-                    {{ form.category(class="form-control") }}
-                    {% if form.category.errors %}
-                        <div class="alert alert-danger mt-2">
-                            {% for error in form.category.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="uploader" class="form-label">{{ form.uploader.label }}</label>
-                    {{ form.uploader(class="form-control", placeholder="Your Minecraft username or real name") }}
-                    {% if form.uploader.errors %}
-                        <div class="alert alert-danger mt-2">
-                            {% for error in form.uploader.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="image" class="form-label">{{ form.image.label }}</label>
-                    {{ form.image(class="form-control") }}
-                    {% if form.image.errors %}
-                        <div class="alert alert-danger mt-2">
-                            {% for error in form.image.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    <div class="form-text">Allowed files: PNG, JPG, JPEG, GIF (max 16MB)</div>
-                    <img id="imagePreview" alt="Image Preview" class="mt-3">
-                </div>
-                
-                <div class="d-grid gap-2 d-md-flex justify-content-md-between mt-4">
-                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Gallery
-                    </a>
-                    {{ form.submit(class="btn btn-minecraft") }}
-                </div>
-            </form>
-        </div>
-        
-        <div class="col-lg-4">
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <i class="fas fa-info-circle"></i> Tips for Great Uploads
-                </div>
-                <div class="card-body">
-                    <ul>
-                        <li>Take screenshots with F2 in Minecraft</li>
-                        <li>Use shaders for more impressive images</li>
-                        <li>Clear weather and daytime makes builds more visible</li>
-                        <li>Include details about your building process</li>
-                        <li>Mention coordinates and server details if applicable</li>
-                    </ul>
-                </div>
+<div class="upload-wrap">
+    <h2 class="mb-1"><i class="fas fa-upload"></i> Share a Screenshot</h2>
+    <p class="mb-3" style="color:var(--text-muted);font-size:14px;">Show off your builds to the community!</p>
+
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+        {{ form.csrf_token }}
+
+        <!-- Image Drop Zone -->
+        <div class="drop-zone" id="dropZone" onclick="triggerPicker()">
+            <div class="drop-zone-placeholder">
+                <i class="fas fa-image"></i>
+                <p>Tap to Pick Image</p>
+                <small>PNG · JPG · GIF · WebP · max 16 MB</small>
             </div>
+            <img id="previewImg" alt="Preview">
+            <button type="button" class="remove-preview" id="removeBtn" onclick="removeImage(event)">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
+        <input type="file" id="imageInput" name="{{ form.image.name }}"
+               accept="image/png,image/jpeg,image/gif,image/webp" style="display:none;" required>
+        {% if form.image.errors %}
+            {% for e in form.image.errors %}
+            <div class="text-danger small mb-2 px-1">{{ e }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Title -->
+        <div class="upload-field">
+            <div class="upload-field-label"><i class="fas fa-heading"></i> Title</div>
+            {{ form.title(class="form-control", placeholder="Give your screenshot a catchy title",
+                          id="titleInput", maxlength=100) }}
+            {% for e in form.title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="char-count"><span id="titleCount">0</span>/100</div>
+        </div>
+
+        <!-- Category -->
+        <div class="upload-field">
+            <div class="upload-field-label"><i class="fas fa-tag"></i> Category</div>
+            {{ form.category(class="form-select") }}
+            {% for e in form.category.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+
+        <!-- Description -->
+        <div class="upload-field">
+            <div class="upload-field-label"><i class="fas fa-align-left"></i> Description</div>
+            {{ form.description(class="form-control", placeholder="Describe your build, techniques, coordinates…",
+                                id="descInput", rows=3, maxlength=500) }}
+            {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="char-count"><span id="descCount">0</span>/500</div>
+        </div>
+
+        <!-- Uploader name -->
+        <div class="upload-field">
+            <div class="upload-field-label"><i class="fas fa-user"></i> Your Name</div>
+            {{ form.uploader(class="form-control",
+                             placeholder="Minecraft username or display name",
+                             value=current_user.username if current_user.is_authenticated else '') }}
+            {% for e in form.uploader.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-minecraft submit-btn" id="submitBtn">
+            <i class="fas fa-paper-plane"></i> Post to Gallery
+        </button>
+    </form>
+
+    <!-- Tips -->
+    <div class="tips-card">
+        <h5><i class="fas fa-lightbulb"></i> Tips for Great Screenshots</h5>
+        <ul>
+            <li>Press <strong>F2</strong> in Minecraft to take a screenshot</li>
+            <li>Use shaders for jaw-dropping visuals</li>
+            <li>Shoot during day in clear weather</li>
+            <li>Find the best angle — fly around with /gamemode 3</li>
+        </ul>
     </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Image preview functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const imageInput = document.getElementById('image');
-        const imagePreview = document.getElementById('imagePreview');
-        
-        imageInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                
-                reader.addEventListener('load', function() {
-                    imagePreview.setAttribute('src', this.result);
-                    imagePreview.style.display = 'block';
-                });
-                
-                reader.readAsDataURL(file);
-            }
-        });
-    });
+const dropZone = document.getElementById('dropZone');
+const imageInput = document.getElementById('imageInput');
+const previewImg = document.getElementById('previewImg');
+
+function triggerPicker() {
+    if (!dropZone.classList.contains('has-image')) imageInput.click();
+}
+
+function showPreview(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        previewImg.src = e.target.result;
+        previewImg.style.display = 'block';
+        dropZone.classList.add('has-image');
+        dropZone.style.minHeight = '260px';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage(e) {
+    e.stopPropagation();
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    dropZone.classList.remove('has-image');
+    dropZone.style.minHeight = '';
+    imageInput.value = '';
+}
+
+imageInput.addEventListener('change', function() {
+    if (this.files[0]) showPreview(this.files[0]);
+});
+
+// Drag & Drop
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        // Create a DataTransfer to set the input file
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            imageInput.files = dt.files;
+        } catch(err) {}
+        showPreview(file);
+    }
+});
+
+// Char counters
+function charCounter(inputId, countId) {
+    const input = document.getElementById(inputId);
+    const count = document.getElementById(countId);
+    if (input && count) {
+        const update = () => count.textContent = input.value.length;
+        input.addEventListener('input', update);
+        update();
+    }
+}
+charCounter('titleInput', 'titleCount');
+charCounter('descInput', 'descCount');
+
+// Show loading on submit
+document.getElementById('uploadForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
+    btn.disabled = true;
+});
 </script>
 {% endblock %}

@@ -1,69 +1,52 @@
-// Gallery Component using React Virtual DOM
+// Gallery Component
+const PLACEHOLDER_SRC = '/static/images/placeholder.svg';
+
 class GalleryItem extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      isHovered: false
-    };
-  }
-
-  handleMouseEnter = () => {
-    this.setState({ isHovered: true });
-  }
-
-  handleMouseLeave = () => {
-    this.setState({ isHovered: false });
+    this.state = { hovered: false };
   }
 
   render() {
     const { image } = this.props;
-    const { isHovered } = this.state;
-    
-    const itemStyle = {
-      transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
-      boxShadow: isHovered ? '0 10px 20px rgba(0,0,0,0.2)' : '0 5px 15px rgba(0,0,0,0.2)',
-      borderColor: isHovered ? '#5bae4a' : '#828282',
-      transition: 'all 0.3s ease'
-    };
-    
-    const imageStyle = {
-      filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
-      transition: 'all 0.3s ease'
-    };
-
+    const { hovered } = this.state;
     return (
-      <div 
-        className="gallery-item" 
-        style={itemStyle}
-        onMouseEnter={this.handleMouseEnter}
-        onMouseLeave={this.handleMouseLeave}
+      <div
+        className="gallery-item"
+        style={{ transform: hovered ? 'translateY(-5px)' : 'none', transition: 'transform .2s' }}
+        onMouseEnter={() => this.setState({ hovered: true })}
+        onMouseLeave={() => this.setState({ hovered: false })}
       >
-        <a href={`/image/${image.id}`} data-toggle="lightbox" data-title={image.title}>
-          <img 
-            src={image.filepath} 
-            alt={image.title} 
-            className="img-fluid"
-            style={imageStyle}
-          />
+        <a href={`/image/${image.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+          <div className="img-wrap position-relative">
+            <img
+              src={image.filepath}
+              alt={image.title}
+              onError={(e) => {
+                if (e.target.src !== PLACEHOLDER_SRC) e.target.src = PLACEHOLDER_SRC;
+              }}
+            />
+            <span className="gallery-item-category">{image.category}</span>
+            <div className="img-overlay">
+              <span><i className="fas fa-eye"></i> View</span>
+            </div>
+          </div>
         </a>
         <div className="gallery-item-caption">
-          <div className="gallery-item-category">{image.category}</div>
-          <h3 className="gallery-item-title">{image.title}</h3>
+          <div className="gallery-item-title">{image.title}</div>
           <div className="gallery-item-uploader">
-            <i className="fas fa-user"></i> {' '}
-            {image.user_id ? (
-              <a href={`/user/${image.user_id}`}>{image.uploader}</a>
-            ) : (
-              image.uploader
-            )}
+            <i className="fas fa-user"></i>{' '}
+            {image.user_id
+              ? <a href={`/user/${image.user_id}`} style={{ color: 'inherit' }}>{image.uploader}</a>
+              : image.uploader}
           </div>
           <p className="gallery-item-description">
-            {image.description.length > 100 
-              ? `${image.description.substring(0, 100)}...` 
+            {image.description.length > 80
+              ? image.description.substring(0, 80) + '…'
               : image.description}
           </p>
           <a href={`/image/${image.id}`} className="btn btn-sm btn-minecraft">
-            <i className="fas fa-eye"></i> View Details
+            <i className="fas fa-eye"></i> View
           </a>
         </div>
       </div>
@@ -74,55 +57,47 @@ class GalleryItem extends React.Component {
 class GalleryGrid extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      images: [],
-      loading: true,
-      error: null
-    };
+    this.state = { images: [], loading: true, error: null };
   }
 
   componentDidMount() {
-    // Use the images passed from the data attribute or fetch from API
-    const galleryContainer = document.getElementById('react-gallery');
-    if (galleryContainer) {
+    const el = document.getElementById('react-gallery');
+    if (el) {
       try {
-        const imagesData = JSON.parse(galleryContainer.getAttribute('data-images'));
-        this.setState({ 
-          images: imagesData,
-          loading: false 
-        });
-      } catch (error) {
-        console.error('Error parsing gallery data:', error);
-        this.setState({ 
-          error: 'Failed to load images',
-          loading: false
-        });
+        const data = JSON.parse(el.getAttribute('data-images') || '[]');
+        this.setState({ images: data, loading: false });
+      } catch (e) {
+        this.setState({ error: 'Could not load images.', loading: false });
       }
     }
   }
 
   render() {
     const { images, loading, error } = this.state;
-
-    if (loading) {
-      return <div className="text-center p-5"><i className="fas fa-spinner fa-spin fa-3x"></i></div>;
-    }
-
-    if (error) {
-      return <div className="alert alert-danger">{error}</div>;
-    }
-
-    if (images.length === 0) {
-      return (
-        <div className="alert alert-warning">
-          <i className="fas fa-exclamation-triangle"></i> No images have been uploaded yet. Be the first to share your Minecraft creations!
-        </div>
-      );
-    }
-
+    if (loading) return (
+      <div className="text-center py-5" style={{ color: '#5bae4a' }}>
+        <i className="fas fa-spinner fa-spin fa-2x"></i>
+        <p style={{ fontFamily: 'VT323, monospace', fontSize: '22px', marginTop: '10px' }}>Loading…</p>
+      </div>
+    );
+    if (error) return <div className="alert alert-danger">{error}</div>;
+    if (images.length === 0) return (
+      <div style={{
+        textAlign: 'center', padding: '48px 24px',
+        background: '#fff', borderRadius: '12px',
+        boxShadow: '0 4px 16px rgba(0,0,0,.1)'
+      }}>
+        <i className="fas fa-images" style={{ fontSize: '3rem', color: '#ccc', display: 'block', marginBottom: '12px' }}></i>
+        <p style={{ fontFamily: 'VT323, monospace', fontSize: '24px', color: '#7d5736' }}>No Images Yet!</p>
+        <p style={{ color: '#888', fontSize: '14px' }}>Be the first to share your Minecraft screenshots.</p>
+        <a href="/upload" className="btn btn-minecraft" style={{ marginTop: '8px' }}>
+          <i className="fas fa-upload"></i> Upload First Image
+        </a>
+      </div>
+    );
     return (
-      <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {images.map((image) => (
+      <div className="row row-cols-2 row-cols-md-2 row-cols-lg-3 g-3">
+        {images.map(image => (
           <div className="col" key={image.id}>
             <GalleryItem image={image} />
           </div>
@@ -132,10 +107,7 @@ class GalleryGrid extends React.Component {
   }
 }
 
-// Initialize React components when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  const galleryContainer = document.getElementById('react-gallery');
-  if (galleryContainer) {
-    ReactDOM.render(<GalleryGrid />, galleryContainer);
-  }
+document.addEventListener('DOMContentLoaded', function () {
+  const el = document.getElementById('react-gallery');
+  if (el) ReactDOM.render(<GalleryGrid />, el);
 });
