@@ -19,7 +19,8 @@
                 <span>{{ image.uploaded_at }}</span>
             </div>
 
-            <img src="{{ image.filepath }}" alt="{{ image.title }}" class="image-detail-img mb-4">
+            <img src="{{ image.filepath }}" alt="{{ image.title }}" class="image-detail-img mb-4"
+                 onerror="this.src='/static/images/placeholder.svg'">
 
             <div class="description mb-4">
                 <h4>About this screenshot:</h4>
