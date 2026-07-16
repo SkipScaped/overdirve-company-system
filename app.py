@@ -765,6 +765,135 @@ def admin_review_application(app_id):
         flash(f'Application {form.status.data}.', 'success')
     return redirect(url_for('admin_job_applications', job_id=application.job_id))
 
+# ─── Groq AI Chat ─────────────────────────────────────────────────────────────
+
+@app.route('/ai/chat', methods=['POST'])
+@login_required
+def ai_chat():
+    """Groq-powered AI assistant with live company context injected as system prompt."""
+    try:
+        data = request.get_json(silent=True) or {}
+        messages = data.get('messages', [])
+        if not messages:
+            return jsonify({'error': 'No messages provided'}), 400
+
+        # Trim history to last 20 exchanges to stay within token limits
+        messages = messages[-20:]
+
+        # ── Gather live company context ────────────────────────────────────────
+        total_members   = User.query.count()
+        admin_users     = User.query.filter_by(is_admin=True).all()
+        active_jobs     = JobListing.query.filter_by(is_active=True).count()
+        pending_exp     = ExpenseProposal.query.filter_by(status='pending').count()
+        approved_exp    = ExpenseProposal.query.filter_by(status='approved').count()
+        total_updates   = CompanyUpdate.query.count()
+        open_suggestions= Suggestion.query.filter_by(status='open').count()
+        pinned_updates  = CompanyUpdate.query.filter_by(is_pinned=True).order_by(
+                            CompanyUpdate.created_at.desc()).limit(3).all()
+        recent_updates  = CompanyUpdate.query.order_by(
+                            CompanyUpdate.created_at.desc()).limit(5).all()
+        top_suggestions = Suggestion.query.filter_by(status='open').all()
+        top_suggestions.sort(key=lambda s: s.vote_count(), reverse=True)
+        top_suggestions = top_suggestions[:5]
+        open_jobs       = JobListing.query.filter_by(is_active=True).order_by(
+                            JobListing.created_at.desc()).limit(5).all()
+
+        # Current user context
+        my_expenses     = ExpenseProposal.query.filter_by(submitter_id=current_user.id).count()
+        my_suggestions  = Suggestion.query.filter_by(submitter_id=current_user.id).count()
+
+        updates_summary = '\n'.join(
+            f"  • [{u.category}] {u.title} (by {u.author.username}, {u.created_at.strftime('%b %d')})"
+            for u in recent_updates
+        ) or '  (none yet)'
+
+        suggestions_summary = '\n'.join(
+            f"  • {s.title} — {s.vote_count()} votes ({s.status})"
+            for s in top_suggestions
+        ) or '  (none yet)'
+
+        jobs_summary = '\n'.join(
+            f"  • {j.title} [{j.department or j.job_type}] — {j.location}"
+            for j in open_jobs
+        ) or '  (none yet)'
+
+        pinned_summary = '\n'.join(
+            f"  • {u.title}: {u.content[:120]}..."
+            for u in pinned_updates
+        ) or '  (none pinned)'
+
+        admin_names = ', '.join(u.username for u in admin_users) or 'none'
+
+        system_prompt = f"""You are Overdrive AI — the intelligent assistant built into the Overdrive company management portal. You are helpful, concise, and professional. You have full knowledge of the portal and live data about the company.
+
+=== ABOUT OVERDRIVE PORTAL ===
+Overdrive is an internal company management platform. It provides:
+- Company Updates: announcements & news posted by admins (categories: General, Development, Finance, HR, Design, etc.)
+- Expense Proposals: team members submit expenses; admins approve or reject them
+- Ideas & Suggestions: anyone can post ideas; team votes on them
+- Job Openings: admin-posted positions; anyone can apply externally
+- Direct Messages: private 1-on-1 messaging between team members
+- Team Chat: real-time group chat for the whole team
+- Admin Panel: tabbed hub for posting updates, managing jobs, reviewing expenses and team
+
+=== LIVE COMPANY DATA (as of right now) ===
+Team size: {total_members} member(s)
+Admins: {admin_names}
+Active job openings: {active_jobs}
+Pending expense proposals: {pending_exp}
+Approved expenses: {approved_exp}
+Total company updates posted: {total_updates}
+Open suggestions: {open_suggestions}
+
+Pinned announcements:
+{pinned_summary}
+
+Recent updates:
+{updates_summary}
+
+Top open suggestions (by votes):
+{suggestions_summary}
+
+Open job listings:
+{jobs_summary}
+
+=== CURRENT USER ===
+Name: {current_user.username}
+Email: {current_user.email}
+Role: {'Admin' if current_user.is_admin else 'Team Member'}
+Member since: {current_user.created_at.strftime('%B %d, %Y')}
+Your expenses submitted: {my_expenses}
+Your suggestions submitted: {my_suggestions}
+
+=== YOUR CAPABILITIES ===
+- Answer questions about the portal features and how to use them
+- Summarise company updates, suggestions, job openings, or expenses
+- Help draft update announcements, expense descriptions, or suggestion titles
+- Give navigation tips (e.g. "Go to /expenses to submit a new expense")
+- Answer general work/productivity questions
+- You cannot make changes to the database directly — direct users to the relevant page for actions
+
+Keep responses clear and concise. Use bullet points when listing items. If you don't know something specific, say so honestly."""
+
+        # ── Call Groq ──────────────────────────────────────────────────────────
+        from groq import Groq
+        client = Groq(api_key=os.environ.get('GROQ_API_KEY'))
+
+        completion = client.chat.completions.create(
+            model='llama-3.3-70b-versatile',
+            messages=[{'role': 'system', 'content': system_prompt}] + messages,
+            temperature=0.65,
+            max_tokens=1024,
+        )
+
+        reply = completion.choices[0].message.content
+        return jsonify({'reply': reply, 'model': completion.model})
+
+    except Exception as e:
+        logger.error(f'Groq AI error: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 
 @app.route('/ping')
