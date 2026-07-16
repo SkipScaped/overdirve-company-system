@@ -1,45 +1,279 @@
-{% extends 'base.html' %}
-{% block title %}Create Account — Overdrive{% endblock %}
-{% block content %}
-<div class="od-auth-outer">
-    <div class="od-auth-card">
-        <div class="od-auth-logo">
-            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive"
-                 style="height:38px;width:auto;"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — Overdrive</title>
+    <link rel="icon" type="image/png" href="/static/images/overdrive_logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Spline viewer -->
+    <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js"></script>
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --od-bg: #0d0d0d;
+            --od-surface: #151515;
+            --od-border: rgba(255,255,255,0.07);
+            --od-border-light: rgba(255,255,255,0.13);
+            --od-text: #f0f0f0;
+            --od-text-muted: #888;
+            --od-text-dim: #555;
+            --od-accent: #e63946;
+            --od-accent-dark: #b52d38;
+            --od-accent-glow: rgba(230,57,70,0.25);
+        }
+
+        html, body {
+            height: 100%; font-family: 'Inter', system-ui, sans-serif;
+            background: var(--od-bg); color: var(--od-text);
+            overflow: hidden;
+        }
+
+        .spline-bg {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        }
+        .spline-bg spline-viewer {
+            width: 100%; height: 100%; opacity: 0.18; display: block;
+        }
+        .spline-bg::after {
+            content: ''; position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 60% 80% at 30% 50%, rgba(13,13,13,0.55) 0%, transparent 100%),
+                radial-gradient(ellipse 50% 100% at 0% 50%, rgba(13,13,13,0.9) 0%, transparent 70%),
+                radial-gradient(ellipse 30% 100% at 100% 50%, rgba(13,13,13,0.8) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .auth-page {
+            position: relative; z-index: 1;
+            display: flex; align-items: stretch;
+            height: 100vh; width: 100vw;
+        }
+
+        .auth-left {
+            flex: 0 0 500px; max-width: 500px;
+            display: flex; flex-direction: column;
+            justify-content: center; padding: 40px 52px;
+            position: relative; z-index: 2;
+            background: linear-gradient(135deg, rgba(21,21,21,0.92) 0%, rgba(13,13,13,0.88) 100%);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--od-border);
+            overflow-y: auto;
+        }
+
+        .auth-right {
+            flex: 1; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .auth-right spline-viewer { width: 100%; height: 100%; display: block; }
+
+        /* Form pieces — all start invisible */
+        .auth-logo { margin-bottom: 28px; opacity: 0; transform: translateY(-20px); }
+        .auth-logo img { height: 34px; width: auto; }
+        .auth-logo-text {
+            font-size: 24px; font-weight: 800; letter-spacing: -1px;
+            color: var(--od-text); display: none;
+        }
+        .auth-logo-text span { color: var(--od-accent); }
+
+        .auth-accent-line {
+            width: 40px; height: 3px;
+            background: linear-gradient(90deg, var(--od-accent), transparent);
+            border-radius: 2px; margin-bottom: 16px;
+            opacity: 0; transform: scaleX(0); transform-origin: left;
+        }
+
+        .auth-headline { margin-bottom: 4px; opacity: 0; transform: translateY(16px); }
+        .auth-headline h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+
+        .auth-sub { margin-bottom: 28px; opacity: 0; transform: translateY(12px); }
+        .auth-sub p { font-size: 13px; color: var(--od-text-muted); }
+
+        .auth-field { margin-bottom: 16px; opacity: 0; transform: translateX(-24px); }
+        .auth-label {
+            display: block; font-size: 10px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            color: var(--od-text-muted); margin-bottom: 7px;
+        }
+        .auth-label i { margin-right: 5px; color: var(--od-accent); font-size: 9px; }
+        .auth-input {
+            width: 100%; background: rgba(255,255,255,0.04);
+            border: 1px solid var(--od-border-light);
+            border-radius: 10px; padding: 11px 15px;
+            color: var(--od-text); font-family: inherit;
+            font-size: 14px; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .auth-input::placeholder { color: var(--od-text-dim); }
+        .auth-input:focus {
+            border-color: var(--od-accent);
+            box-shadow: 0 0 0 3px var(--od-accent-glow);
+            background: rgba(255,255,255,0.06);
+        }
+        .auth-input.is-invalid { border-color: #ef4444; }
+
+        .auth-submit {
+            display: block; width: 100%; padding: 13px;
+            background: var(--od-accent);
+            border: none; border-radius: 10px;
+            color: #fff; font-family: inherit;
+            font-size: 15px; font-weight: 600; letter-spacing: 0.2px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            opacity: 0; transform: translateY(16px);
+            position: relative; overflow: hidden; margin-top: 6px;
+        }
+        .auth-submit::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .auth-submit:hover {
+            background: #d62f3b; transform: translateY(-1px);
+            box-shadow: 0 8px 24px var(--od-accent-glow);
+        }
+        .auth-submit:active { transform: translateY(0); }
+
+        .auth-footer {
+            margin-top: 20px; text-align: center;
+            font-size: 13px; color: var(--od-text-muted);
+            opacity: 0; transform: translateY(10px);
+        }
+        .auth-footer a { color: var(--od-accent); text-decoration: none; font-weight: 500; }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        .invalid-feedback-msg {
+            color: #ef4444; font-size: 11px; margin-top: 4px;
+            display: flex; align-items: center; gap: 4px;
+        }
+
+        .auth-right-label {
+            position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+            font-size: 11px; color: rgba(255,255,255,0.22);
+            letter-spacing: 1px; text-transform: uppercase;
+            white-space: nowrap; z-index: 2; pointer-events: none;
+        }
+
+        @media (max-width: 900px) {
+            html, body { overflow: auto; }
+            .auth-page { flex-direction: column; height: auto; min-height: 100vh; }
+            .auth-left {
+                flex: none; max-width: 100%; width: 100%;
+                padding: 36px 24px;
+                border-right: none; border-bottom: 1px solid var(--od-border);
+            }
+            .auth-right { flex: none; height: 280px; width: 100%; }
+            .spline-bg { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Background Spline -->
+<div class="spline-bg">
+    <spline-viewer url="https://prod.spline.design/vdY7wKy2mkNyXNuM/scene.splinecode"
+                   loading="lazy"
+                   events-target="none"></spline-viewer>
+</div>
+
+<div class="auth-page">
+
+    <!-- LEFT: Form -->
+    <div class="auth-left">
+
+        <div class="auth-logo" id="gsap-logo">
+            <img src="/static/images/overdrive_logo.png" alt="Overdrive"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-            <div class="od-logo-text" style="display:none;font-size:28px;">OVER<span>DRIVE</span></div>
-            <h2>Create your account</h2>
-            <p>Join the Overdrive company portal</p>
+            <div class="auth-logo-text">OVER<span>DRIVE</span></div>
         </div>
 
-        <form method="POST">
+        <div class="auth-accent-line" id="gsap-line"></div>
+
+        <div class="auth-headline" id="gsap-headline">
+            <h1>Create your account.</h1>
+        </div>
+        <div class="auth-sub" id="gsap-sub">
+            <p>Join the Overdrive company portal and get access to your team's workspace.</p>
+        </div>
+
+        <form method="POST" id="regForm">
             {{ form.csrf_token }}
-            <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-user"></i> Username</label>
-                {{ form.username(class="od-input" + (" is-invalid" if form.username.errors else ""), placeholder="Your display name", autocomplete="username") }}
-                {% for e in form.username.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+
+            <div class="auth-field" id="gsap-f1">
+                <label class="auth-label"><i class="fas fa-user"></i> Username</label>
+                {{ form.username(class="auth-input" + (" is-invalid" if form.username.errors else ""), placeholder="Your display name", autocomplete="username") }}
+                {% for e in form.username.errors %}<div class="invalid-feedback-msg"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-            <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-envelope"></i> Email</label>
-                {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", autocomplete="email") }}
-                {% for e in form.email.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+
+            <div class="auth-field" id="gsap-f2">
+                <label class="auth-label"><i class="fas fa-envelope"></i> Email</label>
+                {{ form.email(class="auth-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", autocomplete="email") }}
+                {% for e in form.email.errors %}<div class="invalid-feedback-msg"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-            <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-lock"></i> Password</label>
-                {{ form.password(class="od-input" + (" is-invalid" if form.password.errors else ""), placeholder="Min. 8 characters", autocomplete="new-password") }}
-                {% for e in form.password.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+
+            <div class="auth-field" id="gsap-f3">
+                <label class="auth-label"><i class="fas fa-lock"></i> Password</label>
+                {{ form.password(class="auth-input" + (" is-invalid" if form.password.errors else ""), placeholder="Min. 8 characters", autocomplete="new-password") }}
+                {% for e in form.password.errors %}<div class="invalid-feedback-msg"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-            <div class="od-form-group" style="margin-bottom:20px;">
-                <label class="od-label"><i class="fas fa-check-circle"></i> Confirm Password</label>
-                {{ form.confirm_password(class="od-input" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Repeat password", autocomplete="new-password") }}
-                {% for e in form.confirm_password.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+
+            <div class="auth-field" id="gsap-f4">
+                <label class="auth-label"><i class="fas fa-check-circle"></i> Confirm Password</label>
+                {{ form.confirm_password(class="auth-input" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Repeat password", autocomplete="new-password") }}
+                {% for e in form.confirm_password.errors %}<div class="invalid-feedback-msg"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-            {{ form.submit(class="od-btn od-btn-primary od-btn-xl od-btn-block") }}
+
+            {{ form.submit(class="auth-submit", id="gsap-btn", value="Create Account") }}
         </form>
 
-        <div class="od-auth-footer">
-            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        <div class="auth-footer" id="gsap-footer">
+            Already have an account? <a href="/login">Sign in</a>
         </div>
+
     </div>
+
+    <!-- RIGHT: 3D Bot -->
+    <div class="auth-right" id="gsap-right">
+        <spline-viewer url="https://prod.spline.design/wZpY6MdZytEounvS/scene.splinecode"></spline-viewer>
+        <div class="auth-right-label">Overdrive AI</div>
+    </div>
+
 </div>
-{% endblock %}
+
+<script>
+const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+tl
+  .to('#gsap-logo',    { opacity: 1, y: 0, duration: 0.7 })
+  .to('#gsap-line',    { opacity: 1, scaleX: 1, duration: 0.5 }, '-=0.3')
+  .to('#gsap-headline',{ opacity: 1, y: 0, duration: 0.55 }, '-=0.2')
+  .to('#gsap-sub',     { opacity: 1, y: 0, duration: 0.45 }, '-=0.25')
+  .to(['#gsap-f1','#gsap-f2','#gsap-f3','#gsap-f4'], {
+        opacity: 1, x: 0, duration: 0.48,
+        stagger: 0.1
+    }, '-=0.2')
+  .to('#gsap-btn',     { opacity: 1, y: 0, duration: 0.45 }, '-=0.1')
+  .to('#gsap-footer',  { opacity: 1, y: 0, duration: 0.4 }, '-=0.1')
+  .from('#gsap-right', { opacity: 0, x: 60, duration: 0.8, ease: 'power2.out' }, 0.15);
+
+gsap.to('#gsap-right', {
+    y: -8, duration: 4,
+    repeat: -1, yoyo: true,
+    ease: 'sine.inOut',
+    delay: 1.5
+});
+
+const btn = document.getElementById('gsap-btn');
+btn.addEventListener('mouseenter', () => gsap.to(btn, { scale: 1.02, duration: 0.2 }));
+btn.addEventListener('mouseleave', () => gsap.to(btn, { scale: 1, duration: 0.2 }));
+</script>
+</body>
+</html>
