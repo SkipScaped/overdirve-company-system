@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Applications — {{ job.title }} — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-ghost od-btn-sm mb-2"><i class="fas fa-arrow-left"></i> Jobs</a>
+        <h1 class="od-page-title">Applications: {{ job.title }}</h1>
+        <p class="od-page-subtitle">{{ applications|length }} total application(s)</p>
+    </div>
+</div>
+
+<div class="od-filter-bar">
+    <a href="{{ url_for('admin_job_applications', job_id=job.id) }}" class="od-filter-pill {% if not status_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('admin_job_applications', job_id=job.id, status='pending') }}" class="od-filter-pill {% if status_filter=='pending' %}active{% endif %}">Pending</a>
+    <a href="{{ url_for('admin_job_applications', job_id=job.id, status='approved') }}" class="od-filter-pill {% if status_filter=='approved' %}active{% endif %}">Approved</a>
+    <a href="{{ url_for('admin_job_applications', job_id=job.id, status='rejected') }}" class="od-filter-pill {% if status_filter=='rejected' %}active{% endif %}">Rejected</a>
+</div>
+
+{% if applications %}
+<div class="d-flex flex-column gap-3">
+    {% for app in applications %}
+    <div class="od-card">
+        <div class="od-card-header">
+            <div>
+                <div style="font-weight:700;font-size:16px;color:var(--od-text);">{{ app.applicant_name }}</div>
+                <div style="font-size:12px;color:var(--od-text-muted);margin-top:2px;">
+                    <a href="mailto:{{ app.email }}" style="color:var(--od-accent);">{{ app.email }}</a>
+                    {% if app.phone %} &nbsp;·&nbsp; {{ app.phone }}{% endif %}
+                    &nbsp;·&nbsp; Applied {{ app.created_at.strftime('%b %d, %Y') }}
+                </div>
+            </div>
+            <span class="od-status od-status-{{ app.status }}">{{ app.status }}</span>
+        </div>
+        <div class="od-card-body">
+            <label class="od-label">Cover Letter</label>
+            <div style="background:var(--od-surface-2);border-radius:8px;padding:14px;font-size:13px;color:var(--od-text-muted);line-height:1.7;white-space:pre-wrap;max-height:200px;overflow-y:auto;">{{ app.cover_letter }}</div>
+
+            {% if app.resume_path %}
+            <div class="mt-3">
+                <a href="{{ app.resume_path }}" target="_blank" class="od-btn od-btn-outline od-btn-sm"><i class="fas fa-file"></i> View Resume</a>
+            </div>
+            {% endif %}
+
+            {% if app.status != 'pending' and app.review_notes %}
+            <div class="mt-3">
+                <label class="od-label">Review Notes</label>
+                <div style="background:var(--od-surface-2);border-radius:8px;padding:14px;font-size:13px;color:var(--od-text-muted);">{{ app.review_notes }}</div>
+            </div>
+            {% endif %}
+
+            {% if app.status == 'pending' %}
+            <div class="od-divider-h"></div>
+            <form method="POST" action="{{ url_for('admin_review_application', app_id=app.id) }}" class="d-flex gap-2 flex-wrap align-items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="od-form-group" style="margin-bottom:0;min-width:160px;">
+                    <label class="od-label">Decision</label>
+                    <select name="status" class="od-input od-select">
+                        <option value="approved">Approve</option>
+                        <option value="rejected">Reject</option>
+                    </select>
+                </div>
+                <div class="od-form-group" style="margin-bottom:0;flex:1;min-width:200px;">
+                    <label class="od-label">Notes <span style="color:var(--od-text-dim);font-weight:400;">(optional)</span></label>
+                    <input type="text" name="review_notes" class="od-input" placeholder="Feedback for the applicant…">
+                </div>
+                <button class="od-btn od-btn-primary" type="submit">Submit Decision</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="od-card">
+    <div class="od-empty">
+        <i class="fas fa-inbox"></i>
+        <h3>No applications yet</h3>
+        <p>Applications for "{{ job.title }}" will appear here.</p>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

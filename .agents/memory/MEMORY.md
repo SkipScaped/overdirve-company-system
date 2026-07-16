@@ -1,0 +1,1 @@
+- [Overdrive Portal Architecture](overdrive-portal.md) — Company management portal built on Flask; new models layered on top of existing auth/messaging backbone; login required for all routes.

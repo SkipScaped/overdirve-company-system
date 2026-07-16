@@ -1,224 +1,53 @@
 {% extends 'base.html' %}
-{% block title %}Edit Profile — Private Java SMP{% endblock %}
-
-{% block extra_css %}
-<style>
-.edit-wrap { max-width: 520px; margin: 0 auto; }
-
-.back-link {
-    display: inline-flex; align-items: center; gap: 8px;
-    color: rgba(255,255,255,.6); font-size: 14px; text-decoration: none;
-    margin-bottom: 20px;
-}
-.back-link:hover { color: #fff; }
-
-/* Avatar tap zone */
-.avatar-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 28px;
-}
-.avatar-ring {
-    position: relative;
-    width: 110px;
-    height: 110px;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-.avatar-ring img {
-    width: 110px; height: 110px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #5bae4a;
-    display: block;
-    transition: filter .2s;
-}
-.avatar-ring:hover img { filter: brightness(.7); }
-.avatar-cam {
-    position: absolute; inset: 0;
-    border-radius: 50%;
-    background: rgba(0,0,0,.45);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 4px; color: #fff;
-    opacity: 0; transition: opacity .2s;
-    pointer-events: none;
-    font-size: 11px;
-}
-.avatar-cam i { font-size: 24px; }
-.avatar-ring:hover .avatar-cam { opacity: 1; }
-.avatar-hint {
-    margin-top: 8px; font-size: 12px;
-    color: rgba(255,255,255,.45);
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    letter-spacing: .5px;
-}
-#picFileInput { display: none; }
-
-/* Fields */
-.pf-section {
-    background: #fff;
-    border-radius: 14px;
-    overflow: hidden;
-    margin-bottom: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.12);
-}
-.pf-field {
-    padding: 12px 16px;
-    border-bottom: 1px solid #f0ece8;
-    position: relative;
-}
-.pf-field:last-child { border-bottom: none; }
-.pf-label {
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    color: #7d5736;
-    text-transform: uppercase;
-    letter-spacing: .8px;
-    margin-bottom: 3px;
-    display: flex; align-items: center; gap: 6px;
-}
-.pf-field .form-control {
-    border: none; border-radius: 0;
-    padding: 4px 0;
-    font-size: 16px;
-    background: transparent;
-    color: #1a1714;
-    width: 100%;
-}
-.pf-field .form-control:focus {
-    box-shadow: none; background: transparent; outline: none;
-    border-bottom: 2px solid #5bae4a;
-    border-radius: 0;
-}
-.pf-field textarea.form-control { min-height: 72px; resize: none; }
-.invalid-feedback-inline { font-size: 12px; color: #c64343; margin-top: 3px; }
-
-.save-btn {
-    width: 100%; padding: 15px;
-    font-size: 22px; letter-spacing: 1px;
-    border-radius: 14px !important;
-    justify-content: center; margin-top: 4px;
-}
-.danger-zone {
-    margin-top: 24px;
-    border-top: 1px solid rgba(255,255,255,.1);
-    padding-top: 16px;
-    text-align: center;
-}
-.danger-zone a {
-    color: rgba(255,255,255,.4);
-    font-size: 13px;
-    text-decoration: none;
-    display: inline-flex; align-items: center; gap: 6px;
-}
-.danger-zone a:hover { color: #e53e3e; }
-</style>
-{% endblock %}
-
+{% block title %}Edit Profile — Overdrive{% endblock %}
 {% block content %}
-<div class="edit-wrap">
-    <a href="{{ url_for('profile') }}" class="back-link">
-        <i class="fas fa-arrow-left"></i> Back to Profile
-    </a>
 
-    <h2 class="mb-4" style="color:#fff; text-shadow: 2px 2px 0 rgba(0,0,0,.4);">
-        <i class="fas fa-user-edit"></i> Edit Profile
-    </h2>
-
-    <form method="POST" enctype="multipart/form-data" id="profileForm">
-        {{ form.csrf_token }}
-
-        <!-- Avatar -->
-        <div class="avatar-zone">
-            <div class="avatar-ring" onclick="document.getElementById('picFileInput').click()">
-                <img src="{{ current_user.profile_pic_url }}"
-                     alt="{{ current_user.username }}"
-                     id="avatarPreview"
-                     onerror="this.src='/static/images/default_avatar.png'">
-                <div class="avatar-cam">
-                    <i class="fas fa-camera"></i>
-                    Change
-                </div>
-            </div>
-            <span class="avatar-hint">TAP PHOTO TO CHANGE</span>
-            <input type="file" id="picFileInput" name="{{ form.profile_pic.name }}"
-                   accept="image/jpeg,image/png,image/gif,image/webp">
-            {% if form.profile_pic.errors %}
-                {% for e in form.profile_pic.errors %}
-                <div class="invalid-feedback-inline mt-1">{{ e }}</div>
-                {% endfor %}
-            {% endif %}
-        </div>
-
-        <!-- Account info section -->
-        <div class="pf-section">
-            <div class="pf-field">
-                <div class="pf-label"><i class="fas fa-user"></i> Username</div>
-                {{ form.username(class="form-control",
-                                 value=current_user.username,
-                                 autocomplete="username") }}
-                {% for e in form.username.errors %}
-                <div class="invalid-feedback-inline">{{ e }}</div>
-                {% endfor %}
-            </div>
-            <div class="pf-field">
-                <div class="pf-label"><i class="fas fa-envelope"></i> Email</div>
-                {{ form.email(class="form-control",
-                              value=current_user.email,
-                              autocomplete="email") }}
-                {% for e in form.email.errors %}
-                <div class="invalid-feedback-inline">{{ e }}</div>
-                {% endfor %}
-            </div>
-            <div class="pf-field">
-                <div class="pf-label"><i class="fas fa-cube"></i> Minecraft Username</div>
-                {{ form.minecraft_username(class="form-control",
-                                           value=current_user.minecraft_username or '',
-                                           placeholder="YourMinecraftName") }}
-                {% for e in form.minecraft_username.errors %}
-                <div class="invalid-feedback-inline">{{ e }}</div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Bio section -->
-        <div class="pf-section">
-            <div class="pf-field">
-                <div class="pf-label"><i class="fas fa-align-left"></i> Bio</div>
-                {{ form.bio(class="form-control",
-                            placeholder="Tell us about yourself…",
-                            maxlength=500) }}
-                {% for e in form.bio.errors %}
-                <div class="invalid-feedback-inline">{{ e }}</div>
-                {% endfor %}
-                <div style="font-size:11px;color:#aaa;text-align:right;margin-top:3px;">Max 500 chars</div>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-minecraft save-btn">
-            <i class="fas fa-check"></i> Save Changes
-        </button>
-    </form>
-
-    <div class="danger-zone">
-        <a href="{{ url_for('change_password') }}">
-            <i class="fas fa-key"></i> Change Password
-        </a>
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Edit Profile</h1>
+    </div>
+    <div class="od-page-actions">
+        <a href="{{ url_for('profile') }}" class="od-btn od-btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-document.getElementById('picFileInput').addEventListener('change', function () {
-    if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => document.getElementById('avatarPreview').src = e.target.result;
-        reader.readAsDataURL(this.files[0]);
-    }
-});
-</script>
+<div style="max-width:560px;">
+    <div class="od-card">
+        <div class="od-card-body">
+            <form method="POST" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+
+                <div class="od-form-group">
+                    <label class="od-label">{{ form.profile_pic.label.text }}</label>
+                    <div style="background:var(--od-surface-2);border:1px dashed var(--od-border);border-radius:8px;padding:16px;">
+                        {{ form.profile_pic(class="form-control", style="background:transparent;border:none;color:var(--od-text-muted);padding:0;") }}
+                    </div>
+                </div>
+
+                <div class="od-form-group">
+                    <label class="od-label">{{ form.username.label.text }}</label>
+                    {{ form.username(class="od-input" + (" is-invalid" if form.username.errors else "")) }}
+                    {% for e in form.username.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+
+                <div class="od-form-group">
+                    <label class="od-label">{{ form.email.label.text }}</label>
+                    {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else "")) }}
+                    {% for e in form.email.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+
+                <div class="od-form-group">
+                    <label class="od-label">{{ form.bio.label.text }}</label>
+                    {{ form.bio(class="od-input od-textarea", rows=4, placeholder="Tell the team a bit about yourself…") }}
+                </div>
+
+                <div class="d-flex gap-2">
+                    {{ form.submit(class="od-btn od-btn-primary") }}
+                    <a href="{{ url_for('profile') }}" class="od-btn od-btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

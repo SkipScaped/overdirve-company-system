@@ -1,241 +1,128 @@
 {% extends 'base.html' %}
-{% block title %}Admin Dashboard — Private Java SMP{% endblock %}
-
+{% block title %}Admin Panel — Overdrive{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
-    <span class="badge bg-danger fs-6">Admin</span>
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title"><i class="fas fa-shield-alt" style="color:var(--od-accent);"></i> Admin Panel</h1>
+        <p class="od-page-subtitle">Manage users, review expenses, and oversee company operations.</p>
+    </div>
 </div>
 
-<!-- Tabs -->
-<ul class="nav nav-tabs mb-4 flex-wrap" id="adminTabs" role="tablist">
-    <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-ip">
-            <i class="fas fa-server"></i> Server IP
-        </button>
-    </li>
-    <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-images">
-            <i class="fas fa-images"></i> Images
-            <span class="badge bg-secondary ms-1">{{ images|length }}</span>
-        </button>
-    </li>
-    <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-comments">
-            <i class="fas fa-comments"></i> Comments
-            <span class="badge bg-secondary ms-1">{{ comments|length }}</span>
-        </button>
-    </li>
-    <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-users">
-            <i class="fas fa-users"></i> Users
-            <span class="badge bg-secondary ms-1">{{ users|length }}</span>
-        </button>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('admin_shop') }}">
-            <i class="fas fa-store"></i> Shop
-        </a>
-    </li>
-</ul>
+<!-- Admin Stats -->
+<div class="od-stats-grid mb-4">
+    <div class="od-stat-card">
+        <div class="od-stat-icon blue"><i class="fas fa-users"></i></div>
+        <div class="od-stat-value">{{ users|length }}</div>
+        <div class="od-stat-label">Total Members</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon yellow"><i class="fas fa-receipt"></i></div>
+        <div class="od-stat-value">{{ pending_expenses|length }}</div>
+        <div class="od-stat-label">Pending Expenses</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon red"><i class="fas fa-user-tie"></i></div>
+        <div class="od-stat-value">{{ pending_apps }}</div>
+        <div class="od-stat-label">Pending Applications</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon green"><i class="fas fa-briefcase"></i></div>
+        <div class="od-stat-value">{{ jobs_count }}</div>
+        <div class="od-stat-label">Job Listings</div>
+    </div>
+</div>
 
-<div class="tab-content">
-
-    <!-- ── Server IP ── -->
-    <div class="tab-pane fade show active" id="tab-ip">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-server"></i> Change Server IP</div>
-            <div class="card-body">
-                <p>Current IP: <code class="fs-5">{{ server_ip }}</code></p>
-                <form method="POST" action="{{ url_for('admin_set_ip') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="input-group" style="max-width:480px;">
-                        <input type="text" name="server_ip" class="form-control"
-                               value="{{ server_ip }}" placeholder="host:port" required>
-                        <button class="btn btn-minecraft" type="submit">
-                            <i class="fas fa-save"></i> Save
-                        </button>
+<div class="row g-4">
+    <!-- Pending Expenses -->
+    <div class="col-lg-6">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-receipt"></i> Pending Expenses</h2>
+                <a href="{{ url_for('expenses') }}" class="od-btn od-btn-ghost od-btn-sm">View All</a>
+            </div>
+            {% if pending_expenses %}
+            <ul class="od-list">
+                {% for p in pending_expenses %}
+                <li class="od-list-item">
+                    <div class="od-list-item-main">
+                        <a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-list-item-title">{{ p.title }}</a>
+                        <div class="od-list-item-meta">
+                            <span><i class="fas fa-user"></i> {{ p.submitter.username }}</span>
+                            <span style="font-weight:700;color:var(--od-text);">{{ p.currency }} {{ '%.2f'|format(p.amount) }}</span>
+                            <span class="od-tag">{{ p.category }}</span>
+                        </div>
                     </div>
-                    <div class="form-text mt-1">Example: <code>play.example.com:25565</code></div>
-                </form>
+                    <a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-btn od-btn-primary od-btn-sm">Review</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div style="padding:32px;text-align:center;color:var(--od-text-muted);font-size:13px;">
+                <i class="fas fa-check-circle" style="font-size:24px;color:var(--od-green);display:block;margin-bottom:8px;"></i>
+                No pending expenses
             </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- ── Images ── -->
-    <div class="tab-pane fade" id="tab-images">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-images"></i> All Uploaded Images</div>
-            <div class="card-body p-0">
-                {% if images %}
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0 admin-table">
-                        <thead>
-                            <tr>
-                                <th>Preview</th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Uploader</th>
-                                <th>Uploaded</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for img in images %}
-                            <tr>
-                                <td>
-                                    <img src="{{ img.filepath }}"
-                                         alt="{{ img.title }}"
-                                         class="admin-thumb"
-                                         onerror="this.src='/static/images/default_avatar.png'">
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('image_detail', image_id=img.id) }}" target="_blank">
-                                        {{ img.title }}
-                                    </a>
-                                </td>
-                                <td>{{ img.category }}</td>
-                                <td>{{ img.uploader }}</td>
-                                <td>{{ img.uploaded_at.strftime('%d %b %Y') if img.uploaded_at else '—' }}</td>
-                                <td>
-                                    <form method="POST"
-                                          action="{{ url_for('admin_delete_image', image_id=img.id) }}"
-                                          onsubmit="return confirm('Delete image \'{{ img.title }}\'? This cannot be undone.')">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- Team Members -->
+    <div class="col-lg-6">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-users"></i> Team Members</h2>
+            </div>
+            <ul class="od-list">
+                {% for user in users %}
+                <li class="od-list-item">
+                    <img src="{{ user.profile_pic_url }}" class="od-avatar-sm" onerror="this.src='/static/images/default_avatar.png'">
+                    <div class="od-list-item-main">
+                        <span class="od-list-item-title" style="white-space:normal;">
+                            {{ user.username }}
+                            {% if user.is_admin %}<span class="od-admin-badge ms-1">Admin</span>{% endif %}
+                        </span>
+                        <div class="od-list-item-meta">
+                            <span>{{ user.email }}</span>
+                            <span>Joined {{ user.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-1">
+                        {% if user.id != current_user.id %}
+                        <form method="POST" action="{{ url_for('admin_toggle_admin', user_id=user.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="od-btn od-btn-ghost od-btn-sm" title="{% if user.is_admin %}Remove Admin{% else %}Make Admin{% endif %}">
+                                <i class="fas fa-shield-{% if user.is_admin %}alt{% else %}slash{% endif %}"></i>
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" onsubmit="return confirm('Delete user {{ user.username }}? This cannot be undone.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="od-btn od-btn-danger od-btn-sm"><i class="fas fa-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="col-12">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-bolt"></i> Quick Admin Actions</h2>
+            </div>
+            <div class="od-card-body">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('new_update') }}" class="od-btn od-btn-primary"><i class="fas fa-bullhorn"></i> Post Update</a>
+                    <a href="{{ url_for('admin_new_job') }}" class="od-btn od-btn-outline"><i class="fas fa-briefcase"></i> Post Job</a>
+                    <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-outline"><i class="fas fa-list"></i> Manage Jobs</a>
+                    <a href="{{ url_for('expenses') }}" class="od-btn od-btn-outline"><i class="fas fa-receipt"></i> All Expenses</a>
+                    <a href="{{ url_for('suggestions') }}" class="od-btn od-btn-outline"><i class="fas fa-lightbulb"></i> Suggestions</a>
                 </div>
-                {% else %}
-                    <p class="text-muted p-3 mb-0">No images uploaded yet.</p>
-                {% endif %}
             </div>
         </div>
     </div>
-
-    <!-- ── Comments ── -->
-    <div class="tab-pane fade" id="tab-comments">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-comments"></i> All Comments</div>
-            <div class="card-body p-0">
-                {% if comments %}
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0 admin-table">
-                        <thead>
-                            <tr>
-                                <th>Author</th>
-                                <th>Comment</th>
-                                <th>Image</th>
-                                <th>Posted</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for c in comments %}
-                            <tr>
-                                <td>{{ c.username }}</td>
-                                <td>{{ c.text|truncate(80) }}</td>
-                                <td>
-                                    <a href="{{ url_for('image_detail', image_id=c.image_id) }}" target="_blank">
-                                        View Image
-                                    </a>
-                                </td>
-                                <td>{{ c.created_at.strftime('%d %b %Y') if c.created_at else '—' }}</td>
-                                <td>
-                                    <form method="POST"
-                                          action="{{ url_for('admin_delete_comment', comment_id=c.id) }}"
-                                          onsubmit="return confirm('Delete this comment?')">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                    <p class="text-muted p-3 mb-0">No comments yet.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Users ── -->
-    <div class="tab-pane fade" id="tab-users">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-users"></i> All Users</div>
-            <div class="card-body p-0">
-                {% if users %}
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0 admin-table">
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Minecraft</th>
-                                <th>Joined</th>
-                                <th>Admin</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in users %}
-                            <tr>
-                                <td>
-                                    {{ u.username }}
-                                    {% if u.id == current_user.id %}
-                                        <span class="badge bg-primary ms-1">You</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ u.email }}</td>
-                                <td>{{ u.minecraft_username or '—' }}</td>
-                                <td>{{ u.created_at.strftime('%d %b %Y') if u.created_at else '—' }}</td>
-                                <td>
-                                    {% if u.is_admin %}
-                                        <span class="badge bg-danger"><i class="fas fa-shield-alt"></i> Admin</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">User</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if u.id != current_user.id %}
-                                    <form method="POST"
-                                          action="{{ url_for('admin_toggle_admin', user_id=u.id) }}"
-                                          onsubmit="return confirm('{{ 'Revoke' if u.is_admin else 'Grant' }} admin for {{ u.username }}?')">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="btn btn-sm {{ 'btn-warning' if u.is_admin else 'btn-success' }}">
-                                            {% if u.is_admin %}
-                                                <i class="fas fa-user-minus"></i> Revoke Admin
-                                            {% else %}
-                                                <i class="fas fa-user-shield"></i> Make Admin
-                                            {% endif %}
-                                        </button>
-                                    </form>
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                    <p class="text-muted p-3 mb-0">No users registered yet.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-
 </div>
+
 {% endblock %}

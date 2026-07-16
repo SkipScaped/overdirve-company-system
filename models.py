@@ -5,6 +5,134 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 
+
+# ─── NEW: Company Management Models ──────────────────────────────────────────
+
+class CompanyUpdate(db.Model):
+    __tablename__ = 'company_updates'
+    id         = db.Column(db.String(36), primary_key=True)
+    title      = db.Column(db.String(200), nullable=False)
+    content    = db.Column(db.Text, nullable=False)
+    category   = db.Column(db.String(50), default='General')
+    is_pinned  = db.Column(db.Boolean, default=False)
+    author_id  = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    author     = db.relationship('User', foreign_keys=[author_id], backref='company_updates')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class ExpenseProposal(db.Model):
+    __tablename__ = 'expense_proposals'
+    id           = db.Column(db.String(36), primary_key=True)
+    title        = db.Column(db.String(200), nullable=False)
+    description  = db.Column(db.Text, nullable=False)
+    amount       = db.Column(db.Float, nullable=False)
+    currency     = db.Column(db.String(10), default='USD')
+    category     = db.Column(db.String(50), default='General')
+    status       = db.Column(db.String(20), default='pending')  # pending/approved/rejected
+    submitter_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    reviewer_id  = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    review_notes = db.Column(db.Text, default='')
+    file_path    = db.Column(db.String(255), default='')
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at  = db.Column(db.DateTime, nullable=True)
+    submitter    = db.relationship('User', foreign_keys=[submitter_id], backref='expense_proposals')
+    reviewer     = db.relationship('User', foreign_keys=[reviewer_id], backref='reviewed_expenses')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class Suggestion(db.Model):
+    __tablename__ = 'suggestions'
+    id           = db.Column(db.String(36), primary_key=True)
+    title        = db.Column(db.String(200), nullable=False)
+    content      = db.Column(db.Text, nullable=False)
+    category     = db.Column(db.String(50), default='General')
+    is_anonymous = db.Column(db.Boolean, default=False)
+    status       = db.Column(db.String(20), default='open')  # open/reviewed/implemented/closed
+    submitter_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    submitter    = db.relationship('User', foreign_keys=[submitter_id], backref='suggestions')
+    votes        = db.relationship('SuggestionVote', backref='suggestion', lazy=True, cascade='all, delete-orphan')
+
+    def vote_count(self):
+        return len(self.votes)
+
+    def user_voted(self, user_id):
+        return any(v.user_id == user_id for v in self.votes)
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class SuggestionVote(db.Model):
+    __tablename__ = 'suggestion_votes'
+    id            = db.Column(db.String(36), primary_key=True)
+    suggestion_id = db.Column(db.String(36), db.ForeignKey('suggestions.id'), nullable=False)
+    user_id       = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class JobListing(db.Model):
+    __tablename__ = 'job_listings'
+    id           = db.Column(db.String(36), primary_key=True)
+    title        = db.Column(db.String(200), nullable=False)
+    department   = db.Column(db.String(100), default='')
+    description  = db.Column(db.Text, nullable=False)
+    requirements = db.Column(db.Text, default='')
+    salary_range = db.Column(db.String(100), default='Competitive')
+    location     = db.Column(db.String(100), default='Remote')
+    job_type     = db.Column(db.String(50), default='Full-time')
+    is_active    = db.Column(db.Boolean, default=True)
+    created_by   = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    creator      = db.relationship('User', foreign_keys=[created_by], backref='job_listings')
+    applications = db.relationship('JobApplication', backref='job', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+class JobApplication(db.Model):
+    __tablename__ = 'job_applications'
+    id              = db.Column(db.String(36), primary_key=True)
+    job_id          = db.Column(db.String(36), db.ForeignKey('job_listings.id'), nullable=False)
+    applicant_name  = db.Column(db.String(100), nullable=False)
+    email           = db.Column(db.String(120), nullable=False)
+    phone           = db.Column(db.String(30), default='')
+    cover_letter    = db.Column(db.Text, nullable=False)
+    resume_path     = db.Column(db.String(255), default='')
+    status          = db.Column(db.String(20), default='pending')  # pending/approved/rejected
+    reviewer_id     = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    review_notes    = db.Column(db.Text, default='')
+    user_id         = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at     = db.Column(db.DateTime, nullable=True)
+    reviewer        = db.relationship('User', foreign_keys=[reviewer_id], backref='reviewed_applications')
+    applicant_user  = db.relationship('User', foreign_keys=[user_id], backref='job_applications')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
 class ServerConfig(db.Model):
     __tablename__ = 'server_config'
 

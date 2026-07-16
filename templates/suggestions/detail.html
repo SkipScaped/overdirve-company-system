@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}{{ suggestion.title }} — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <a href="{{ url_for('suggestions') }}" class="od-btn od-btn-ghost od-btn-sm mb-2"><i class="fas fa-arrow-left"></i> Suggestions</a>
+        <h1 class="od-page-title">{{ suggestion.title }}</h1>
+        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+            <span class="od-status od-status-{{ suggestion.status }}">{{ suggestion.status }}</span>
+            <span class="od-tag">{{ suggestion.category }}</span>
+            <span style="font-size:12px;color:var(--od-text-muted);">
+                {% if suggestion.is_anonymous %}Anonymous{% else %}{{ suggestion.submitter.username }}{% endif %}
+                &nbsp;·&nbsp; {{ suggestion.created_at.strftime('%B %d, %Y') }}
+            </span>
+        </div>
+    </div>
+    <div class="od-page-actions">
+        <button class="od-vote-btn {% if current_user.is_authenticated and suggestion.user_voted(current_user.id) %}voted{% endif %} od-vote-btn-lg"
+                id="voteBtn" onclick="voteThis()">
+            <i class="fas fa-chevron-up"></i>
+            <span id="voteCount">{{ suggestion.vote_count() }}</span>
+            <span style="font-size:10px;font-weight:600;">votes</span>
+        </button>
+    </div>
+</div>
+
+<div class="row g-3" style="max-width:960px;">
+    <div class="col-md-8">
+        <div class="od-card">
+            <div class="od-card-body">
+                <div class="od-rich-content" style="white-space:pre-wrap;">{{ suggestion.content }}</div>
+            </div>
+        </div>
+
+        {% if current_user.is_admin %}
+        <div class="od-card mt-3">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-cog"></i> Admin Actions</h2>
+            </div>
+            <div class="od-card-body">
+                <form method="POST" action="{{ url_for('update_suggestion_status', suggestion_id=suggestion.id) }}" class="d-flex gap-2 flex-wrap">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="status" class="od-input od-select" style="width:auto;">
+                        <option value="open" {% if suggestion.status=='open' %}selected{% endif %}>Open</option>
+                        <option value="reviewed" {% if suggestion.status=='reviewed' %}selected{% endif %}>Reviewed</option>
+                        <option value="implemented" {% if suggestion.status=='implemented' %}selected{% endif %}>Implemented</option>
+                        <option value="closed" {% if suggestion.status=='closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                    <button class="od-btn od-btn-primary" type="submit">Update Status</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="od-card">
+            <div class="od-card-body d-flex flex-column gap-4">
+                <div>
+                    <label class="od-label">Votes</label>
+                    <div style="font-size:32px;font-weight:800;color:var(--od-accent);" id="sideVoteCount">{{ suggestion.vote_count() }}</div>
+                </div>
+                <div>
+                    <label class="od-label">Status</label>
+                    <span class="od-status od-status-{{ suggestion.status }}">{{ suggestion.status }}</span>
+                </div>
+                <div>
+                    <label class="od-label">Category</label>
+                    <span class="od-tag">{{ suggestion.category }}</span>
+                </div>
+                <div>
+                    <label class="od-label">Submitted By</label>
+                    <div style="font-size:13px;color:var(--od-text-muted);">
+                        {% if suggestion.is_anonymous %}<i class="fas fa-user-secret"></i> Anonymous
+                        {% else %}{{ suggestion.submitter.username }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.is_admin or suggestion.submitter_id == current_user.id %}
+        <div class="mt-2">
+            <form method="POST" action="{{ url_for('delete_suggestion', suggestion_id=suggestion.id) }}" onsubmit="return confirm('Delete this suggestion?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="od-btn od-btn-danger od-btn-block"><i class="fas fa-trash"></i> Delete</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function voteThis() {
+    const btn = document.getElementById('voteBtn');
+    btn.disabled = true;
+    fetch('/suggestions/{{ suggestion.id }}/vote', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token() }}'},
+        credentials: 'same-origin'
+    }).then(r => r.json()).then(data => {
+        document.getElementById('voteCount').textContent = data.count;
+        document.getElementById('sideVoteCount').textContent = data.count;
+        if(data.voted) btn.classList.add('voted');
+        else btn.classList.remove('voted');
+        btn.disabled = false;
+    }).catch(() => { btn.disabled = false; });
+}
+</script>
+{% endblock %}

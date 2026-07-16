@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Updates — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Company Updates</h1>
+        <p class="od-page-subtitle">Stay informed on everything happening at Overdrive.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <div class="od-page-actions">
+        <a href="{{ url_for('new_update') }}" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Post Update</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Category Filter -->
+<div class="od-filter-bar">
+    <a href="{{ url_for('updates') }}" class="od-filter-pill {% if not current_category %}active{% endif %}">All</a>
+    {% for cat in categories %}
+    <a href="{{ url_for('updates', category=cat) }}" class="od-filter-pill {% if current_category == cat %}active{% endif %}">{{ cat }}</a>
+    {% endfor %}
+</div>
+
+{% if updates.items %}
+<div class="d-flex flex-column gap-3">
+    {% for u in updates.items %}
+    <a href="{{ url_for('view_update', update_id=u.id) }}" class="od-update-card {% if u.is_pinned %}pinned{% endif %}">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            {% if u.is_pinned %}<span class="od-pinned"><i class="fas fa-thumbtack"></i> Pinned</span>{% endif %}
+            <span class="od-tag">{{ u.category }}</span>
+        </div>
+        <div class="od-update-title">{{ u.title }}</div>
+        <p class="od-update-excerpt">{{ u.content[:200] }}{% if u.content|length > 200 %}…{% endif %}</p>
+        <div class="od-update-meta">
+            <span><i class="fas fa-user"></i> {{ u.author.username }}</span>
+            <span><i class="fas fa-calendar"></i> {{ u.created_at.strftime('%B %d, %Y') }}</span>
+            {% if u.updated_at and u.updated_at != u.created_at %}
+            <span><i class="fas fa-edit"></i> Updated {{ u.updated_at.strftime('%b %d') }}</span>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if updates.pages > 1 %}
+<div class="od-pagination">
+    {% if updates.has_prev %}
+    <a href="{{ url_for('updates', page=updates.prev_num, category=current_category) }}" class="od-page-btn"><i class="fas fa-chevron-left"></i></a>
+    {% endif %}
+    {% for p in updates.iter_pages() %}
+    {% if p %}
+    <a href="{{ url_for('updates', page=p, category=current_category) }}" class="od-page-btn {% if p == updates.page %}active{% endif %}">{{ p }}</a>
+    {% else %}
+    <span class="od-page-btn disabled">…</span>
+    {% endif %}
+    {% endfor %}
+    {% if updates.has_next %}
+    <a href="{{ url_for('updates', page=updates.next_num, category=current_category) }}" class="od-page-btn"><i class="fas fa-chevron-right"></i></a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="od-card">
+    <div class="od-empty">
+        <i class="fas fa-bullhorn"></i>
+        <h3>No updates yet</h3>
+        <p>Administrators can post company-wide updates here.</p>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('new_update') }}" class="od-btn od-btn-primary">Post First Update</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

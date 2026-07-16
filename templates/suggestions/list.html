@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Suggestions — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Suggestions</h1>
+        <p class="od-page-subtitle">Share ideas to improve Overdrive. Vote on suggestions you support.</p>
+    </div>
+    <div class="od-page-actions">
+        <a href="{{ url_for('new_suggestion') }}" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Add Suggestion</a>
+    </div>
+</div>
+
+<div class="od-filter-bar">
+    <a href="{{ url_for('suggestions') }}" class="od-filter-pill {% if not current_status and not current_category %}active{% endif %}">All</a>
+    <a href="{{ url_for('suggestions', status='open') }}" class="od-filter-pill {% if current_status=='open' %}active{% endif %}">Open</a>
+    <a href="{{ url_for('suggestions', status='reviewed') }}" class="od-filter-pill {% if current_status=='reviewed' %}active{% endif %}">Reviewed</a>
+    <a href="{{ url_for('suggestions', status='implemented') }}" class="od-filter-pill {% if current_status=='implemented' %}active{% endif %}">Implemented</a>
+    {% for cat in categories %}
+    <a href="{{ url_for('suggestions', category=cat) }}" class="od-filter-pill {% if current_category==cat %}active{% endif %}">{{ cat }}</a>
+    {% endfor %}
+</div>
+
+{% if items.items %}
+<div class="d-flex flex-column gap-3">
+    {% for s in items.items %}
+    <div class="od-card" style="padding:0;">
+        <div style="display:flex;align-items:flex-start;gap:0;">
+            <!-- Vote column -->
+            <div style="padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:4px;border-right:1px solid var(--od-border);min-width:70px;">
+                <button class="od-vote-btn {% if current_user.is_authenticated and s.user_voted(current_user.id) %}voted{% endif %}"
+                        data-id="{{ s.id }}"
+                        onclick="vote(this, '{{ s.id }}')">
+                    <i class="fas fa-chevron-up"></i>
+                    <span class="vote-count">{{ s.vote_count() }}</span>
+                </button>
+            </div>
+            <!-- Content -->
+            <div style="flex:1;min-width:0;padding:16px 20px;">
+                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span class="od-status od-status-{{ s.status }}">{{ s.status }}</span>
+                    <span class="od-tag">{{ s.category }}</span>
+                </div>
+                <a href="{{ url_for('view_suggestion', suggestion_id=s.id) }}" style="font-size:16px;font-weight:700;color:var(--od-text);display:block;margin-bottom:6px;text-decoration:none;">
+                    {{ s.title }}
+                </a>
+                <p style="color:var(--od-text-muted);font-size:13px;margin:0 0 10px;line-height:1.6;">{{ s.content[:160] }}{% if s.content|length > 160 %}…{% endif %}</p>
+                <div style="font-size:11px;color:var(--od-text-dim);display:flex;gap:10px;flex-wrap:wrap;">
+                    {% if s.is_anonymous %}
+                    <span><i class="fas fa-user-secret"></i> Anonymous</span>
+                    {% else %}
+                    <span><i class="fas fa-user"></i> {{ s.submitter.username }}</span>
+                    {% endif %}
+                    <span><i class="fas fa-calendar"></i> {{ s.created_at.strftime('%b %d, %Y') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if items.pages > 1 %}
+<div class="od-pagination">
+    {% if items.has_prev %}<a href="{{ url_for('suggestions', page=items.prev_num) }}" class="od-page-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    {% for p in items.iter_pages() %}
+    {% if p %}<a href="{{ url_for('suggestions', page=p) }}" class="od-page-btn {% if p == items.page %}active{% endif %}">{{ p }}</a>
+    {% else %}<span class="od-page-btn disabled">…</span>{% endif %}
+    {% endfor %}
+    {% if items.has_next %}<a href="{{ url_for('suggestions', page=items.next_num) }}" class="od-page-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="od-card">
+    <div class="od-empty">
+        <i class="fas fa-lightbulb"></i>
+        <h3>No suggestions yet</h3>
+        <p>Be the first to share an idea for improving Overdrive.</p>
+        <a href="{{ url_for('new_suggestion') }}" class="od-btn od-btn-primary">Add Suggestion</a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function vote(btn, id) {
+    btn.disabled = true;
+    fetch(`/suggestions/${id}/vote`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token() }}', 'Content-Type': 'application/json'},
+        credentials: 'same-origin'
+    }).then(r => r.json()).then(data => {
+        btn.querySelector('.vote-count').textContent = data.count;
+        if(data.voted) btn.classList.add('voted');
+        else btn.classList.remove('voted');
+        btn.disabled = false;
+    }).catch(() => { btn.disabled = false; });
+}
+</script>
+{% endblock %}

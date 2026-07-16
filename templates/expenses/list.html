@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Expenses — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Expense Proposals</h1>
+        <p class="od-page-subtitle">{% if current_user.is_admin %}Manage all submitted expense proposals.{% else %}Track your submitted expense proposals.{% endif %}</p>
+    </div>
+    <div class="od-page-actions">
+        <a href="{{ url_for('new_expense') }}" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Submit Expense</a>
+    </div>
+</div>
+
+<div class="od-filter-bar">
+    <a href="{{ url_for('expenses') }}" class="od-filter-pill {% if not status_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('expenses', status='pending') }}" class="od-filter-pill {% if status_filter=='pending' %}active{% endif %}">Pending</a>
+    <a href="{{ url_for('expenses', status='approved') }}" class="od-filter-pill {% if status_filter=='approved' %}active{% endif %}">Approved</a>
+    <a href="{{ url_for('expenses', status='rejected') }}" class="od-filter-pill {% if status_filter=='rejected' %}active{% endif %}">Rejected</a>
+</div>
+
+{% if proposals.items %}
+<div class="od-card">
+    <div class="od-table-wrap">
+        <table class="od-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    {% if current_user.is_admin %}<th>Submitted By</th>{% endif %}
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proposals.items %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('view_expense', expense_id=p.id) }}" style="color:var(--od-text);font-weight:600;">{{ p.title }}</a>
+                    </td>
+                    <td style="font-weight:700;color:var(--od-text);">{{ p.currency }} {{ '%.2f'|format(p.amount) }}</td>
+                    <td><span class="od-tag">{{ p.category }}</span></td>
+                    {% if current_user.is_admin %}
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <img src="{{ p.submitter.profile_pic_url }}" class="od-avatar-sm" style="width:24px;height:24px;" onerror="this.src='/static/images/default_avatar.png'">
+                            {{ p.submitter.username }}
+                        </div>
+                    </td>
+                    {% endif %}
+                    <td style="color:var(--od-text-muted);font-size:12px;">{{ p.created_at.strftime('%b %d, %Y') }}</td>
+                    <td><span class="od-status od-status-{{ p.status }}">{{ p.status }}</span></td>
+                    <td><a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-btn od-btn-ghost od-btn-sm">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if proposals.pages > 1 %}
+<div class="od-pagination">
+    {% if proposals.has_prev %}<a href="{{ url_for('expenses', page=proposals.prev_num, status=status_filter) }}" class="od-page-btn"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    {% for p in proposals.iter_pages() %}
+    {% if p %}<a href="{{ url_for('expenses', page=p, status=status_filter) }}" class="od-page-btn {% if p == proposals.page %}active{% endif %}">{{ p }}</a>
+    {% else %}<span class="od-page-btn disabled">…</span>{% endif %}
+    {% endfor %}
+    {% if proposals.has_next %}<a href="{{ url_for('expenses', page=proposals.next_num, status=status_filter) }}" class="od-page-btn"><i class="fas fa-chevron-right"></i></a>{% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="od-card">
+    <div class="od-empty">
+        <i class="fas fa-receipt"></i>
+        <h3>No expense proposals</h3>
+        <p>Submit an expense proposal to get reimbursed for work-related costs.</p>
+        <a href="{{ url_for('new_expense') }}" class="od-btn od-btn-primary">Submit Expense</a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -3,187 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>{% block title %}Private Java SMP{% endblock %}</title>
-
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>{% block title %}Overdrive{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/overdrive_logo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-    <!-- PWA -->
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#5a3a1a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PJ SMP">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.webp') }}">
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overdrive.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════
-     TOP APP BAR  (visible always)
-═══════════════════════════════════════════════════ -->
-<header class="app-topbar">
-    <div class="app-topbar-inner">
-        <!-- Brand -->
-        <a class="app-brand" href="{{ url_for('index') }}">
-            <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="PJ SMP">
-            <span class="brand-name d-none d-sm-inline">Private Java SMP</span>
+<!-- Top Bar -->
+<header class="od-topbar">
+    <div class="od-topbar-inner">
+        <a class="od-brand" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive" class="od-logo">
         </a>
 
-        <!-- Desktop nav links (hidden on mobile) -->
-        <nav class="desktop-nav d-none d-lg-flex">
-            <a href="{{ url_for('index') }}" class="dnav-link {% if request.endpoint=='index' %}active{% endif %}">
-                <i class="fas fa-home"></i> Home
+        <nav class="od-desktop-nav d-none d-lg-flex">
+            <a href="{{ url_for('dashboard') }}" class="od-nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+                <i class="fas fa-th-large"></i> Dashboard
             </a>
-            <a href="{{ url_for('upload') }}" class="dnav-link {% if request.endpoint=='upload' %}active{% endif %}">
-                <i class="fas fa-upload"></i> Upload
+            <a href="{{ url_for('updates') }}" class="od-nav-link {% if 'update' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-bullhorn"></i> Updates
             </a>
-            {% if current_user.is_authenticated %}
-            <a href="{{ url_for('inbox') }}" class="dnav-link {% if request.endpoint in ['inbox','conversation'] %}active{% endif %}">
-                <i class="fas fa-envelope"></i> Messages
+            <a href="{{ url_for('expenses') }}" class="od-nav-link {% if 'expense' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-receipt"></i> Expenses
             </a>
-            <a href="{{ url_for('group_chat') }}" class="dnav-link {% if request.endpoint=='group_chat' %}active{% endif %}">
-                <i class="fas fa-users"></i> Chat
+            <a href="{{ url_for('suggestions') }}" class="od-nav-link {% if 'suggestion' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-lightbulb"></i> Suggestions
             </a>
-            {% endif %}
-            <a href="{{ url_for('shop') }}" class="dnav-link {% if request.endpoint=='shop' %}active{% endif %}">
-                <i class="fas fa-store"></i> Shop
+            <a href="{{ url_for('jobs') }}" class="od-nav-link {% if 'job' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-briefcase"></i> Jobs
             </a>
-            <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener" class="dnav-link">
-                <i class="fab fa-discord"></i> Discord
+            <a href="{{ url_for('group_chat') }}" class="od-nav-link {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-comments"></i> Chat
             </a>
         </nav>
 
-        <!-- Right side actions -->
-        <div class="topbar-actions">
-            <!-- Search (desktop) -->
-            <form class="d-none d-lg-flex topbar-search" action="{{ url_for('search') }}" method="get">
-                <input class="form-control topbar-search-input" type="search" name="q" placeholder="Search…">
-                <button class="btn btn-minecraft btn-sm" type="submit"><i class="fas fa-search"></i></button>
-            </form>
-
-            <!-- Mobile search icon -->
-            <button class="topbar-icon-btn d-lg-none" id="mobileSearchToggle" aria-label="Search">
-                <i class="fas fa-search"></i>
-            </button>
-
-            <!-- Server IP copy -->
-            <button class="topbar-icon-btn" onclick="copyIp()" title="Copy server IP: {{ server_ip }}">
-                <i class="fas fa-server"></i>
-            </button>
-
-            <!-- User avatar / login -->
+        <div class="od-topbar-actions">
             {% if current_user.is_authenticated %}
+            <a href="{{ url_for('inbox') }}" class="od-icon-btn position-relative" title="Messages">
+                <i class="fas fa-envelope"></i>
+                {% if unread_count > 0 %}
+                <span class="od-badge">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="od-icon-btn" title="Admin Panel">
+                <i class="fas fa-shield-alt"></i>
+            </a>
+            {% endif %}
             <div class="dropdown">
-                <button class="topbar-avatar-btn dropdown-toggle" id="userDrop" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="{{ current_user.profile_pic_url }}"
-                         alt="{{ current_user.username }}"
-                         class="avatar-sm"
+                <button class="od-avatar-btn dropdown-toggle" id="userDrop" data-bs-toggle="dropdown">
+                    <img src="{{ current_user.profile_pic_url }}" alt="{{ current_user.username }}" class="od-avatar-sm"
                          onerror="this.src='/static/images/default_avatar.png'">
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end app-dropdown" aria-labelledby="userDrop">
-                    <li class="dropdown-user-header">
-                        <img src="{{ current_user.profile_pic_url }}"
-                             alt="{{ current_user.username }}"
-                             class="avatar-md"
+                <ul class="dropdown-menu dropdown-menu-end od-dropdown" aria-labelledby="userDrop">
+                    <li class="od-dropdown-header">
+                        <img src="{{ current_user.profile_pic_url }}" alt="{{ current_user.username }}" class="od-avatar-md"
                              onerror="this.src='/static/images/default_avatar.png'">
                         <div>
-                            <div class="dropdown-username">{{ current_user.username }}</div>
-                            <div class="dropdown-email">{{ current_user.email }}</div>
+                            <div class="od-drop-username">{{ current_user.username }}</div>
+                            <div class="od-drop-role">{% if current_user.is_admin %}<span class="od-admin-badge">Admin</span>{% else %}Member{% endif %}</div>
                         </div>
                     </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user"></i> My Profile</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('edit_profile') }}"><i class="fas fa-user-edit"></i> Edit Profile</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="fas fa-key"></i> Change Password</a></li>
+                    <li><hr class="dropdown-divider od-divider"></li>
+                    <li><a class="dropdown-item od-drop-item" href="{{ url_for('profile') }}"><i class="fas fa-user"></i> My Profile</a></li>
+                    <li><a class="dropdown-item od-drop-item" href="{{ url_for('edit_profile') }}"><i class="fas fa-pen"></i> Edit Profile</a></li>
+                    <li><a class="dropdown-item od-drop-item" href="{{ url_for('change_password') }}"><i class="fas fa-key"></i> Change Password</a></li>
                     {% if current_user.is_admin %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item dropdown-item-admin" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Admin Panel</a></li>
+                    <li><hr class="dropdown-divider od-divider"></li>
+                    <li><a class="dropdown-item od-drop-item od-drop-admin" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Admin Panel</a></li>
                     {% endif %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item dropdown-item-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    <li><hr class="dropdown-divider od-divider"></li>
+                    <li><a class="dropdown-item od-drop-item od-drop-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                 </ul>
             </div>
             {% else %}
-            <a href="{{ url_for('login') }}" class="topbar-icon-btn" title="Login">
-                <i class="fas fa-sign-in-alt"></i>
-            </a>
-            <a href="{{ url_for('register') }}" class="btn btn-minecraft btn-sm d-none d-sm-inline-flex">
-                <i class="fas fa-user-plus"></i> Sign Up
-            </a>
+            <a href="{{ url_for('login') }}" class="od-btn od-btn-outline">Sign In</a>
+            <a href="{{ url_for('register') }}" class="od-btn od-btn-primary">Get Access</a>
             {% endif %}
-        </div>
-    </div>
 
-    <!-- Mobile search bar (toggled) -->
-    <div class="mobile-search-bar" id="mobileSearchBar">
-        <form action="{{ url_for('search') }}" method="get" class="d-flex gap-2 p-2">
-            <input class="form-control" type="search" name="q" placeholder="Search images…" autofocus>
-            <button class="btn btn-minecraft btn-sm" type="submit"><i class="fas fa-search"></i></button>
-        </form>
+            <!-- Mobile hamburger -->
+            <button class="od-icon-btn d-lg-none" id="mobileSidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
     </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════
-     MAIN LAYOUT
-═══════════════════════════════════════════════════ -->
-<div class="app-body">
+<!-- Mobile Sidebar Overlay -->
+<div class="od-overlay" id="odOverlay"></div>
 
-    <!-- Sidebar (desktop only) -->
-    <aside class="app-sidebar d-none d-lg-flex">
-        <div class="sidebar-section">
-            <div class="sidebar-title">Categories</div>
-            <a href="{{ url_for('index') }}" class="sidebar-link {% if request.endpoint=='index' and not request.args.get('category') %}active{% endif %}">
-                <i class="fas fa-border-all"></i> All Images
-            </a>
-            {% for category in categories %}
-            <a href="{{ url_for('category', category=category) }}" class="sidebar-link {% if request.path == url_for('category', category=category) %}active{% endif %}">
-                <i class="fas fa-tag"></i> {{ category }}
-            </a>
-            {% endfor %}
-        </div>
+<div class="od-layout">
+    <!-- Sidebar -->
+    <aside class="od-sidebar" id="odSidebar">
+        <div class="od-sidebar-inner">
+            <nav class="od-sidebar-nav">
+                <div class="od-sidebar-section">
+                    <div class="od-sidebar-label">Workspace</div>
+                    <a href="{{ url_for('dashboard') }}" class="od-sidebar-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+                        <i class="fas fa-th-large"></i><span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('updates') }}" class="od-sidebar-link {% if 'update' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-bullhorn"></i><span>Updates</span>
+                    </a>
+                    <a href="{{ url_for('expenses') }}" class="od-sidebar-link {% if 'expense' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-receipt"></i><span>Expenses</span>
+                    </a>
+                    <a href="{{ url_for('suggestions') }}" class="od-sidebar-link {% if 'suggestion' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-lightbulb"></i><span>Suggestions</span>
+                    </a>
+                    <a href="{{ url_for('jobs') }}" class="od-sidebar-link {% if 'job' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-briefcase"></i><span>Jobs</span>
+                    </a>
+                </div>
+                <div class="od-sidebar-section">
+                    <div class="od-sidebar-label">Communication</div>
+                    <a href="{{ url_for('inbox') }}" class="od-sidebar-link {% if request.endpoint in ['inbox','conversation'] %}active{% endif %}">
+                        <i class="fas fa-envelope"></i><span>Messages</span>
+                        {% if unread_count > 0 %}<span class="od-sidebar-badge">{{ unread_count }}</span>{% endif %}
+                    </a>
+                    <a href="{{ url_for('group_chat') }}" class="od-sidebar-link {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-comments"></i><span>Team Chat</span>
+                    </a>
+                </div>
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                <div class="od-sidebar-section">
+                    <div class="od-sidebar-label">Admin</div>
+                    <a href="{{ url_for('admin_dashboard') }}" class="od-sidebar-link {% if request.endpoint=='admin_dashboard' %}active{% endif %}">
+                        <i class="fas fa-shield-alt"></i><span>Admin Panel</span>
+                    </a>
+                    <a href="{{ url_for('admin_jobs') }}" class="od-sidebar-link {% if 'admin_job' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-briefcase"></i><span>Manage Jobs</span>
+                    </a>
+                    <a href="{{ url_for('new_update') }}" class="od-sidebar-link {% if request.endpoint=='new_update' %}active{% endif %}">
+                        <i class="fas fa-plus-circle"></i><span>Post Update</span>
+                    </a>
+                </div>
+                {% endif %}
+            </nav>
 
-        <div class="sidebar-section mt-3">
-            <div class="sidebar-title">Community</div>
-            <a href="{{ url_for('shop') }}" class="sidebar-link"><i class="fas fa-store"></i> Shop</a>
-            <a href="https://discord.gg/XFphHZujM" target="_blank" rel="noopener" class="sidebar-link discord-link">
-                <i class="fab fa-discord"></i> Discord
-            </a>
-        </div>
-
-        <div class="sidebar-server-ip">
-            <div class="sidebar-title">Server IP</div>
-            <div class="server-ip-chip" onclick="copyIp()">
-                <span>{{ server_ip }}</span>
-                <i class="fas fa-copy"></i>
+            <div class="od-sidebar-footer">
+                <a href="https://overdrive-568529096082.us-west1.run.app" target="_blank" class="od-sidebar-ext">
+                    <i class="fas fa-external-link-alt"></i> Main Website
+                </a>
             </div>
         </div>
     </aside>
 
-    <!-- Main content -->
-    <main class="app-main">
-        <!-- Category strip (mobile only) -->
-        <div class="mobile-cat-strip d-lg-none">
-            <a href="{{ url_for('index') }}" class="cat-pill {% if request.endpoint=='index' and not request.args.get('category') %}active{% endif %}">
-                All
-            </a>
-            {% for category in categories %}
-            <a href="{{ url_for('category', category=category) }}" class="cat-pill {% if request.path == url_for('category', category=category) %}active{% endif %}">
-                {{ category }}
-            </a>
-            {% endfor %}
-        </div>
-
-        <!-- Flash messages -->
+    <!-- Main -->
+    <main class="od-main">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        <div class="flash-area">
+        <div class="od-flash-area">
             {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show mb-2" role="alert">
+            <div class="alert od-alert od-alert-{{ category }} alert-dismissible fade show" role="alert">
+                {% if category == 'success' %}<i class="fas fa-check-circle me-2"></i>
+                {% elif category == 'danger' %}<i class="fas fa-exclamation-triangle me-2"></i>
+                {% elif category == 'warning' %}<i class="fas fa-exclamation-circle me-2"></i>
+                {% else %}<i class="fas fa-info-circle me-2"></i>{% endif %}
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -192,121 +171,55 @@
         {% endif %}
         {% endwith %}
 
-        <!-- Page content -->
-        <div class="page-content">
+        <div class="od-page-content">
             {% block content %}{% endblock %}
         </div>
     </main>
 </div>
 
-<!-- ═══════════════════════════════════════════════════
-     FOOTER (desktop only)
-═══════════════════════════════════════════════════ -->
-<footer class="footer d-none d-lg-block">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4">
-                <h4><i class="fas fa-cubes"></i> Private Java SMP</h4>
-                <p>Join our Minecraft community today!</p>
-                <div class="server-ip-footer">
-                    <span>{{ server_ip }}</span>
-                    <button class="btn btn-sm btn-outline-light ms-2" onclick="copyIp()">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <h4><i class="fas fa-link"></i> Quick Links</h4>
-                <ul class="footer-links">
-                    <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
-                    <li><a href="{{ url_for('shop') }}"><i class="fas fa-store"></i> Shop</a></li>
-                    <li><a href="https://discord.gg/XFphHZujM" target="_blank"><i class="fab fa-discord"></i> Discord</a></li>
-                </ul>
-            </div>
-            <div class="col-md-4 text-md-end">
-                <h4><i class="fas fa-info-circle"></i> About</h4>
-                <p>A whitelisted survival multiplayer server for Minecraft enthusiasts.</p>
-                <p class="mb-0">Made by SkipScaped <i class="fas fa-heart text-danger"></i></p>
-            </div>
-        </div>
-    </div>
-</footer>
-
-<!-- ═══════════════════════════════════════════════════
-     BOTTOM NAV BAR (mobile only)
-═══════════════════════════════════════════════════ -->
-<nav class="bottom-nav d-flex d-lg-none">
-    <a href="{{ url_for('index') }}" class="bnav-item {% if request.endpoint=='index' %}active{% endif %}">
-        <i class="fas fa-home"></i>
-        <span>Home</span>
+<!-- Mobile bottom nav -->
+<nav class="od-bottom-nav d-flex d-lg-none">
+    <a href="{{ url_for('dashboard') }}" class="od-bnav {% if request.endpoint=='dashboard' %}active{% endif %}">
+        <i class="fas fa-th-large"></i><span>Home</span>
     </a>
-    <a href="{{ url_for('search') }}" class="bnav-item {% if request.endpoint=='search' %}active{% endif %}">
-        <i class="fas fa-search"></i>
-        <span>Search</span>
+    <a href="{{ url_for('updates') }}" class="od-bnav {% if 'update' in (request.endpoint or '') %}active{% endif %}">
+        <i class="fas fa-bullhorn"></i><span>Updates</span>
     </a>
-    <a href="{{ url_for('upload') }}" class="bnav-item bnav-fab {% if request.endpoint=='upload' %}active{% endif %}">
-        <i class="fas fa-plus"></i>
+    <a href="{{ url_for('group_chat') }}" class="od-bnav {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
+        <i class="fas fa-comments"></i><span>Chat</span>
+    </a>
+    <a href="{{ url_for('suggestions') }}" class="od-bnav {% if 'suggestion' in (request.endpoint or '') %}active{% endif %}">
+        <i class="fas fa-lightbulb"></i><span>Ideas</span>
     </a>
     {% if current_user.is_authenticated %}
-    <a href="{{ url_for('inbox') }}" class="bnav-item {% if request.endpoint in ['inbox','conversation','group_chat'] %}active{% endif %}">
-        <i class="fas fa-envelope"></i>
-        <span>Messages</span>
-    </a>
-    <a href="{{ url_for('profile') }}" class="bnav-item {% if request.endpoint=='profile' %}active{% endif %}">
-        <img src="{{ current_user.profile_pic_url }}"
-             class="bnav-avatar"
-             onerror="this.src='/static/images/default_avatar.png'"
-             alt="Me">
-        <span>Profile</span>
+    <a href="{{ url_for('profile') }}" class="od-bnav {% if request.endpoint=='profile' %}active{% endif %}">
+        <img src="{{ current_user.profile_pic_url }}" class="od-bnav-avatar" onerror="this.src='/static/images/default_avatar.png'" alt="">
+        <span>Me</span>
     </a>
     {% else %}
-    <a href="{{ url_for('shop') }}" class="bnav-item {% if request.endpoint=='shop' %}active{% endif %}">
-        <i class="fas fa-store"></i>
-        <span>Shop</span>
-    </a>
-    <a href="{{ url_for('login') }}" class="bnav-item {% if request.endpoint in ['login','register'] %}active{% endif %}">
-        <i class="fas fa-sign-in-alt"></i>
-        <span>Login</span>
+    <a href="{{ url_for('login') }}" class="od-bnav">
+        <i class="fas fa-sign-in-alt"></i><span>Login</span>
     </a>
     {% endif %}
 </nav>
 
-<!-- Toast -->
-<div class="minecraft-toast" id="mcToast"></div>
-
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- React -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
-<script type="text/babel" src="{{ url_for('static', filename='js/react/gallery.jsx') }}"></script>
-<script type="text/babel" src="{{ url_for('static', filename='js/react/comments.jsx') }}"></script>
-<script type="text/babel" src="{{ url_for('static', filename='js/react/profile.jsx') }}"></script>
-
 <script>
-    // Mobile search toggle
-    const mobileSearchToggle = document.getElementById('mobileSearchToggle');
-    const mobileSearchBar = document.getElementById('mobileSearchBar');
-    if (mobileSearchToggle) {
-        mobileSearchToggle.addEventListener('click', function() {
-            mobileSearchBar.classList.toggle('open');
-            if (mobileSearchBar.classList.contains('open')) {
-                mobileSearchBar.querySelector('input').focus();
-            }
-        });
-    }
+// Sidebar toggle
+const sidebarToggle = document.getElementById('mobileSidebarToggle');
+const sidebar = document.getElementById('odSidebar');
+const overlay = document.getElementById('odOverlay');
+if(sidebarToggle){
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('open');
+    });
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+    });
+}
 </script>
-
 {% block extra_js %}{% endblock %}
-
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js').catch(() => {});
-    }
-</script>
 </body>
 </html>

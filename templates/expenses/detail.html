@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}{{ proposal.title }} — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <a href="{{ url_for('expenses') }}" class="od-btn od-btn-ghost od-btn-sm mb-2"><i class="fas fa-arrow-left"></i> Expenses</a>
+        <h1 class="od-page-title">{{ proposal.title }}</h1>
+        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+            <span class="od-status od-status-{{ proposal.status }}">{{ proposal.status }}</span>
+            <span class="od-tag">{{ proposal.category }}</span>
+            <span style="font-size:12px;color:var(--od-text-muted);">Submitted {{ proposal.created_at.strftime('%B %d, %Y') }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3" style="max-width:960px;">
+    <div class="col-md-8">
+        <div class="od-card mb-3">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-info-circle"></i> Details</h2>
+            </div>
+            <div class="od-card-body">
+                <div class="od-rich-content" style="white-space:pre-wrap;">{{ proposal.description }}</div>
+
+                {% if proposal.file_path %}
+                <div class="od-divider-h"></div>
+                <div>
+                    <label class="od-label">Attachment</label>
+                    <a href="{{ proposal.file_path }}" target="_blank" class="od-btn od-btn-outline od-btn-sm">
+                        <i class="fas fa-paperclip"></i> View Attachment
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if proposal.status != 'pending' %}
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-{% if proposal.status == 'approved' %}check-circle{% else %}times-circle{% endif %}"></i> Review Decision</h2>
+            </div>
+            <div class="od-card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="od-status od-status-{{ proposal.status }}" style="font-size:14px;padding:6px 14px;">{{ proposal.status|upper }}</span>
+                    {% if proposal.reviewer %}
+                    <span style="font-size:13px;color:var(--od-text-muted);">by <strong>{{ proposal.reviewer.username }}</strong> on {{ proposal.reviewed_at.strftime('%B %d, %Y') }}</span>
+                    {% endif %}
+                </div>
+                {% if proposal.review_notes %}
+                <div style="background:var(--od-surface-2);border-radius:8px;padding:14px;font-size:13px;color:var(--od-text-muted);">
+                    {{ proposal.review_notes }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if current_user.is_admin and proposal.status == 'pending' %}
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-gavel"></i> Admin Review</h2>
+            </div>
+            <div class="od-card-body">
+                <form method="POST" action="{{ url_for('review_expense', expense_id=proposal.id) }}">
+                    {{ review_form.csrf_token }}
+                    <div class="od-form-group">
+                        <label class="od-label">Decision</label>
+                        {{ review_form.status(class="od-input od-select") }}
+                    </div>
+                    <div class="od-form-group">
+                        <label class="od-label">Notes <span style="color:var(--od-text-dim);font-weight:400;">(optional)</span></label>
+                        {{ review_form.review_notes(class="od-input od-textarea", rows=4, placeholder="Add notes for the submitter…") }}
+                    </div>
+                    {{ review_form.submit(class="od-btn od-btn-primary") }}
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="od-card">
+            <div class="od-card-body">
+                <div class="od-form-group" style="margin-bottom:16px;">
+                    <label class="od-label">Amount</label>
+                    <div style="font-size:28px;font-weight:800;color:var(--od-text);">{{ proposal.currency }} {{ '%.2f'|format(proposal.amount) }}</div>
+                </div>
+                <div class="od-form-group" style="margin-bottom:16px;">
+                    <label class="od-label">Submitted By</label>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <img src="{{ proposal.submitter.profile_pic_url }}" class="od-avatar-sm" onerror="this.src='/static/images/default_avatar.png'">
+                        <span>{{ proposal.submitter.username }}</span>
+                    </div>
+                </div>
+                <div class="od-form-group" style="margin-bottom:0;">
+                    <label class="od-label">Category</label>
+                    <span class="od-tag">{{ proposal.category }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.is_admin or proposal.submitter_id == current_user.id %}
+        <div class="mt-2">
+            <form method="POST" action="{{ url_for('delete_expense', expense_id=proposal.id) }}" onsubmit="return confirm('Delete this expense proposal?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="od-btn od-btn-danger od-btn-block">
+                    <i class="fas fa-trash"></i> Delete Proposal
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

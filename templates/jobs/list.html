@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Job Openings — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Job Openings</h1>
+        <p class="od-page-subtitle">Explore open positions at Overdrive and submit your application.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <div class="od-page-actions">
+        <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-outline"><i class="fas fa-cog"></i> Manage</a>
+        <a href="{{ url_for('admin_new_job') }}" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Post Job</a>
+    </div>
+    {% endif %}
+</div>
+
+{% if listings %}
+<div class="d-flex flex-column gap-3">
+    {% for job in listings %}
+    <div class="od-job-card">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div style="flex:1;min-width:0;">
+                <div class="od-job-title">{{ job.title }}</div>
+                {% if job.department %}
+                <div style="font-size:13px;color:var(--od-accent);font-weight:600;margin-bottom:6px;">{{ job.department }}</div>
+                {% endif %}
+                <p style="color:var(--od-text-muted);font-size:13px;margin:0 0 12px;line-height:1.6;">{{ job.description[:200] }}{% if job.description|length > 200 %}…{% endif %}</p>
+                <div class="od-job-tags">
+                    <span class="od-tag"><i class="fas fa-map-marker-alt"></i> {{ job.location or 'Remote' }}</span>
+                    <span class="od-tag"><i class="fas fa-clock"></i> {{ job.job_type }}</span>
+                    {% if job.salary_range %}
+                    <span class="od-tag"><i class="fas fa-pound-sign"></i> {{ job.salary_range }}</span>
+                    {% endif %}
+                    <span style="font-size:11px;color:var(--od-text-dim);">Posted {{ job.created_at.strftime('%b %d, %Y') }}</span>
+                </div>
+            </div>
+            <div style="flex-shrink:0;">
+                <a href="{{ url_for('view_job', job_id=job.id) }}" class="od-btn od-btn-primary">
+                    Apply Now <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="od-card">
+    <div class="od-empty">
+        <i class="fas fa-briefcase"></i>
+        <h3>No open positions</h3>
+        <p>There are no job openings at this time. Check back soon!</p>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin_new_job') }}" class="od-btn od-btn-primary">Post a Job</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

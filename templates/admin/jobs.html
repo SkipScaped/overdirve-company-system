@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Manage Jobs — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Manage Job Listings</h1>
+        <p class="od-page-subtitle">Create and manage job openings for Overdrive.</p>
+    </div>
+    <div class="od-page-actions">
+        <a href="{{ url_for('admin_new_job') }}" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Post Job</a>
+    </div>
+</div>
+
+{% if listings %}
+<div class="od-card">
+    <div class="od-table-wrap">
+        <table class="od-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Type</th>
+                    <th>Applications</th>
+                    <th>Status</th>
+                    <th>Posted</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in listings %}
+                <tr>
+                    <td><a href="{{ url_for('view_job', job_id=job.id) }}" style="color:var(--od-text);font-weight:600;">{{ job.title }}</a></td>
+                    <td style="color:var(--od-text-muted);">{{ job.department or '—' }}</td>
+                    <td><span class="od-tag">{{ job.job_type }}</span></td>
+                    <td>
+                        <a href="{{ url_for('admin_job_applications', job_id=job.id) }}" style="color:var(--od-accent);font-weight:700;">
+                            {{ job.applications|length }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="od-status {% if job.is_active %}od-status-active{% else %}od-status-inactive{% endif %}">
+                            {% if job.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td style="color:var(--od-text-muted);font-size:12px;">{{ job.created_at.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('admin_job_applications', job_id=job.id) }}" class="od-btn od-btn-ghost od-btn-sm" title="Applications">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            <a href="{{ url_for('admin_edit_job', job_id=job.id) }}" class="od-btn od-btn-outline od-btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('admin_delete_job', job_id=job.id) }}" onsubmit="return confirm('Delete this job listing?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="od-btn od-btn-danger od-btn-sm"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="od-card">
+    <div class="od-empty">
+        <i class="fas fa-briefcase"></i>
+        <h3>No job listings</h3>
+        <p>Post your first job opening to start receiving applications.</p>
+        <a href="{{ url_for('admin_new_job') }}" class="od-btn od-btn-primary">Post Job</a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,124 +1,51 @@
 {% extends 'base.html' %}
-{% block title %}Sign Up — Private Java SMP{% endblock %}
-
-{% block extra_css %}
-<style>
-.auth-wrap { max-width: 480px; margin: 0 auto; }
-.auth-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.18);
-    padding: 32px 28px;
-    margin-top: 8px;
-}
-.auth-logo { text-align: center; margin-bottom: 24px; }
-.auth-logo img { width: 64px; height: 64px; object-fit: contain; margin: 0 auto 10px; }
-.auth-logo h2 { font-size: 1.6rem; margin: 0; color: var(--dirt); }
-.auth-logo p { color: var(--text-muted); font-size: 14px; margin: 4px 0 0; }
-.auth-input-group {
-    background: var(--surface-2, #f5f2ef);
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    position: relative;
-}
-.auth-input-group label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .8px;
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 4px;
-}
-.auth-input-group .form-control {
-    background: transparent;
-    border: none;
-    padding: 0;
-    font-size: 16px;
-    border-radius: 0;
-    color: var(--text);
-}
-.auth-input-group .form-control:focus { box-shadow: none; background: transparent; }
-.auth-input-group .invalid-feedback { font-size: 12px; }
-.auth-input-group .form-text { font-size: 11px; margin-top: 3px; }
-.auth-submit {
-    width: 100%;
-    padding: 14px;
-    font-size: 20px;
-    border-radius: 12px !important;
-    margin-top: 8px;
-    justify-content: center;
-}
-.auth-footer { text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-muted); }
-.auth-footer a { color: var(--grass); font-weight: 700; text-decoration: none; }
-.auth-footer a:hover { color: var(--grass-dark); }
-</style>
-{% endblock %}
-
+{% block title %}Create Account — Overdrive{% endblock %}
 {% block content %}
-<div class="auth-wrap">
-    <div class="auth-card">
-        <div class="auth-logo">
-            <img src="{{ url_for('static', filename='images/logo.webp') }}"
-                 alt="Logo"
-                 onerror="this.style.display='none'">
-            <h2>Create an Account</h2>
-            <p>Join the Private Java SMP community</p>
+
+<div class="od-auth-wrap">
+    <div class="od-auth-card">
+        <div class="od-auth-logo">
+            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive">
+            <h2>Create your account</h2>
+            <p>Join the Overdrive team portal</p>
         </div>
 
         <form method="POST">
             {{ form.csrf_token }}
 
-            <div class="auth-input-group {% if form.username.errors %}border border-danger{% endif %}">
-                <label><i class="fas fa-user me-1"></i> Username</label>
-                {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""),
-                                 placeholder="Your display name",
-                                 autocomplete="username") }}
-                {% for e in form.username.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
-                <div class="form-text text-muted">Shown on your uploads and comments</div>
+            <div class="od-form-group">
+                <label class="od-label"><i class="fas fa-user me-1"></i> Username</label>
+                {{ form.username(class="od-input" + (" is-invalid" if form.username.errors else ""), placeholder="Choose a username") }}
+                {% for e in form.username.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
-            <div class="auth-input-group {% if form.email.errors %}border border-danger{% endif %}">
-                <label><i class="fas fa-envelope me-1"></i> Email</label>
-                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
-                              placeholder="you@example.com",
-                              autocomplete="email") }}
-                {% for e in form.email.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            <div class="od-form-group">
+                <label class="od-label"><i class="fas fa-envelope me-1"></i> Email</label>
+                {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
+                {% for e in form.email.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
-            <div class="auth-input-group {% if form.minecraft_username.errors %}border border-danger{% endif %}">
-                <label><i class="fas fa-cube me-1"></i> Minecraft Username <span class="fw-normal">(optional)</span></label>
-                {{ form.minecraft_username(class="form-control" + (" is-invalid" if form.minecraft_username.errors else ""),
-                                           placeholder="YourMinecraftName") }}
-                {% for e in form.minecraft_username.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            <div class="od-form-group">
+                <label class="od-label"><i class="fas fa-lock me-1"></i> Password</label>
+                {{ form.password(class="od-input" + (" is-invalid" if form.password.errors else ""), placeholder="Minimum 6 characters") }}
+                {% for e in form.password.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
-            <div class="auth-input-group {% if form.password.errors %}border border-danger{% endif %}">
-                <label><i class="fas fa-lock me-1"></i> Password</label>
-                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""),
-                                 placeholder="At least 6 characters",
-                                 autocomplete="new-password") }}
-                {% for e in form.password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            <div class="od-form-group">
+                <label class="od-label"><i class="fas fa-lock me-1"></i> Confirm Password</label>
+                {{ form.confirm_password(class="od-input" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Repeat password") }}
+                {% for e in form.confirm_password.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
-            <div class="auth-input-group {% if form.confirm_password.errors %}border border-danger{% endif %}">
-                <label><i class="fas fa-lock me-1"></i> Confirm Password</label>
-                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""),
-                                         placeholder="Repeat your password",
-                                         autocomplete="new-password") }}
-                {% for e in form.confirm_password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
-            </div>
-
-            <button type="submit" class="btn btn-minecraft auth-submit">
+            <button type="submit" class="od-btn od-btn-primary od-btn-block od-btn-lg mt-2">
                 <i class="fas fa-user-plus"></i> Create Account
             </button>
         </form>
     </div>
 
-    <div class="auth-footer">
-        Already have an account?
-        <a href="{{ url_for('login') }}">Log in here</a>
+    <div class="od-auth-footer">
+        Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
     </div>
 </div>
+
 {% endblock %}

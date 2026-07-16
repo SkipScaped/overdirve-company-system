@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}{{ job.title }} — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <a href="{{ url_for('jobs') }}" class="od-btn od-btn-ghost od-btn-sm mb-2"><i class="fas fa-arrow-left"></i> Jobs</a>
+        <h1 class="od-page-title">{{ job.title }}</h1>
+        {% if job.department %}<div style="color:var(--od-accent);font-weight:600;margin-top:4px;">{{ job.department }}</div>{% endif %}
+        <div class="od-job-tags mt-2">
+            <span class="od-tag"><i class="fas fa-map-marker-alt"></i> {{ job.location or 'Remote' }}</span>
+            <span class="od-tag"><i class="fas fa-clock"></i> {{ job.job_type }}</span>
+            {% if job.salary_range %}<span class="od-tag"><i class="fas fa-money-bill"></i> {{ job.salary_range }}</span>{% endif %}
+            <span class="od-tag">Posted {{ job.created_at.strftime('%b %d, %Y') }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3" style="max-width:1000px;">
+    <div class="col-md-8">
+        <div class="od-card mb-3">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-align-left"></i> Description</h2>
+            </div>
+            <div class="od-card-body">
+                <div class="od-rich-content" style="white-space:pre-wrap;">{{ job.description }}</div>
+            </div>
+        </div>
+
+        {% if job.requirements %}
+        <div class="od-card mb-3">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-list-check"></i> Requirements</h2>
+            </div>
+            <div class="od-card-body">
+                <div class="od-rich-content" style="white-space:pre-wrap;">{{ job.requirements }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if already_applied %}
+        <div class="od-card" style="border-color:var(--od-green);">
+            <div class="od-card-body d-flex align-items-center gap-3">
+                <div style="color:var(--od-green);font-size:24px;"><i class="fas fa-check-circle"></i></div>
+                <div>
+                    <div style="font-weight:700;color:var(--od-text);">Application Submitted</div>
+                    <div style="font-size:13px;color:var(--od-text-muted);">
+                        Status: <span class="od-status od-status-{{ already_applied.status }}">{{ already_applied.status }}</span>
+                        &nbsp;·&nbsp; {{ already_applied.created_at.strftime('%b %d, %Y') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-paper-plane"></i> Apply for This Position</h2>
+            </div>
+            <div class="od-card-body">
+                <form method="POST" action="{{ url_for('apply_job', job_id=job.id) }}" enctype="multipart/form-data">
+                    {{ form.csrf_token }}
+
+                    <div class="od-grid-2">
+                        <div class="od-form-group">
+                            <label class="od-label">{{ form.applicant_name.label.text }}</label>
+                            {{ form.applicant_name(class="od-input" + (" is-invalid" if form.applicant_name.errors else ""), value=current_user.username) }}
+                            {% for e in form.applicant_name.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="od-form-group">
+                            <label class="od-label">{{ form.email.label.text }}</label>
+                            {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else ""), value=current_user.email) }}
+                            {% for e in form.email.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="od-form-group">
+                        <label class="od-label">{{ form.phone.label.text }} <span style="color:var(--od-text-dim);font-weight:400;">(optional)</span></label>
+                        {{ form.phone(class="od-input", placeholder="+1 (555) 000-0000") }}
+                    </div>
+
+                    <div class="od-form-group">
+                        <label class="od-label">{{ form.cover_letter.label.text }}</label>
+                        {{ form.cover_letter(class="od-input od-textarea" + (" is-invalid" if form.cover_letter.errors else ""), rows=8, placeholder="Tell us about yourself, your experience, and why you're a great fit for this role…") }}
+                        {% for e in form.cover_letter.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
+
+                    <div class="od-form-group">
+                        <label class="od-label">{{ form.resume.label.text }} <span style="color:var(--od-text-dim);font-weight:400;">(optional)</span></label>
+                        <div style="background:var(--od-surface-2);border:1px dashed var(--od-border);border-radius:8px;padding:16px;">
+                            {{ form.resume(class="form-control", style="background:transparent;border:none;color:var(--od-text-muted);padding:0;") }}
+                        </div>
+                    </div>
+
+                    {{ form.submit(class="od-btn od-btn-primary od-btn-lg") }}
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="od-card">
+            <div class="od-card-body d-flex flex-column gap-4">
+                <div>
+                    <label class="od-label">Location</label>
+                    <div style="color:var(--od-text);font-size:14px;"><i class="fas fa-map-marker-alt" style="color:var(--od-accent);"></i> {{ job.location or 'Remote' }}</div>
+                </div>
+                <div>
+                    <label class="od-label">Job Type</label>
+                    <div style="color:var(--od-text);font-size:14px;"><i class="fas fa-clock" style="color:var(--od-accent);"></i> {{ job.job_type }}</div>
+                </div>
+                {% if job.salary_range %}
+                <div>
+                    <label class="od-label">Salary Range</label>
+                    <div style="color:var(--od-text);font-size:14px;"><i class="fas fa-money-bill-wave" style="color:var(--od-accent);"></i> {{ job.salary_range }}</div>
+                </div>
+                {% endif %}
+                {% if job.department %}
+                <div>
+                    <label class="od-label">Department</label>
+                    <div style="color:var(--od-text);font-size:14px;"><i class="fas fa-building" style="color:var(--od-accent);"></i> {{ job.department }}</div>
+                </div>
+                {% endif %}
+                <div>
+                    <label class="od-label">Posted</label>
+                    <div style="color:var(--od-text-muted);font-size:13px;">{{ job.created_at.strftime('%B %d, %Y') }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.is_admin %}
+        <div class="od-card mt-2">
+            <div class="od-card-body d-flex flex-column gap-2">
+                <div style="font-size:13px;color:var(--od-text-muted);margin-bottom:4px;">
+                    <i class="fas fa-users"></i> {{ job.applications|length }} application(s)
+                </div>
+                <a href="{{ url_for('admin_job_applications', job_id=job.id) }}" class="od-btn od-btn-primary od-btn-block">View Applications</a>
+                <a href="{{ url_for('admin_edit_job', job_id=job.id) }}" class="od-btn od-btn-outline od-btn-block">Edit Job</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

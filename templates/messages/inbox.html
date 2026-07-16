@@ -1,61 +1,77 @@
 {% extends 'base.html' %}
-{% block title %}Messages — Private Java SMP{% endblock %}
+{% block title %}Messages — Overdrive{% endblock %}
 {% block content %}
-<h1><i class="fas fa-envelope"></i> Messages</h1>
 
-<div class="row g-4 mt-1">
-    <!-- Start new DM -->
-    <div class="col-md-4">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-user-plus"></i> New Message</div>
-            <div class="card-body">
-                <p class="text-muted" style="font-size:15px;">Pick a player to message:</p>
-                <ul class="list-group list-group-flush">
-                    {% for u in all_users %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span><i class="fas fa-user me-2"></i>{{ u.username }}</span>
-                        <a href="{{ url_for('conversation', user_id=u.id) }}" class="btn btn-sm btn-minecraft">
-                            <i class="fas fa-comment"></i> Chat
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="list-group-item px-0 text-muted">No other players yet.</li>
-                    {% endfor %}
-                </ul>
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Messages</h1>
+        <p class="od-page-subtitle">Direct messages with your teammates.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-envelope"></i> Conversations</h2>
             </div>
+            {% if partners %}
+            <ul class="od-list">
+                {% for partner in partners %}
+                <li>
+                    <a href="{{ url_for('conversation', user_id=partner.id) }}" class="od-list-item" style="text-decoration:none;">
+                        <img src="{{ partner.profile_pic_url }}" class="od-avatar-md" onerror="this.src='/static/images/default_avatar.png'">
+                        <div class="od-list-item-main">
+                            <span class="od-list-item-title">{{ partner.username }}</span>
+                            <div class="od-list-item-meta">
+                                {% if partner.is_admin %}<span class="od-admin-badge">Admin</span>{% endif %}
+                                <span>{{ partner.email }}</span>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--od-text-dim);"></i>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="od-empty" style="padding:40px 20px;">
+                <i class="fas fa-envelope-open"></i>
+                <h3>No conversations yet</h3>
+                <p>Start a conversation by selecting a team member.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Existing conversations -->
-    <div class="col-md-8">
-        <div class="card admin-card">
-            <div class="card-header"><i class="fas fa-inbox"></i> Conversations</div>
-            <div class="card-body">
-                {% if partners %}
-                <ul class="list-group list-group-flush">
-                    {% for p in partners %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <div>
-                            <i class="fas fa-user-circle fa-lg me-2 text-secondary"></i>
-                            <strong>{{ p.username }}</strong>
-                        </div>
-                        <a href="{{ url_for('conversation', user_id=p.id) }}" class="btn btn-sm btn-minecraft">
-                            <i class="fas fa-comment-dots"></i> Open
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-muted">No conversations yet. Start one!</p>
-                {% endif %}
+    <div class="col-md-5">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-users"></i> Team Members</h2>
             </div>
+            <ul class="od-list">
+                {% for user in all_users %}
+                <li>
+                    <a href="{{ url_for('conversation', user_id=user.id) }}" class="od-list-item" style="text-decoration:none;">
+                        <img src="{{ user.profile_pic_url }}" class="od-avatar-sm" onerror="this.src='/static/images/default_avatar.png'">
+                        <div class="od-list-item-main">
+                            <span class="od-list-item-title" style="font-size:13px;">{{ user.username }}</span>
+                            {% if user.is_admin %}<div class="od-list-item-meta"><span class="od-admin-badge">Admin</span></div>{% endif %}
+                        </div>
+                        <i class="fas fa-paper-plane" style="color:var(--od-text-dim);font-size:12px;"></i>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
         </div>
 
-        <div class="mt-3">
-            <a href="{{ url_for('group_chat') }}" class="btn btn-minecraft w-100">
-                <i class="fas fa-users"></i> Open Server Group Chat
-            </a>
+        <div class="od-card mt-3">
+            <div class="od-card-body" style="text-align:center;">
+                <a href="{{ url_for('group_chat') }}" class="od-btn od-btn-primary od-btn-block">
+                    <i class="fas fa-comments"></i> Open Team Chat
+                </a>
+            </div>
         </div>
     </div>
 </div>
+
 {% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Overdrive{% endblock %}
+{% block content %}
+
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title">Good {% if now.hour < 12 %}Morning{% elif now.hour < 18 %}Afternoon{% else %}Evening{% endif %}, {{ current_user.username }} 👋</h1>
+        <p class="od-page-subtitle">Here's what's happening at Overdrive today.</p>
+    </div>
+    {% if current_user.is_admin %}
+    <div class="od-page-actions">
+        <a href="{{ url_for('new_update') }}" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Post Update</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Stats -->
+<div class="od-stats-grid">
+    <div class="od-stat-card">
+        <div class="od-stat-icon red"><i class="fas fa-users"></i></div>
+        <div class="od-stat-value">{{ total_members }}</div>
+        <div class="od-stat-label">Team Members</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon blue"><i class="fas fa-briefcase"></i></div>
+        <div class="od-stat-value">{{ active_jobs }}</div>
+        <div class="od-stat-label">Open Positions</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon yellow"><i class="fas fa-receipt"></i></div>
+        <div class="od-stat-value">{{ pending_expenses }}</div>
+        <div class="od-stat-label">Pending Expenses</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon green"><i class="fas fa-lightbulb"></i></div>
+        <div class="od-stat-value">{{ open_suggestions }}</div>
+        <div class="od-stat-label">Open Suggestions</div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Updates -->
+    <div class="col-lg-8">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-bullhorn"></i> Recent Updates</h2>
+                <a href="{{ url_for('updates') }}" class="od-btn od-btn-ghost od-btn-sm">View All</a>
+            </div>
+            {% if updates %}
+            <ul class="od-list">
+                {% for u in updates %}
+                <li class="od-list-item">
+                    <div style="flex-shrink:0;margin-top:2px;">
+                        <div class="od-stat-icon {% if u.category == 'Development' %}blue{% elif u.category == 'Finance' %}yellow{% elif u.category == 'HR' %}green{% else %}red{% endif %}" style="width:32px;height:32px;font-size:12px;">
+                            <i class="fas {% if u.category == 'Development' %}fa-code{% elif u.category == 'Finance' %}fa-dollar-sign{% elif u.category == 'HR' %}fa-users{% elif u.category == 'Design' %}fa-palette{% elif u.category == 'Announcement' %}fa-bullhorn{% else %}fa-info-circle{% endif %}"></i>
+                        </div>
+                    </div>
+                    <div class="od-list-item-main">
+                        <a href="{{ url_for('view_update', update_id=u.id) }}" class="od-list-item-title">
+                            {% if u.is_pinned %}<span class="od-pinned me-1"><i class="fas fa-thumbtack"></i> Pinned</span>{% endif %}
+                            {{ u.title }}
+                        </a>
+                        <div class="od-list-item-meta">
+                            <span><i class="fas fa-user"></i> {{ u.author.username }}</span>
+                            <span><i class="fas fa-clock"></i> {{ u.created_at.strftime('%b %d, %Y') }}</span>
+                            <span class="od-tag">{{ u.category }}</span>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="od-empty">
+                <i class="fas fa-bullhorn"></i>
+                <h3>No updates yet</h3>
+                <p>Admins can post company-wide updates here.</p>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('new_update') }}" class="od-btn od-btn-primary">Post First Update</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+        <!-- Quick Actions -->
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-bolt"></i> Quick Actions</h2>
+            </div>
+            <div class="od-card-body d-flex flex-column gap-2">
+                <a href="{{ url_for('new_expense') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-plus"></i> Submit Expense
+                </a>
+                <a href="{{ url_for('new_suggestion') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-lightbulb"></i> Add Suggestion
+                </a>
+                <a href="{{ url_for('jobs') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-briefcase"></i> View Job Openings
+                </a>
+                <a href="{{ url_for('group_chat') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-comments"></i> Open Team Chat
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Suggestions -->
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-lightbulb"></i> Top Suggestions</h2>
+                <a href="{{ url_for('suggestions') }}" class="od-btn od-btn-ghost od-btn-sm">All</a>
+            </div>
+            {% if recent_suggestions %}
+            <ul class="od-list">
+                {% for s in recent_suggestions %}
+                <li class="od-list-item" style="padding:12px 16px;">
+                    <div class="od-list-item-main">
+                        <a href="{{ url_for('view_suggestion', suggestion_id=s.id) }}" class="od-list-item-title" style="font-size:13px;">{{ s.title }}</a>
+                        <div class="od-list-item-meta">
+                            <span><i class="fas fa-thumbs-up"></i> {{ s.vote_count() }}</span>
+                            <span class="od-status od-status-{{ s.status }}">{{ s.status }}</span>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="od-card-body" style="text-align:center;padding:20px;color:var(--od-text-muted);font-size:13px;">
+                No suggestions yet. <a href="{{ url_for('new_suggestion') }}">Be first!</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+// Pass current hour to template
+const d = new Date();
+</script>
+{% endblock %}
