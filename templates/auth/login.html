@@ -4,333 +4,429 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — Overdrive</title>
-    <link rel="icon" type="image/png" href="/static/images/overdrive_logo.png">
+    <!-- no favicon -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Spline viewer -->
     <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js"></script>
-    <!-- GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --od-bg: #0d0d0d;
-            --od-surface: #151515;
-            --od-surface-2: #1c1c1c;
-            --od-border: rgba(255,255,255,0.07);
-            --od-border-light: rgba(255,255,255,0.13);
-            --od-text: #f0f0f0;
-            --od-text-muted: #888;
-            --od-text-dim: #555;
-            --od-accent: #e63946;
-            --od-accent-dark: #b52d38;
-            --od-accent-glow: rgba(230,57,70,0.25);
+            --accent: #e63946;
+            --accent-glow: rgba(230,57,70,0.28);
+            --bg: #0a0a0a;
+            --surface: rgba(18,18,18,0.92);
+            --border: rgba(255,255,255,0.08);
+            --border-hi: rgba(255,255,255,0.14);
+            --text: #f2f2f2;
+            --muted: #7a7a7a;
+            --dim: #404040;
         }
 
         html, body {
-            height: 100%;
+            height: 100%; width: 100%;
             font-family: 'Inter', system-ui, sans-serif;
-            background: var(--od-bg);
-            color: var(--od-text);
+            background: var(--bg);
+            color: var(--text);
             overflow: hidden;
         }
 
-        /* ── Background Spline (full-screen, semi-transparent) ── */
-        .spline-bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
+        /* ═══════════════════════════════════════
+           BACKGROUND SPLINE (full-screen, faint)
+        ═══════════════════════════════════════ */
+        .bg-spline {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
         }
-        .spline-bg spline-viewer {
-            width: 100%;
-            height: 100%;
-            opacity: 0.18;
-            display: block;
+        .bg-spline spline-viewer {
+            width: 100%; height: 100%; display: block; opacity: 0.14;
         }
-
-        /* ── Gradient overlays to frame the bg ── */
-        .spline-bg::after {
-            content: '';
-            position: absolute;
-            inset: 0;
+        /* Kill spline watermark on bg */
+        .bg-spline .spline-wm-cover {
+            position: absolute; bottom: 0; right: 0;
+            width: 160px; height: 50px;
+            background: var(--bg); z-index: 10; pointer-events: none;
+        }
+        /* Vignette */
+        .bg-spline::after {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
             background:
-                radial-gradient(ellipse 60% 80% at 30% 50%, rgba(13,13,13,0.55) 0%, transparent 100%),
-                radial-gradient(ellipse 50% 100% at 0% 50%, rgba(13,13,13,0.9) 0%, transparent 70%),
-                radial-gradient(ellipse 30% 100% at 100% 50%, rgba(13,13,13,0.8) 0%, transparent 70%);
-            pointer-events: none;
+                radial-gradient(ellipse 70% 90% at 50% 50%, rgba(10,10,10,0.45) 0%, transparent 100%),
+                linear-gradient(to right, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.3) 40%, rgba(10,10,10,0.3) 60%, rgba(10,10,10,0.92) 100%),
+                linear-gradient(to bottom, rgba(10,10,10,0.6) 0%, transparent 20%, transparent 80%, rgba(10,10,10,0.8) 100%);
         }
 
-        /* ── Page layout ── */
+        /* ═══════════════════════════════════════
+           3-COLUMN LAYOUT
+        ═══════════════════════════════════════ */
         .auth-page {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: stretch;
-            height: 100vh;
-            width: 100vw;
+            position: relative; z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 420px 1fr;
+            grid-template-rows: 1fr auto;
+            height: 100vh; width: 100vw;
         }
 
-        /* ── Left panel: form ── */
+        /* ── LEFT: Hero text ── */
         .auth-left {
-            flex: 0 0 480px;
-            max-width: 480px;
-            display: flex;
-            flex-direction: column;
+            grid-column: 1; grid-row: 1;
+            display: flex; flex-direction: column;
             justify-content: center;
-            padding: 48px 52px;
-            position: relative;
+            padding: 60px 48px 60px 72px;
             z-index: 2;
-            /* subtle glass card */
-            background: linear-gradient(135deg, rgba(21,21,21,0.92) 0%, rgba(13,13,13,0.88) 100%);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid var(--od-border);
-            overflow-y: auto;
         }
 
-        /* ── Right panel: 3D bot ── */
-        .auth-right {
-            flex: 1;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+        .hero-eyebrow {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 24px; opacity: 0;
         }
-        .auth-right spline-viewer {
-            width: 100%;
-            height: 100%;
-            display: block;
+        .hero-eyebrow-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%,100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.5; transform: scale(0.7); }
+        }
+        .hero-eyebrow span {
+            font-size: 11px; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--accent);
         }
 
-        /* ── Form elements (all start invisible for GSAP) ── */
-        .auth-logo { margin-bottom: 36px; opacity: 0; transform: translateY(-20px); }
-        .auth-logo img { height: 36px; width: auto; }
-        .auth-logo-text {
-            font-size: 26px; font-weight: 800; letter-spacing: -1px;
-            color: var(--od-text); display: none;
+        .hero-title {
+            font-size: clamp(36px, 4vw, 56px);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            color: var(--text);
+            margin-bottom: 20px;
+            opacity: 0;
         }
-        .auth-logo-text span { color: var(--od-accent); }
-        .auth-headline { margin-bottom: 6px; opacity: 0; transform: translateY(16px); }
-        .auth-headline h1 {
-            font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
-            color: var(--od-text); line-height: 1.2;
+        .hero-title em {
+            font-style: italic;
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 60%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        .auth-sub { margin-bottom: 32px; opacity: 0; transform: translateY(12px); }
-        .auth-sub p { font-size: 13px; color: var(--od-text-muted); line-height: 1.5; }
 
-        .auth-field { margin-bottom: 18px; opacity: 0; transform: translateX(-24px); }
-        .auth-label {
+        .hero-sub {
+            font-size: 14px; font-weight: 400; line-height: 1.65;
+            color: var(--muted); max-width: 320px;
+            margin-bottom: 36px; opacity: 0;
+        }
+
+        .hero-tags {
+            display: flex; flex-wrap: wrap; gap: 8px; opacity: 0;
+        }
+        .hero-tag {
+            font-size: 11px; font-weight: 500; padding: 6px 14px;
+            border: 1px solid var(--border-hi); border-radius: 100px;
+            color: var(--muted); letter-spacing: 0.3px;
+            backdrop-filter: blur(6px);
+        }
+
+        /* ── CENTER: Form ── */
+        .auth-center {
+            grid-column: 2; grid-row: 1;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: stretch;
+            padding: 40px 0;
+            z-index: 3;
+        }
+
+        .form-card {
+            background: rgba(14,14,14,0.88);
+            border: 1px solid var(--border-hi);
+            border-radius: 20px;
+            padding: 40px 36px;
+            backdrop-filter: blur(24px);
+            box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+        }
+
+        .form-logo { margin-bottom: 24px; text-align: center; }
+        .form-logo img { height: 30px; width: auto; }
+        .form-logo-text {
+            font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+            display: none; color: var(--text);
+        }
+        .form-logo-text span { color: var(--accent); }
+
+        .form-headline { margin-bottom: 4px; }
+        .form-headline h1 {
+            font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+            color: var(--text); text-align: center;
+        }
+        .form-sub {
+            font-size: 12px; color: var(--muted);
+            text-align: center; margin-bottom: 28px;
+        }
+
+        .form-divider {
+            height: 1px; background: var(--border);
+            margin: 0 -8px 24px;
+        }
+
+        .f-group { margin-bottom: 16px; }
+        .f-label {
             display: block; font-size: 10px; font-weight: 600;
-            text-transform: uppercase; letter-spacing: 0.8px;
-            color: var(--od-text-muted); margin-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 0.9px;
+            color: var(--muted); margin-bottom: 7px;
         }
-        .auth-label i { margin-right: 5px; color: var(--od-accent); font-size: 9px; }
-        .auth-input {
+        .f-label i { margin-right: 5px; color: var(--accent); font-size: 9px; }
+        .f-input {
             width: 100%; background: rgba(255,255,255,0.04);
-            border: 1px solid var(--od-border-light);
-            border-radius: 10px; padding: 12px 16px;
-            color: var(--od-text); font-family: inherit;
-            font-size: 14px; outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            border: 1px solid var(--border-hi); border-radius: 10px;
+            padding: 11px 15px; color: var(--text);
+            font-family: inherit; font-size: 14px; outline: none;
+            transition: border-color .2s, box-shadow .2s, background .2s;
         }
-        .auth-input::placeholder { color: var(--od-text-dim); }
-        .auth-input:focus {
-            border-color: var(--od-accent);
-            box-shadow: 0 0 0 3px var(--od-accent-glow);
+        .f-input::placeholder { color: var(--dim); }
+        .f-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
             background: rgba(255,255,255,0.06);
         }
-        .auth-input.is-invalid { border-color: #ef4444; }
-
-        .auth-check {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 13px; color: var(--od-text-muted);
-            cursor: pointer; margin-bottom: 24px;
-            opacity: 0; transform: translateX(-24px);
-        }
-        .auth-check input[type="checkbox"] { accent-color: var(--od-accent); width: 15px; height: 15px; }
-
-        .auth-submit {
-            display: block; width: 100%; padding: 13px;
-            background: var(--od-accent);
-            border: none; border-radius: 10px;
-            color: #fff; font-family: inherit;
-            font-size: 15px; font-weight: 600;
-            letter-spacing: 0.2px; cursor: pointer;
-            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-            opacity: 0; transform: translateY(16px);
-            position: relative; overflow: hidden;
-        }
-        .auth-submit::before {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .auth-submit:hover {
-            background: #d62f3b;
-            transform: translateY(-1px);
-            box-shadow: 0 8px 24px var(--od-accent-glow);
-        }
-        .auth-submit:active { transform: translateY(0); }
-
-        .auth-footer {
-            margin-top: 24px; text-align: center;
-            font-size: 13px; color: var(--od-text-muted);
-            opacity: 0; transform: translateY(10px);
-        }
-        .auth-footer a { color: var(--od-accent); text-decoration: none; font-weight: 500; }
-        .auth-footer a:hover { text-decoration: underline; }
-
-        .invalid-feedback-msg {
+        .f-input.is-invalid { border-color: #ef4444; }
+        .f-err {
             color: #ef4444; font-size: 11px; margin-top: 5px;
             display: flex; align-items: center; gap: 4px;
         }
 
-        /* ── Animated accent line ── */
-        .auth-accent-line {
-            width: 40px; height: 3px;
-            background: linear-gradient(90deg, var(--od-accent), transparent);
-            border-radius: 2px; margin-bottom: 20px;
-            opacity: 0; transform: scaleX(0); transform-origin: left;
+        .f-check {
+            display: flex; align-items: center; gap: 9px;
+            font-size: 13px; color: var(--muted); cursor: pointer;
+            margin-bottom: 20px;
         }
+        .f-check input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
 
-        /* ── Right panel overlay hint ── */
-        .auth-right-label {
-            position: absolute;
-            bottom: 32px; left: 50%; transform: translateX(-50%);
-            font-size: 11px; color: rgba(255,255,255,0.25);
-            letter-spacing: 1px; text-transform: uppercase;
-            white-space: nowrap; z-index: 2;
+        .f-submit {
+            display: block; width: 100%; padding: 13px;
+            background: var(--accent); border: none; border-radius: 10px;
+            color: #fff; font-family: inherit; font-size: 14px;
+            font-weight: 600; cursor: pointer;
+            transition: background .2s, transform .15s, box-shadow .2s;
+            position: relative; overflow: hidden;
+            letter-spacing: 0.1px;
+        }
+        .f-submit::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 55%);
             pointer-events: none;
         }
+        .f-submit:hover { background: #cf2f3b; transform: translateY(-1px); box-shadow: 0 8px 28px var(--accent-glow); }
+        .f-submit:active { transform: translateY(0); }
 
-        /* ── Responsive: mobile stacks vertically ── */
+        .f-footer {
+            margin-top: 20px; text-align: center;
+            font-size: 12px; color: var(--muted);
+        }
+        .f-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+        .f-footer a:hover { text-decoration: underline; }
+
+        /* ── RIGHT: 3D Bot ── */
+        .auth-right {
+            grid-column: 3; grid-row: 1;
+            position: relative; z-index: 2;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .auth-right spline-viewer {
+            width: 100%; height: 100%; display: block;
+        }
+        /* Cover Spline watermark — sits over the bottom-right corner */
+        .spline-wm-kill {
+            position: absolute; bottom: 0; right: 0;
+            width: 180px; height: 56px;
+            background: linear-gradient(to top-left, var(--bg) 40%, transparent 100%);
+            z-index: 10; pointer-events: none;
+        }
+
+        /* ── FOOTER ROW ── */
+        .auth-footer-bar {
+            grid-column: 1 / -1; grid-row: 2;
+            display: flex; align-items: center; justify-content: center;
+            padding: 12px 24px; gap: 20px;
+            border-top: 1px solid var(--border);
+            z-index: 4;
+        }
+        .footer-logo img { height: 18px; opacity: 0.5; }
+        .footer-copy {
+            font-size: 11px; color: var(--dim); letter-spacing: 0.3px;
+        }
+
+        /* ═══════════════════════════════════════
+           MOBILE — hide 3D, show desktop notice
+        ═══════════════════════════════════════ */
         @media (max-width: 900px) {
             html, body { overflow: auto; }
-            .auth-page { flex-direction: column; height: auto; min-height: 100vh; }
-            .auth-left {
-                flex: none; max-width: 100%; width: 100%;
-                padding: 40px 28px;
-                border-right: none;
-                border-bottom: 1px solid var(--od-border);
+
+            .auth-page {
+                display: flex; flex-direction: column;
+                height: auto; min-height: 100vh;
             }
-            .auth-right { flex: none; height: 320px; width: 100%; }
-            .spline-bg { display: none; }
+            .auth-left { display: none; }
+            .auth-right { display: none; }
+            .bg-spline { display: none; }
+
+            .auth-center {
+                flex: 1; padding: 32px 20px;
+                justify-content: center;
+            }
+            .form-card { opacity: 1 !important; transform: none !important; }
+
+            .mobile-notice {
+                display: flex !important;
+            }
+            .auth-footer-bar { display: none; }
         }
+
+        .mobile-notice {
+            display: none;
+            align-items: center; justify-content: center; gap: 8px;
+            background: rgba(230,57,70,0.08);
+            border: 1px solid rgba(230,57,70,0.2);
+            border-radius: 10px; padding: 10px 16px;
+            margin: 0 20px 20px;
+            font-size: 12px; color: var(--muted);
+        }
+        .mobile-notice i { color: var(--accent); font-size: 13px; }
     </style>
 </head>
 <body>
 
 <!-- Background Spline -->
-<div class="spline-bg">
+<div class="bg-spline">
     <spline-viewer url="https://prod.spline.design/vdY7wKy2mkNyXNuM/scene.splinecode"
-                   loading="lazy"
-                   events-target="none"></spline-viewer>
+                   loading="lazy" events-target="none"></spline-viewer>
+    <div class="spline-wm-cover"></div>
 </div>
 
-<!-- Page -->
+<!-- Mobile desktop notice -->
+<div class="mobile-notice">
+    <i class="fas fa-desktop"></i>
+    <span>Best experienced on desktop — some features are limited on mobile.</span>
+</div>
+
 <div class="auth-page">
 
-    <!-- LEFT: Form -->
+    <!-- LEFT: Collaboration Redefined -->
     <div class="auth-left">
-
-        <div class="auth-logo" id="gsap-logo">
-            <img src="/static/images/overdrive_logo.png" alt="Overdrive"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-            <div class="auth-logo-text">OVER<span>DRIVE</span></div>
+        <div class="hero-eyebrow" id="g-eyebrow">
+            <div class="hero-eyebrow-dot"></div>
+            <span>Overdrive Portal</span>
         </div>
 
-        <div class="auth-accent-line" id="gsap-line"></div>
+        <h1 class="hero-title" id="g-title">
+            Collaboration<br><em>Redefined.</em>
+        </h1>
 
-        <div class="auth-headline" id="gsap-headline">
-            <h1>Welcome back.</h1>
+        <p class="hero-sub" id="g-sub">
+            One workspace for your entire team. Updates, expenses, ideas, and conversations — all in one place.
+        </p>
+
+        <div class="hero-tags" id="g-tags">
+            <span class="hero-tag"><i class="fas fa-bullhorn" style="margin-right:5px;font-size:9px;color:#e63946;"></i> Updates</span>
+            <span class="hero-tag"><i class="fas fa-receipt" style="margin-right:5px;font-size:9px;color:#e63946;"></i> Expenses</span>
+            <span class="hero-tag"><i class="fas fa-lightbulb" style="margin-right:5px;font-size:9px;color:#e63946;"></i> Ideas</span>
+            <span class="hero-tag"><i class="fas fa-comments" style="margin-right:5px;font-size:9px;color:#e63946;"></i> Chat</span>
         </div>
-        <div class="auth-sub" id="gsap-sub">
-            <p>Sign in to your Overdrive workspace. Everything you need, one place.</p>
-        </div>
+    </div>
 
-        <form method="POST" id="loginForm">
-            {{ form.csrf_token }}
+    <!-- CENTER: Login Form -->
+    <div class="auth-center">
+        <div class="form-card" id="g-card">
 
-            <div class="auth-field" id="gsap-f1">
-                <label class="auth-label"><i class="fas fa-envelope"></i> Email</label>
-                {{ form.email(class="auth-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", autocomplete="email") }}
-                {% for e in form.email.errors %}<div class="invalid-feedback-msg"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+            <div class="form-logo">
+                <img src="/static/images/overdrive_logo.png" alt="Overdrive"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <div class="form-logo-text">OVER<span>DRIVE</span></div>
             </div>
 
-            <div class="auth-field" id="gsap-f2">
-                <label class="auth-label"><i class="fas fa-lock"></i> Password</label>
-                {{ form.password(class="auth-input" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••", autocomplete="current-password") }}
-                {% for e in form.password.errors %}<div class="invalid-feedback-msg"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+            <div class="form-headline"><h1>Welcome back</h1></div>
+            <p class="form-sub">Sign in to your Overdrive account</p>
+            <div class="form-divider"></div>
+
+            <form method="POST">
+                {{ form.csrf_token }}
+
+                <div class="f-group">
+                    <label class="f-label"><i class="fas fa-envelope"></i> Email</label>
+                    {{ form.email(class="f-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", autocomplete="email") }}
+                    {% for e in form.email.errors %}<div class="f-err"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                </div>
+
+                <div class="f-group">
+                    <label class="f-label"><i class="fas fa-lock"></i> Password</label>
+                    {{ form.password(class="f-input" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••", autocomplete="current-password") }}
+                    {% for e in form.password.errors %}<div class="f-err"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                </div>
+
+                <label class="f-check">
+                    {{ form.remember() }}
+                    <span>{{ form.remember.label.text }}</span>
+                </label>
+
+                {{ form.submit(class="f-submit", id="g-btn", value="Sign In") }}
+            </form>
+
+            <div class="f-footer">
+                Don't have an account? <a href="/register">Request access</a>
             </div>
 
-            <label class="auth-check" id="gsap-check">
-                {{ form.remember() }}
-                <span>{{ form.remember.label.text }}</span>
-            </label>
-
-            {{ form.submit(class="auth-submit", id="gsap-btn", value="Sign In") }}
-        </form>
-
-        <div class="auth-footer" id="gsap-footer">
-            Don't have an account? <a href="/register">Request access</a>
         </div>
-
     </div>
 
     <!-- RIGHT: 3D Bot -->
-    <div class="auth-right" id="gsap-right">
+    <div class="auth-right" id="g-right">
         <spline-viewer url="https://prod.spline.design/wZpY6MdZytEounvS/scene.splinecode"></spline-viewer>
-        <div class="auth-right-label">Overdrive AI</div>
+        <div class="spline-wm-kill"></div>
+    </div>
+
+    <!-- Footer bar -->
+    <div class="auth-footer-bar">
+        <div class="footer-logo">
+            <img src="/static/images/overdrive_logo.png" alt="Overdrive"
+                 onerror="this.style.display='none'">
+        </div>
+        <span class="footer-copy">© 2026 Overdrive · Desktop recommended for full experience</span>
     </div>
 
 </div>
 
 <script>
-gsap.registerPlugin();
+const isDesktop = window.innerWidth > 900;
 
-// Master timeline
-const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+if (isDesktop) {
+    // Set initial hidden states
+    gsap.set('#g-card', { opacity: 0, y: 28 });
+    gsap.set('#g-right', { opacity: 0, x: 50 });
 
-tl
-  // Logo drops in
-  .to('#gsap-logo',    { opacity: 1, y: 0, duration: 0.7 })
-  // Red accent line sweeps
-  .to('#gsap-line',    { opacity: 1, scaleX: 1, duration: 0.5 }, '-=0.3')
-  // Headline slides up
-  .to('#gsap-headline',{ opacity: 1, y: 0, duration: 0.55 }, '-=0.2')
-  // Subtext
-  .to('#gsap-sub',     { opacity: 1, y: 0, duration: 0.45 }, '-=0.25')
-  // Fields stagger in from left
-  .to(['#gsap-f1','#gsap-f2'], {
-        opacity: 1, x: 0, duration: 0.5,
-        stagger: 0.12
-    }, '-=0.2')
-  // Remember checkbox
-  .to('#gsap-check',   { opacity: 1, x: 0, duration: 0.4 }, '-=0.1')
-  // Submit button rises
-  .to('#gsap-btn',     { opacity: 1, y: 0, duration: 0.45 }, '-=0.1')
-  // Footer link
-  .to('#gsap-footer',  { opacity: 1, y: 0, duration: 0.4 }, '-=0.1')
-  // Right panel slides in
-  .from('#gsap-right', { opacity: 0, x: 60, duration: 0.8, ease: 'power2.out' }, 0.1);
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl
+      .to('#g-card',    { opacity: 1, y: 0, duration: 0.75 }, 0.05)
+      .to('#g-eyebrow', { opacity: 1, duration: 0.55 }, 0.2)
+      .to('#g-title',   { opacity: 1, duration: 0.65, ease: 'power2.out' }, 0.35)
+      .to('#g-sub',     { opacity: 1, duration: 0.5 }, 0.55)
+      .to('#g-tags',    { opacity: 1, duration: 0.45 }, 0.7)
+      .to('#g-right',   { opacity: 1, x: 0, duration: 0.85, ease: 'power2.out' }, 0.1);
 
-// Subtle floating animation on the right panel
-gsap.to('#gsap-right', {
-    y: -8, duration: 4,
-    repeat: -1, yoyo: true,
-    ease: 'sine.inOut',
-    delay: 1.5
-});
+    // Gentle float on the bot panel
+    gsap.to('#g-right', {
+        y: -10, duration: 4.5,
+        repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.2
+    });
 
-// Submit button ripple / pulse on hover
-const btn = document.getElementById('gsap-btn');
-btn.addEventListener('mouseenter', () => gsap.to(btn, { scale: 1.02, duration: 0.2 }));
-btn.addEventListener('mouseleave', () => gsap.to(btn, { scale: 1, duration: 0.2 }));
+    // Button interactions
+    const btn = document.getElementById('g-btn');
+    btn.addEventListener('mouseenter', () => gsap.to(btn, { scale: 1.025, duration: 0.2 }));
+    btn.addEventListener('mouseleave', () => gsap.to(btn, { scale: 1, duration: 0.2 }));
+}
 </script>
 </body>
 </html>
