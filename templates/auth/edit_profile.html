@@ -5,6 +5,7 @@
 <div class="od-page-header">
     <div>
         <h1 class="od-page-title">Edit Profile</h1>
+        <p class="od-page-subtitle">Update your display name, email and bio.</p>
     </div>
     <div class="od-page-actions">
         <a href="{{ url_for('profile') }}" class="od-btn od-btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
@@ -16,32 +17,34 @@
         <div class="od-card-body">
             <form method="POST" enctype="multipart/form-data">
                 {{ form.csrf_token }}
-
-                <div class="od-form-group">
-                    <label class="od-label">{{ form.profile_pic.label.text }}</label>
-                    <div style="background:var(--od-surface-2);border:1px dashed var(--od-border);border-radius:8px;padding:16px;">
-                        {{ form.profile_pic(class="form-control", style="background:transparent;border:none;color:var(--od-text-muted);padding:0;") }}
+                <div class="od-form-group" style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--od-border);margin-bottom:20px;">
+                    <img src="{{ current_user.profile_pic_url }}" class="od-avatar-xl"
+                         id="picPreview"
+                         onerror="this.src='/static/images/default_avatar.png'"
+                         style="border:3px solid var(--od-border-light);margin-bottom:12px;">
+                    <div>
+                        <label class="od-btn od-btn-ghost od-btn-sm" for="{{ form.profile_pic.id }}" style="cursor:pointer;">
+                            <i class="fas fa-camera"></i> Change Photo
+                        </label>
+                        {{ form.profile_pic(style="display:none;", accept="image/*", id=form.profile_pic.id) }}
                     </div>
                 </div>
 
                 <div class="od-form-group">
                     <label class="od-label">{{ form.username.label.text }}</label>
                     {{ form.username(class="od-input" + (" is-invalid" if form.username.errors else "")) }}
-                    {% for e in form.username.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                    {% for e in form.username.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                 </div>
-
                 <div class="od-form-group">
                     <label class="od-label">{{ form.email.label.text }}</label>
                     {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else "")) }}
-                    {% for e in form.email.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                    {% for e in form.email.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                 </div>
-
                 <div class="od-form-group">
                     <label class="od-label">{{ form.bio.label.text }}</label>
-                    {{ form.bio(class="od-input od-textarea", rows=4, placeholder="Tell the team a bit about yourself…") }}
+                    {{ form.bio(class="od-input od-textarea", rows=3, placeholder="A short bio about you…") }}
                 </div>
-
-                <div class="d-flex gap-2">
+                <div style="display:flex;gap:8px;">
                     {{ form.submit(class="od-btn od-btn-primary") }}
                     <a href="{{ url_for('profile') }}" class="od-btn od-btn-outline">Cancel</a>
                 </div>
@@ -50,4 +53,15 @@
     </div>
 </div>
 
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('{{ form.profile_pic.id }}').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { document.getElementById('picPreview').src = ev.target.result; };
+    reader.readAsDataURL(file);
+});
+</script>
 {% endblock %}

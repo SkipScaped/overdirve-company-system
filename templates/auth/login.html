@@ -1,44 +1,41 @@
 {% extends 'base.html' %}
 {% block title %}Sign In — Overdrive{% endblock %}
 {% block content %}
-
-<div class="od-auth-wrap">
+<div class="od-auth-outer">
     <div class="od-auth-card">
         <div class="od-auth-logo">
-            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive">
+            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive"
+                 style="height:38px;width:auto;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <div class="od-logo-text" style="display:none;font-size:28px;">OVER<span>DRIVE</span></div>
             <h2>Welcome back</h2>
             <p>Sign in to your Overdrive account</p>
         </div>
 
         <form method="POST">
             {{ form.csrf_token }}
-
             <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-envelope me-1"></i> Email</label>
+                <label class="od-label"><i class="fas fa-envelope"></i> Email</label>
                 {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", autocomplete="email") }}
-                {% for e in form.email.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                {% for e in form.email.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-
             <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-lock me-1"></i> Password</label>
+                <label class="od-label"><i class="fas fa-lock"></i> Password</label>
                 {{ form.password(class="od-input" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••", autocomplete="current-password") }}
-                {% for e in form.password.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                {% for e in form.password.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-
-            <div class="od-form-check mb-4">
-                {{ form.remember() }}
-                <label for="{{ form.remember.id }}">Keep me signed in</label>
+            <div class="od-form-group" style="margin-bottom:20px;">
+                <div class="od-form-check">
+                    {{ form.remember() }}
+                    <label for="{{ form.remember.id }}">{{ form.remember.label.text }}</label>
+                </div>
             </div>
-
-            <button type="submit" class="od-btn od-btn-primary od-btn-block od-btn-lg">
-                <i class="fas fa-sign-in-alt"></i> Sign In
-            </button>
+            {{ form.submit(class="od-btn od-btn-primary od-btn-xl od-btn-block") }}
         </form>
-    </div>
 
-    <div class="od-auth-footer">
-        Don't have an account? <a href="{{ url_for('register') }}">Request access</a>
+        <div class="od-auth-footer">
+            Don't have an account? <a href="{{ url_for('register') }}">Request access</a>
+        </div>
     </div>
 </div>
-
 {% endblock %}

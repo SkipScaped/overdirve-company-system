@@ -3,52 +3,67 @@
 {% block content %}
 
 <div class="od-profile-header">
-    <img src="{{ user.profile_pic_url }}" class="od-avatar-xl" onerror="this.src='/static/images/default_avatar.png'" alt="{{ user.username }}">
+    <img src="{{ user.profile_pic_url }}" class="od-avatar-xl"
+         onerror="this.src='/static/images/default_avatar.png'"
+         style="border:3px solid var(--od-border-light);flex-shrink:0;">
     <div class="od-profile-info">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="od-profile-name">{{ user.username }}</div>
-            {% if user.is_admin %}<span class="od-admin-badge">Admin</span>{% endif %}
-        </div>
-        <div style="font-size:13px;color:var(--od-text-muted);margin-top:2px;">{{ user.email }}</div>
-        {% if user.bio %}
-        <div class="od-profile-bio">{{ user.bio }}</div>
-        {% endif %}
-        <div style="font-size:12px;color:var(--od-text-dim);margin-top:8px;">
-            <i class="fas fa-calendar"></i> Member since {{ user.created_at.strftime('%B %Y') }}
-        </div>
+        <h1 class="od-profile-name">
+            {{ user.username }}
+            {% if user.is_admin %}<span class="od-admin-badge ms-2"><i class="fas fa-shield-alt"></i> Admin</span>{% endif %}
+        </h1>
+        <p style="font-size:12px;color:var(--od-text-muted);margin:4px 0;">{{ user.email }}</p>
+        {% if user.bio %}<p class="od-profile-bio">{{ user.bio }}</p>{% endif %}
+        <p style="font-size:12px;color:var(--od-text-dim);margin:8px 0 0;">
+            <i class="fas fa-calendar-alt"></i> Joined {{ user.created_at.strftime('%B %d, %Y') }}
+        </p>
     </div>
-    {% if current_user.id == user.id %}
-    <div>
-        <a href="{{ url_for('edit_profile') }}" class="od-btn od-btn-outline"><i class="fas fa-pen"></i> Edit Profile</a>
+    {% if user.id == current_user.id %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{{ url_for('edit_profile') }}" class="od-btn od-btn-outline">
+            <i class="fas fa-pen"></i> Edit Profile
+        </a>
+        <a href="{{ url_for('change_password') }}" class="od-btn od-btn-ghost">
+            <i class="fas fa-key"></i> Password
+        </a>
     </div>
     {% endif %}
 </div>
 
-{% if current_user.id == user.id %}
 <div class="row g-3">
     <div class="col-md-6">
         <div class="od-card">
             <div class="od-card-header">
-                <h2 class="od-card-title"><i class="fas fa-receipt"></i> My Expenses</h2>
-                <a href="{{ url_for('expenses') }}" class="od-btn od-btn-ghost od-btn-sm">View All</a>
+                <h2 class="od-card-title"><i class="fas fa-info-circle"></i> About</h2>
             </div>
-            <div class="od-card-body" style="padding:16px;">
-                <a href="{{ url_for('new_expense') }}" class="od-btn od-btn-primary od-btn-block">Submit Expense</a>
+            <div class="od-card-body">
+                {% if user.bio %}
+                <p style="color:var(--od-text-muted);font-size:14px;margin:0;">{{ user.bio }}</p>
+                {% else %}
+                <p style="color:var(--od-text-dim);font-size:13px;margin:0;">No bio set.</p>
+                {% endif %}
             </div>
         </div>
     </div>
+    {% if user.id == current_user.id %}
     <div class="col-md-6">
         <div class="od-card">
             <div class="od-card-header">
-                <h2 class="od-card-title"><i class="fas fa-cog"></i> Account</h2>
+                <h2 class="od-card-title"><i class="fas fa-bolt"></i> Actions</h2>
             </div>
-            <div class="od-card-body d-flex flex-column gap-2">
-                <a href="{{ url_for('edit_profile') }}" class="od-btn od-btn-outline od-btn-block"><i class="fas fa-pen"></i> Edit Profile</a>
-                <a href="{{ url_for('change_password') }}" class="od-btn od-btn-outline od-btn-block"><i class="fas fa-key"></i> Change Password</a>
+            <div class="od-card-body" style="display:flex;flex-direction:column;gap:8px;">
+                <a href="{{ url_for('inbox') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-envelope"></i> Messages
+                </a>
+                <a href="{{ url_for('expenses') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-receipt"></i> My Expenses
+                </a>
+                <a href="{{ url_for('logout') }}" class="od-btn od-btn-danger od-btn-block">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </a>
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
-{% endif %}
 
 {% endblock %}

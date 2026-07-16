@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Overdrive{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/overdrive_logo.png') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overdrive.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
@@ -15,13 +15,19 @@
 <!-- Top Bar -->
 <header class="od-topbar">
     <div class="od-topbar-inner">
-        <a class="od-brand" href="{{ url_for('dashboard') }}">
-            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive" class="od-logo">
+        <!-- Logo -->
+        <a class="od-brand" href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('login') }}{% endif %}">
+            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive"
+                 class="od-logo-img"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <span class="od-logo-text" style="display:none;">OVER<span>DRIVE</span></span>
         </a>
 
-        <nav class="od-desktop-nav d-none d-lg-flex">
+        {% if current_user.is_authenticated %}
+        <!-- Desktop Nav -->
+        <nav class="od-desktop-nav d-none d-xl-flex">
             <a href="{{ url_for('dashboard') }}" class="od-nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
-                <i class="fas fa-th-large"></i> Dashboard
+                <i class="fas fa-home"></i> Dashboard
             </a>
             <a href="{{ url_for('updates') }}" class="od-nav-link {% if 'update' in (request.endpoint or '') %}active{% endif %}">
                 <i class="fas fa-bullhorn"></i> Updates
@@ -30,41 +36,45 @@
                 <i class="fas fa-receipt"></i> Expenses
             </a>
             <a href="{{ url_for('suggestions') }}" class="od-nav-link {% if 'suggestion' in (request.endpoint or '') %}active{% endif %}">
-                <i class="fas fa-lightbulb"></i> Suggestions
+                <i class="fas fa-lightbulb"></i> Ideas
             </a>
-            <a href="{{ url_for('jobs') }}" class="od-nav-link {% if 'job' in (request.endpoint or '') %}active{% endif %}">
+            <a href="{{ url_for('jobs') }}" class="od-nav-link {% if request.endpoint in ['jobs','view_job'] %}active{% endif %}">
                 <i class="fas fa-briefcase"></i> Jobs
             </a>
             <a href="{{ url_for('group_chat') }}" class="od-nav-link {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
                 <i class="fas fa-comments"></i> Chat
             </a>
         </nav>
+        {% endif %}
 
         <div class="od-topbar-actions">
             {% if current_user.is_authenticated %}
-            <a href="{{ url_for('inbox') }}" class="od-icon-btn position-relative" title="Messages">
+            <!-- Messages -->
+            <a href="{{ url_for('inbox') }}" class="od-icon-btn" title="Messages">
                 <i class="fas fa-envelope"></i>
-                {% if unread_count > 0 %}
-                <span class="od-badge">{{ unread_count }}</span>
-                {% endif %}
+                {% if unread_count > 0 %}<span class="od-badge">{{ unread_count if unread_count < 99 else '99+' }}</span>{% endif %}
             </a>
+            <!-- Admin shortcut -->
             {% if current_user.is_admin %}
-            <a href="{{ url_for('admin_dashboard') }}" class="od-icon-btn" title="Admin Panel">
+            <a href="{{ url_for('admin_dashboard') }}" class="od-icon-btn" title="Admin Panel" style="color:var(--od-accent);">
                 <i class="fas fa-shield-alt"></i>
             </a>
             {% endif %}
+            <!-- User dropdown -->
             <div class="dropdown">
-                <button class="od-avatar-btn dropdown-toggle" id="userDrop" data-bs-toggle="dropdown">
-                    <img src="{{ current_user.profile_pic_url }}" alt="{{ current_user.username }}" class="od-avatar-sm"
+                <button class="od-avatar-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="{{ current_user.profile_pic_url }}" alt="{{ current_user.username }}"
                          onerror="this.src='/static/images/default_avatar.png'">
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end od-dropdown" aria-labelledby="userDrop">
+                <ul class="dropdown-menu dropdown-menu-end od-dropdown">
                     <li class="od-dropdown-header">
-                        <img src="{{ current_user.profile_pic_url }}" alt="{{ current_user.username }}" class="od-avatar-md"
+                        <img src="{{ current_user.profile_pic_url }}" class="od-avatar-md"
                              onerror="this.src='/static/images/default_avatar.png'">
                         <div>
                             <div class="od-drop-username">{{ current_user.username }}</div>
-                            <div class="od-drop-role">{% if current_user.is_admin %}<span class="od-admin-badge">Admin</span>{% else %}Member{% endif %}</div>
+                            <div class="od-drop-role">
+                                {% if current_user.is_admin %}<span class="od-admin-badge"><i class="fas fa-shield-alt"></i> Admin</span>{% else %}Member{% endif %}
+                            </div>
                         </div>
                     </li>
                     <li><hr class="dropdown-divider od-divider"></li>
@@ -79,45 +89,47 @@
                     <li><a class="dropdown-item od-drop-item od-drop-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
                 </ul>
             </div>
-            {% else %}
-            <a href="{{ url_for('login') }}" class="od-btn od-btn-outline">Sign In</a>
-            <a href="{{ url_for('register') }}" class="od-btn od-btn-primary">Get Access</a>
-            {% endif %}
 
             <!-- Mobile hamburger -->
-            <button class="od-icon-btn d-lg-none" id="mobileSidebarToggle">
+            <button class="od-icon-btn d-xl-none" id="mobileSidebarToggle" aria-label="Menu">
                 <i class="fas fa-bars"></i>
             </button>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="od-btn od-btn-outline od-btn-sm">Sign In</a>
+            <a href="{{ url_for('register') }}" class="od-btn od-btn-primary od-btn-sm">Get Access</a>
+            {% endif %}
         </div>
     </div>
 </header>
 
-<!-- Mobile Sidebar Overlay -->
+<!-- Sidebar Overlay -->
 <div class="od-overlay" id="odOverlay"></div>
 
 <div class="od-layout">
+    {% if current_user.is_authenticated %}
     <!-- Sidebar -->
     <aside class="od-sidebar" id="odSidebar">
         <div class="od-sidebar-inner">
-            <nav class="od-sidebar-nav">
+            <nav>
                 <div class="od-sidebar-section">
                     <div class="od-sidebar-label">Workspace</div>
                     <a href="{{ url_for('dashboard') }}" class="od-sidebar-link {% if request.endpoint=='dashboard' %}active{% endif %}">
-                        <i class="fas fa-th-large"></i><span>Dashboard</span>
+                        <i class="fas fa-home"></i><span>Dashboard</span>
                     </a>
                     <a href="{{ url_for('updates') }}" class="od-sidebar-link {% if 'update' in (request.endpoint or '') %}active{% endif %}">
-                        <i class="fas fa-bullhorn"></i><span>Updates</span>
+                        <i class="fas fa-bullhorn"></i><span>Company Updates</span>
                     </a>
                     <a href="{{ url_for('expenses') }}" class="od-sidebar-link {% if 'expense' in (request.endpoint or '') %}active{% endif %}">
                         <i class="fas fa-receipt"></i><span>Expenses</span>
                     </a>
                     <a href="{{ url_for('suggestions') }}" class="od-sidebar-link {% if 'suggestion' in (request.endpoint or '') %}active{% endif %}">
-                        <i class="fas fa-lightbulb"></i><span>Suggestions</span>
+                        <i class="fas fa-lightbulb"></i><span>Ideas & Suggestions</span>
                     </a>
-                    <a href="{{ url_for('jobs') }}" class="od-sidebar-link {% if 'job' in (request.endpoint or '') %}active{% endif %}">
-                        <i class="fas fa-briefcase"></i><span>Jobs</span>
+                    <a href="{{ url_for('jobs') }}" class="od-sidebar-link {% if request.endpoint in ['jobs','view_job'] %}active{% endif %}">
+                        <i class="fas fa-briefcase"></i><span>Job Openings</span>
                     </a>
                 </div>
+
                 <div class="od-sidebar-section">
                     <div class="od-sidebar-label">Communication</div>
                     <a href="{{ url_for('inbox') }}" class="od-sidebar-link {% if request.endpoint in ['inbox','conversation'] %}active{% endif %}">
@@ -128,29 +140,31 @@
                         <i class="fas fa-comments"></i><span>Team Chat</span>
                     </a>
                 </div>
-                {% if current_user.is_authenticated and current_user.is_admin %}
+
+                {% if current_user.is_admin %}
                 <div class="od-sidebar-section">
-                    <div class="od-sidebar-label">Admin</div>
+                    <div class="od-sidebar-label">Administration</div>
                     <a href="{{ url_for('admin_dashboard') }}" class="od-sidebar-link {% if request.endpoint=='admin_dashboard' %}active{% endif %}">
                         <i class="fas fa-shield-alt"></i><span>Admin Panel</span>
                     </a>
-                    <a href="{{ url_for('admin_jobs') }}" class="od-sidebar-link {% if 'admin_job' in (request.endpoint or '') %}active{% endif %}">
-                        <i class="fas fa-briefcase"></i><span>Manage Jobs</span>
-                    </a>
-                    <a href="{{ url_for('new_update') }}" class="od-sidebar-link {% if request.endpoint=='new_update' %}active{% endif %}">
+                    <a href="{{ url_for('admin_dashboard') }}?tab=updates" class="od-sidebar-link {% if request.endpoint=='new_update' %}active{% endif %}">
                         <i class="fas fa-plus-circle"></i><span>Post Update</span>
+                    </a>
+                    <a href="{{ url_for('admin_jobs') }}" class="od-sidebar-link {% if 'admin_job' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-user-tie"></i><span>Manage Jobs</span>
                     </a>
                 </div>
                 {% endif %}
             </nav>
 
             <div class="od-sidebar-footer">
-                <a href="https://overdrive-568529096082.us-west1.run.app" target="_blank" class="od-sidebar-ext">
-                    <i class="fas fa-external-link-alt"></i> Main Website
+                <a href="https://overdrive-568529096082.us-west1.run.app" target="_blank" rel="noopener" class="od-sidebar-ext">
+                    <i class="fas fa-external-link-alt"></i> overdrive-568529096082.us-west1.run.app
                 </a>
             </div>
         </div>
     </aside>
+    {% endif %}
 
     <!-- Main -->
     <main class="od-main">
@@ -158,29 +172,28 @@
         {% if messages %}
         <div class="od-flash-area">
             {% for category, message in messages %}
-            <div class="alert od-alert od-alert-{{ category }} alert-dismissible fade show" role="alert">
-                {% if category == 'success' %}<i class="fas fa-check-circle me-2"></i>
-                {% elif category == 'danger' %}<i class="fas fa-exclamation-triangle me-2"></i>
-                {% elif category == 'warning' %}<i class="fas fa-exclamation-circle me-2"></i>
-                {% else %}<i class="fas fa-info-circle me-2"></i>{% endif %}
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert od-alert od-alert-{{ category }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+                {% if category == 'success' %}<i class="fas fa-check-circle" style="color:var(--od-green);"></i>
+                {% elif category == 'danger' %}<i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i>
+                {% elif category == 'warning' %}<i class="fas fa-exclamation-circle" style="color:var(--od-yellow);"></i>
+                {% else %}<i class="fas fa-info-circle" style="color:var(--od-blue);"></i>{% endif %}
+                <span>{{ message }}</span>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
             </div>
             {% endfor %}
         </div>
         {% endif %}
         {% endwith %}
 
-        <div class="od-page-content">
-            {% block content %}{% endblock %}
-        </div>
+        {% block content %}{% endblock %}
     </main>
 </div>
 
+{% if current_user.is_authenticated %}
 <!-- Mobile bottom nav -->
-<nav class="od-bottom-nav d-flex d-lg-none">
+<nav class="od-bottom-nav d-flex d-xl-none">
     <a href="{{ url_for('dashboard') }}" class="od-bnav {% if request.endpoint=='dashboard' %}active{% endif %}">
-        <i class="fas fa-th-large"></i><span>Home</span>
+        <i class="fas fa-home"></i><span>Home</span>
     </a>
     <a href="{{ url_for('updates') }}" class="od-bnav {% if 'update' in (request.endpoint or '') %}active{% endif %}">
         <i class="fas fa-bullhorn"></i><span>Updates</span>
@@ -188,29 +201,32 @@
     <a href="{{ url_for('group_chat') }}" class="od-bnav {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
         <i class="fas fa-comments"></i><span>Chat</span>
     </a>
-    <a href="{{ url_for('suggestions') }}" class="od-bnav {% if 'suggestion' in (request.endpoint or '') %}active{% endif %}">
-        <i class="fas fa-lightbulb"></i><span>Ideas</span>
+    <a href="{{ url_for('inbox') }}" class="od-bnav {% if request.endpoint in ['inbox','conversation'] %}active{% endif %}" style="position:relative;">
+        <i class="fas fa-envelope"></i>
+        {% if unread_count > 0 %}<span class="od-badge" style="top:0;right:14px;">{{ unread_count }}</span>{% endif %}
+        <span>Inbox</span>
     </a>
-    {% if current_user.is_authenticated %}
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('admin_dashboard') }}" class="od-bnav {% if 'admin' in (request.endpoint or '') %}active{% endif %}">
+        <i class="fas fa-shield-alt"></i><span>Admin</span>
+    </a>
+    {% else %}
     <a href="{{ url_for('profile') }}" class="od-bnav {% if request.endpoint=='profile' %}active{% endif %}">
         <img src="{{ current_user.profile_pic_url }}" class="od-bnav-avatar" onerror="this.src='/static/images/default_avatar.png'" alt="">
         <span>Me</span>
     </a>
-    {% else %}
-    <a href="{{ url_for('login') }}" class="od-bnav">
-        <i class="fas fa-sign-in-alt"></i><span>Login</span>
-    </a>
     {% endif %}
 </nav>
+{% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Sidebar toggle
-const sidebarToggle = document.getElementById('mobileSidebarToggle');
-const sidebar = document.getElementById('odSidebar');
-const overlay = document.getElementById('odOverlay');
-if(sidebarToggle){
-    sidebarToggle.addEventListener('click', () => {
+(function(){
+    const toggle = document.getElementById('mobileSidebarToggle');
+    const sidebar = document.getElementById('odSidebar');
+    const overlay = document.getElementById('odOverlay');
+    if(!toggle || !sidebar) return;
+    toggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
         overlay.classList.toggle('open');
     });
@@ -218,7 +234,7 @@ if(sidebarToggle){
         sidebar.classList.remove('open');
         overlay.classList.remove('open');
     });
-}
+})();
 </script>
 {% block extra_js %}{% endblock %}
 </body>

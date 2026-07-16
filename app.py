@@ -621,12 +621,18 @@ def group_poll():
 @login_required
 @admin_required
 def admin_dashboard():
+    from forms import CompanyUpdateForm, JobListingForm
+    update_form = CompanyUpdateForm()
+    job_form = JobListingForm()
     users = User.query.order_by(User.created_at.desc()).all()
     pending_expenses = ExpenseProposal.query.filter_by(status='pending').all()
     pending_apps = JobApplication.query.filter_by(status='pending').count()
     updates_count = CompanyUpdate.query.count()
     suggestions_count = Suggestion.query.count()
     jobs_count = JobListing.query.count()
+    recent_updates = CompanyUpdate.query.order_by(
+        CompanyUpdate.is_pinned.desc(), CompanyUpdate.created_at.desc()
+    ).limit(8).all()
     return render_template('admin/dashboard.html',
         users=users,
         pending_expenses=pending_expenses,
@@ -634,6 +640,9 @@ def admin_dashboard():
         updates_count=updates_count,
         suggestions_count=suggestions_count,
         jobs_count=jobs_count,
+        recent_updates=recent_updates,
+        update_form=update_form,
+        job_form=job_form,
     )
 
 @app.route('/admin/toggle-admin/<user_id>', methods=['POST'])

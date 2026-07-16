@@ -1,51 +1,45 @@
 {% extends 'base.html' %}
 {% block title %}Create Account — Overdrive{% endblock %}
 {% block content %}
-
-<div class="od-auth-wrap">
+<div class="od-auth-outer">
     <div class="od-auth-card">
         <div class="od-auth-logo">
-            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive">
+            <img src="{{ url_for('static', filename='images/overdrive_logo.png') }}" alt="Overdrive"
+                 style="height:38px;width:auto;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <div class="od-logo-text" style="display:none;font-size:28px;">OVER<span>DRIVE</span></div>
             <h2>Create your account</h2>
-            <p>Join the Overdrive team portal</p>
+            <p>Join the Overdrive company portal</p>
         </div>
 
         <form method="POST">
             {{ form.csrf_token }}
-
             <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-user me-1"></i> Username</label>
-                {{ form.username(class="od-input" + (" is-invalid" if form.username.errors else ""), placeholder="Choose a username") }}
-                {% for e in form.username.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                <label class="od-label"><i class="fas fa-user"></i> Username</label>
+                {{ form.username(class="od-input" + (" is-invalid" if form.username.errors else ""), placeholder="Your display name", autocomplete="username") }}
+                {% for e in form.username.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-
             <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-envelope me-1"></i> Email</label>
-                {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
-                {% for e in form.email.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                <label class="od-label"><i class="fas fa-envelope"></i> Email</label>
+                {{ form.email(class="od-input" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", autocomplete="email") }}
+                {% for e in form.email.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-
             <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-lock me-1"></i> Password</label>
-                {{ form.password(class="od-input" + (" is-invalid" if form.password.errors else ""), placeholder="Minimum 6 characters") }}
-                {% for e in form.password.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+                <label class="od-label"><i class="fas fa-lock"></i> Password</label>
+                {{ form.password(class="od-input" + (" is-invalid" if form.password.errors else ""), placeholder="Min. 8 characters", autocomplete="new-password") }}
+                {% for e in form.password.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-
-            <div class="od-form-group">
-                <label class="od-label"><i class="fas fa-lock me-1"></i> Confirm Password</label>
-                {{ form.confirm_password(class="od-input" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Repeat password") }}
-                {% for e in form.confirm_password.errors %}<div class="od-invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="od-form-group" style="margin-bottom:20px;">
+                <label class="od-label"><i class="fas fa-check-circle"></i> Confirm Password</label>
+                {{ form.confirm_password(class="od-input" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Repeat password", autocomplete="new-password") }}
+                {% for e in form.confirm_password.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
             </div>
-
-            <button type="submit" class="od-btn od-btn-primary od-btn-block od-btn-lg mt-2">
-                <i class="fas fa-user-plus"></i> Create Account
-            </button>
+            {{ form.submit(class="od-btn od-btn-primary od-btn-xl od-btn-block") }}
         </form>
-    </div>
 
-    <div class="od-auth-footer">
-        Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        <div class="od-auth-footer">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </div>
     </div>
 </div>
-
 {% endblock %}

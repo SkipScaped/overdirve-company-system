@@ -4,17 +4,22 @@
 
 <div class="od-page-header">
     <div>
-        <h1 class="od-page-title"><i class="fas fa-shield-alt" style="color:var(--od-accent);"></i> Admin Panel</h1>
-        <p class="od-page-subtitle">Manage users, review expenses, and oversee company operations.</p>
+        <h1 class="od-page-title" style="display:flex;align-items:center;gap:10px;">
+            <span style="width:36px;height:36px;background:var(--od-accent-dim);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-shield-alt" style="color:var(--od-accent);font-size:15px;"></i>
+            </span>
+            Admin Panel
+        </h1>
+        <p class="od-page-subtitle">Manage all company content, users, expenses and job applications.</p>
     </div>
 </div>
 
-<!-- Admin Stats -->
-<div class="od-stats-grid mb-4">
+<!-- Stats Row -->
+<div class="od-stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">
     <div class="od-stat-card">
         <div class="od-stat-icon blue"><i class="fas fa-users"></i></div>
         <div class="od-stat-value">{{ users|length }}</div>
-        <div class="od-stat-label">Total Members</div>
+        <div class="od-stat-label">Members</div>
     </div>
     <div class="od-stat-card">
         <div class="od-stat-icon yellow"><i class="fas fa-receipt"></i></div>
@@ -24,105 +29,417 @@
     <div class="od-stat-card">
         <div class="od-stat-icon red"><i class="fas fa-user-tie"></i></div>
         <div class="od-stat-value">{{ pending_apps }}</div>
-        <div class="od-stat-label">Pending Applications</div>
+        <div class="od-stat-label">Applications</div>
     </div>
     <div class="od-stat-card">
         <div class="od-stat-icon green"><i class="fas fa-briefcase"></i></div>
         <div class="od-stat-value">{{ jobs_count }}</div>
         <div class="od-stat-label">Job Listings</div>
     </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon purple"><i class="fas fa-bullhorn"></i></div>
+        <div class="od-stat-value">{{ updates_count }}</div>
+        <div class="od-stat-label">Updates</div>
+    </div>
+    <div class="od-stat-card">
+        <div class="od-stat-icon blue"><i class="fas fa-lightbulb"></i></div>
+        <div class="od-stat-value">{{ suggestions_count }}</div>
+        <div class="od-stat-label">Suggestions</div>
+    </div>
 </div>
 
-<div class="row g-4">
-    <!-- Pending Expenses -->
-    <div class="col-lg-6">
-        <div class="od-card">
-            <div class="od-card-header">
-                <h2 class="od-card-title"><i class="fas fa-receipt"></i> Pending Expenses</h2>
-                <a href="{{ url_for('expenses') }}" class="od-btn od-btn-ghost od-btn-sm">View All</a>
-            </div>
-            {% if pending_expenses %}
-            <ul class="od-list">
-                {% for p in pending_expenses %}
-                <li class="od-list-item">
-                    <div class="od-list-item-main">
-                        <a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-list-item-title">{{ p.title }}</a>
-                        <div class="od-list-item-meta">
-                            <span><i class="fas fa-user"></i> {{ p.submitter.username }}</span>
-                            <span style="font-weight:700;color:var(--od-text);">{{ p.currency }} {{ '%.2f'|format(p.amount) }}</span>
-                            <span class="od-tag">{{ p.category }}</span>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-btn od-btn-primary od-btn-sm">Review</a>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div style="padding:32px;text-align:center;color:var(--od-text-muted);font-size:13px;">
-                <i class="fas fa-check-circle" style="font-size:24px;color:var(--od-green);display:block;margin-bottom:8px;"></i>
-                No pending expenses
-            </div>
-            {% endif %}
-        </div>
-    </div>
+<!-- Tabs -->
+<div class="od-tabs" id="adminTabs">
+    <button class="od-tab active" data-tab="overview"><i class="fas fa-th-large"></i> Overview</button>
+    <button class="od-tab" data-tab="updates"><i class="fas fa-bullhorn"></i> Post Update</button>
+    <button class="od-tab" data-tab="jobs"><i class="fas fa-briefcase"></i> Post Job</button>
+    <button class="od-tab" data-tab="expenses">
+        <i class="fas fa-receipt"></i> Expenses
+        {% if pending_expenses %}<span class="od-sidebar-badge" style="margin-left:4px;">{{ pending_expenses|length }}</span>{% endif %}
+    </button>
+    <button class="od-tab" data-tab="team"><i class="fas fa-users"></i> Team</button>
+</div>
 
-    <!-- Team Members -->
-    <div class="col-lg-6">
-        <div class="od-card">
-            <div class="od-card-header">
-                <h2 class="od-card-title"><i class="fas fa-users"></i> Team Members</h2>
-            </div>
-            <ul class="od-list">
-                {% for user in users %}
-                <li class="od-list-item">
-                    <img src="{{ user.profile_pic_url }}" class="od-avatar-sm" onerror="this.src='/static/images/default_avatar.png'">
-                    <div class="od-list-item-main">
-                        <span class="od-list-item-title" style="white-space:normal;">
-                            {{ user.username }}
-                            {% if user.is_admin %}<span class="od-admin-badge ms-1">Admin</span>{% endif %}
-                        </span>
-                        <div class="od-list-item-meta">
-                            <span>{{ user.email }}</span>
-                            <span>Joined {{ user.created_at.strftime('%b %d, %Y') }}</span>
-                        </div>
+<!-- ─── Overview Tab ───────────────────────────────── -->
+<div class="od-tab-pane active" id="tab-overview">
+    <div class="row g-3">
+        <!-- Quick Actions -->
+        <div class="col-12">
+            <div class="od-card">
+                <div class="od-card-header">
+                    <h2 class="od-card-title"><i class="fas fa-bolt"></i> Quick Actions</h2>
+                </div>
+                <div class="od-card-body">
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="od-btn od-btn-primary" onclick="switchTab('updates')">
+                            <i class="fas fa-plus"></i> Post Update
+                        </button>
+                        <button class="od-btn od-btn-outline" onclick="switchTab('jobs')">
+                            <i class="fas fa-briefcase"></i> Post Job
+                        </button>
+                        <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-outline">
+                            <i class="fas fa-list"></i> Manage Jobs
+                        </a>
+                        <a href="{{ url_for('expenses') }}" class="od-btn od-btn-outline">
+                            <i class="fas fa-receipt"></i> All Expenses
+                        </a>
+                        <a href="{{ url_for('suggestions') }}" class="od-btn od-btn-outline">
+                            <i class="fas fa-lightbulb"></i> Suggestions
+                        </a>
                     </div>
-                    <div class="d-flex gap-1">
-                        {% if user.id != current_user.id %}
-                        <form method="POST" action="{{ url_for('admin_toggle_admin', user_id=user.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button class="od-btn od-btn-ghost od-btn-sm" title="{% if user.is_admin %}Remove Admin{% else %}Make Admin{% endif %}">
-                                <i class="fas fa-shield-{% if user.is_admin %}alt{% else %}slash{% endif %}"></i>
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" onsubmit="return confirm('Delete user {{ user.username }}? This cannot be undone.')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button class="od-btn od-btn-danger od-btn-sm"><i class="fas fa-trash"></i></button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <!-- Quick Links -->
-    <div class="col-12">
-        <div class="od-card">
-            <div class="od-card-header">
-                <h2 class="od-card-title"><i class="fas fa-bolt"></i> Quick Admin Actions</h2>
-            </div>
-            <div class="od-card-body">
-                <div class="d-flex gap-2 flex-wrap">
-                    <a href="{{ url_for('new_update') }}" class="od-btn od-btn-primary"><i class="fas fa-bullhorn"></i> Post Update</a>
-                    <a href="{{ url_for('admin_new_job') }}" class="od-btn od-btn-outline"><i class="fas fa-briefcase"></i> Post Job</a>
-                    <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-outline"><i class="fas fa-list"></i> Manage Jobs</a>
-                    <a href="{{ url_for('expenses') }}" class="od-btn od-btn-outline"><i class="fas fa-receipt"></i> All Expenses</a>
-                    <a href="{{ url_for('suggestions') }}" class="od-btn od-btn-outline"><i class="fas fa-lightbulb"></i> Suggestions</a>
                 </div>
             </div>
         </div>
+
+        <!-- Pending Expenses -->
+        <div class="col-lg-6">
+            <div class="od-card" style="height:100%;">
+                <div class="od-card-header">
+                    <h2 class="od-card-title"><i class="fas fa-receipt"></i> Pending Expenses</h2>
+                    <a href="{{ url_for('expenses') }}" class="od-btn od-btn-ghost od-btn-sm">View All</a>
+                </div>
+                {% if pending_expenses %}
+                <ul class="od-list">
+                    {% for p in pending_expenses[:6] %}
+                    <li class="od-list-item">
+                        <div class="od-list-item-main">
+                            <a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-list-item-title">{{ p.title }}</a>
+                            <div class="od-list-item-meta">
+                                <span><i class="fas fa-user" style="font-size:10px;"></i> {{ p.submitter.username }}</span>
+                                <span style="font-weight:700;color:var(--od-text);">{{ p.currency }} {{ '%.2f'|format(p.amount) }}</span>
+                                <span class="od-tag">{{ p.category }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-btn od-btn-primary od-btn-sm">Review</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="od-empty" style="padding:36px 20px;">
+                    <i class="fas fa-check-circle" style="color:var(--od-green);font-size:32px;"></i>
+                    <h3 style="font-size:15px;margin-top:10px;">All clear</h3>
+                    <p>No pending expense proposals.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Pending Applications -->
+        <div class="col-lg-6">
+            <div class="od-card" style="height:100%;">
+                <div class="od-card-header">
+                    <h2 class="od-card-title"><i class="fas fa-user-tie"></i> Job Applications</h2>
+                    <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-ghost od-btn-sm">Manage Jobs</a>
+                </div>
+                {% if pending_apps > 0 %}
+                <div class="od-card-body">
+                    <p style="color:var(--od-text-muted);font-size:13px;">
+                        There are <strong style="color:var(--od-accent);">{{ pending_apps }}</strong> pending job application{{ 's' if pending_apps != 1 else '' }} awaiting review.
+                    </p>
+                    <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-primary">
+                        <i class="fas fa-arrow-right"></i> Review Applications
+                    </a>
+                </div>
+                {% else %}
+                <div class="od-empty" style="padding:36px 20px;">
+                    <i class="fas fa-inbox" style="color:var(--od-text-dim);font-size:32px;"></i>
+                    <h3 style="font-size:15px;margin-top:10px;">No pending applications</h3>
+                    <p>All applications have been reviewed.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- ─── Post Update Tab ────────────────────────────── -->
+<div class="od-tab-pane" id="tab-updates">
+    <div style="max-width:780px;">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-bullhorn"></i> Post a Company Update</h2>
+            </div>
+            <form method="POST" action="{{ url_for('new_update') }}" class="od-card-body">
+                {{ update_form.csrf_token }}
+                <div class="od-grid-2">
+                    <div class="od-form-group" style="grid-column:1/-1;">
+                        <label class="od-label">{{ update_form.title.label.text }} <span style="color:#ef4444;">*</span></label>
+                        {{ update_form.title(class="od-input", placeholder="e.g. Q4 Review Complete, New Office Hours…") }}
+                        {% for e in update_form.title.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="od-form-group">
+                        <label class="od-label">{{ update_form.category.label.text }}</label>
+                        {{ update_form.category(class="od-input", placeholder="e.g. Announcement, HR, Finance") }}
+                    </div>
+                    <div class="od-form-group" style="display:flex;align-items:center;gap:12px;padding-top:24px;">
+                        <div class="od-form-check">
+                            {{ update_form.is_pinned() }}
+                            <label for="{{ update_form.is_pinned.id }}">{{ update_form.is_pinned.label.text }}</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="od-form-group">
+                    <label class="od-label">{{ update_form.content.label.text }} <span style="color:#ef4444;">*</span></label>
+                    {{ update_form.content(class="od-input od-textarea", rows=8, placeholder="Write the full update here…") }}
+                    {% for e in update_form.content.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    {{ update_form.submit(class="od-btn od-btn-primary od-btn-lg") }}
+                    <span style="font-size:12px;color:var(--od-text-dim);">This will be visible to all team members.</span>
+                </div>
+            </form>
+        </div>
+
+        <!-- Recent updates list -->
+        {% if recent_updates %}
+        <div class="od-card mt-3">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-list"></i> Recent Updates</h2>
+                <a href="{{ url_for('updates') }}" class="od-btn od-btn-ghost od-btn-sm">View All</a>
+            </div>
+            <ul class="od-list">
+                {% for u in recent_updates %}
+                <li class="od-list-item">
+                    <div class="od-list-item-main">
+                        <a href="{{ url_for('view_update', update_id=u.id) }}" class="od-list-item-title">
+                            {% if u.is_pinned %}<span class="od-pinned me-1"><i class="fas fa-thumbtack"></i></span>{% endif %}
+                            {{ u.title }}
+                        </a>
+                        <div class="od-list-item-meta">
+                            <span>{{ u.created_at.strftime('%b %d, %Y') }}</span>
+                            {% if u.category %}<span class="od-tag">{{ u.category }}</span>{% endif %}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <a href="{{ url_for('edit_update', update_id=u.id) }}" class="od-btn od-btn-ghost od-btn-sm"><i class="fas fa-edit"></i></a>
+                        <form method="POST" action="{{ url_for('delete_update', update_id=u.id) }}"
+                              onsubmit="return confirm('Delete this update?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="od-btn od-btn-danger od-btn-sm"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ─── Post Job Tab ──────────────────────────────── -->
+<div class="od-tab-pane" id="tab-jobs">
+    <div style="max-width:780px;">
+        <div class="od-card">
+            <div class="od-card-header">
+                <h2 class="od-card-title"><i class="fas fa-briefcase"></i> Post a Job Listing</h2>
+                <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-ghost od-btn-sm"><i class="fas fa-list"></i> Manage All Jobs</a>
+            </div>
+            <form method="POST" action="{{ url_for('admin_new_job') }}" class="od-card-body">
+                {{ job_form.csrf_token }}
+                <div class="od-grid-2">
+                    <div class="od-form-group">
+                        <label class="od-label">{{ job_form.title.label.text }} <span style="color:#ef4444;">*</span></label>
+                        {{ job_form.title(class="od-input", placeholder="e.g. Senior Developer") }}
+                        {% for e in job_form.title.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="od-form-group">
+                        <label class="od-label">{{ job_form.department.label.text }}</label>
+                        {{ job_form.department(class="od-input", placeholder="e.g. Engineering, Marketing") }}
+                    </div>
+                    <div class="od-form-group">
+                        <label class="od-label">{{ job_form.job_type.label.text }}</label>
+                        {{ job_form.job_type(class="od-input od-select") }}
+                    </div>
+                    <div class="od-form-group">
+                        <label class="od-label">{{ job_form.location.label.text }}</label>
+                        {{ job_form.location(class="od-input", placeholder="e.g. Remote / London / Hybrid") }}
+                    </div>
+                </div>
+                <div class="od-form-group">
+                    <label class="od-label">{{ job_form.salary_range.label.text }}</label>
+                    {{ job_form.salary_range(class="od-input", placeholder="e.g. £40,000 – £60,000 / Competitive") }}
+                </div>
+                <div class="od-form-group">
+                    <label class="od-label">{{ job_form.description.label.text }} <span style="color:#ef4444;">*</span></label>
+                    {{ job_form.description(class="od-input od-textarea", rows=7, placeholder="Describe the role, responsibilities, team culture…") }}
+                    {% for e in job_form.description.errors %}<div class="od-invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                </div>
+                <div class="od-form-group">
+                    <label class="od-label">{{ job_form.requirements.label.text }} <span style="color:var(--od-text-dim);font-weight:400;text-transform:none;">(optional)</span></label>
+                    {{ job_form.requirements(class="od-input od-textarea", rows=5, placeholder="List required skills, experience, qualifications…") }}
+                </div>
+                <div class="od-form-group">
+                    <div class="od-form-check">
+                        {{ job_form.is_active() }}
+                        <label for="{{ job_form.is_active.id }}">{{ job_form.is_active.label.text }}</label>
+                    </div>
+                    <p class="od-help-text">Active listings are visible to all team members.</p>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    {{ job_form.submit(class="od-btn od-btn-primary od-btn-lg") }}
+                    <a href="{{ url_for('admin_jobs') }}" class="od-btn od-btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Expenses Tab ──────────────────────────────── -->
+<div class="od-tab-pane" id="tab-expenses">
+    {% if pending_expenses %}
+    <div class="od-card">
+        <div class="od-card-header">
+            <h2 class="od-card-title"><i class="fas fa-receipt"></i> Pending Expense Proposals</h2>
+            <a href="{{ url_for('expenses') }}" class="od-btn od-btn-ghost od-btn-sm">All Expenses</a>
+        </div>
+        <div class="od-table-wrap">
+            <table class="od-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Submitted By</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pending_expenses %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('view_expense', expense_id=p.id) }}" style="color:var(--od-text);font-weight:600;">{{ p.title }}</a>
+                            {% if p.description %}
+                            <div style="font-size:12px;color:var(--od-text-muted);margin-top:2px;">{{ p.description[:80] }}{{ '…' if p.description|length > 80 else '' }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <img src="{{ p.submitter.profile_pic_url }}" class="od-avatar-xs" onerror="this.src='/static/images/default_avatar.png'">
+                                <span>{{ p.submitter.username }}</span>
+                            </div>
+                        </td>
+                        <td style="font-weight:700;color:var(--od-text);">{{ p.currency }} {{ '%.2f'|format(p.amount) }}</td>
+                        <td><span class="od-tag">{{ p.category }}</span></td>
+                        <td style="color:var(--od-text-muted);font-size:12px;white-space:nowrap;">{{ p.created_at.strftime('%b %d, %Y') }}</td>
+                        <td><a href="{{ url_for('view_expense', expense_id=p.id) }}" class="od-btn od-btn-primary od-btn-sm">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="od-card">
+        <div class="od-empty">
+            <i class="fas fa-check-double" style="color:var(--od-green);"></i>
+            <h3>All expenses reviewed</h3>
+            <p>No expense proposals are currently pending your review.</p>
+            <a href="{{ url_for('expenses') }}" class="od-btn od-btn-outline">View All Expenses</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ─── Team Tab ──────────────────────────────────── -->
+<div class="od-tab-pane" id="tab-team">
+    <div class="od-card">
+        <div class="od-card-header">
+            <h2 class="od-card-title"><i class="fas fa-users"></i> Team Members</h2>
+            <span style="font-size:12px;color:var(--od-text-muted);">{{ users|length }} member{{ 's' if users|length != 1 else '' }}</span>
+        </div>
+        {% if users %}
+        <div class="od-table-wrap">
+            <table class="od-table">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <img src="{{ user.profile_pic_url }}" class="od-avatar-sm" onerror="this.src='/static/images/default_avatar.png'">
+                                <div>
+                                    <div style="font-weight:600;font-size:13.5px;">{{ user.username }}</div>
+                                    {% if user.bio %}<div style="font-size:11.5px;color:var(--od-text-muted);">{{ user.bio[:50] }}</div>{% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color:var(--od-text-muted);font-size:12.5px;">{{ user.email }}</td>
+                        <td>
+                            {% if user.is_admin %}
+                            <span class="od-admin-badge"><i class="fas fa-shield-alt"></i> Admin</span>
+                            {% else %}
+                            <span class="od-tag">Member</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:var(--od-text-muted);font-size:12px;white-space:nowrap;">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            {% if user.id != current_user.id %}
+                            <div style="display:flex;gap:6px;">
+                                <form method="POST" action="{{ url_for('admin_toggle_admin', user_id=user.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="od-btn od-btn-ghost od-btn-sm" title="{% if user.is_admin %}Remove Admin{% else %}Make Admin{% endif %}">
+                                        <i class="fas fa-shield-{% if user.is_admin %}alt{% else %}slash{% endif %}"></i>
+                                        {% if user.is_admin %}Remove{% else %}Make{% endif %} Admin
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}"
+                                      onsubmit="return confirm('Delete {{ user.username }}? This cannot be undone.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="od-btn od-btn-danger od-btn-sm" title="Delete user">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span style="font-size:12px;color:var(--od-text-dim);">You</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="od-empty">
+            <i class="fas fa-users"></i>
+            <h3>No team members yet</h3>
+            <p>Team members will appear here after they register.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.od-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.od-tab-pane').forEach(p => p.classList.remove('active'));
+    const tab = document.querySelector(`[data-tab="${tabId}"]`);
+    const pane = document.getElementById(`tab-${tabId}`);
+    if(tab) tab.classList.add('active');
+    if(pane) pane.classList.add('active');
+    history.replaceState(null, '', `?tab=${tabId}`);
+    window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Tab click
+document.querySelectorAll('.od-tab[data-tab]').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+// Activate from URL
+const urlTab = new URLSearchParams(window.location.search).get('tab');
+if(urlTab) switchTab(urlTab);
+</script>
 {% endblock %}

@@ -79,9 +79,12 @@ chatForm.addEventListener('submit', async e => {
 setInterval(async () => {
     const after = getLastId();
     if (!after) return;
-    const r = await fetch(`/messages/{{ other.id }}/poll?after=${after}`, {credentials:'same-origin'});
-    const data = await r.json();
-    (data.messages || []).forEach(addMsg);
+    try {
+        const r = await fetch(`/messages/{{ other.id }}/poll?after=${after}`, {credentials:'same-origin'});
+        if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return;
+        const data = await r.json();
+        (data.messages || []).forEach(addMsg);
+    } catch(e) {}
 }, 2500);
 </script>
 {% endblock %}
