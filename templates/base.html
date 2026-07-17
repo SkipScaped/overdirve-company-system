@@ -10,9 +10,73 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overdrive.css') }}">
     {% block extra_css %}{% endblock %}
     <style>
-        /* Kill Replit watermark pill */
+        /* Kill Replit watermark + Spline watermarks */
         #replit-pill { display: none !important; }
+        .spline-watermark, [class*="spline-watermark"] { display: none !important; opacity: 0 !important; }
+
+        /* ── Notification Panel ── */
+        .od-notif-panel {
+            width: 340px;
+            background: #111 !important;
+            border: 1px solid rgba(255,255,255,0.09) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04) !important;
+            overflow: hidden; display: flex; flex-direction: column;
+            padding: 0 !important;
+        }
+        .od-notif-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 16px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            background: #161616; flex-shrink: 0;
+        }
+        .od-notif-panel-title { font-size: 13px; font-weight: 600; color: #f0f0f0; display: flex; align-items: center; gap: 7px; }
+        .od-notif-readall {
+            font-size: 10px; color: var(--od-accent); background: none; border: none; cursor: pointer;
+            padding: 4px 9px; border-radius: 6px; font-family: inherit;
+            transition: background 0.15s;
+        }
+        .od-notif-readall:hover { background: rgba(230,57,70,0.1); }
+        #od-notif-list { overflow-y: auto; max-height: 380px; }
+        #od-notif-list::-webkit-scrollbar { width: 4px; }
+        #od-notif-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .od-notif-empty { text-align: center; padding: 40px 20px; font-size: 12px; color: rgba(255,255,255,0.25); }
+        .od-notif-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+            text-decoration: none !important; color: inherit !important;
+            transition: background 0.15s; position: relative; cursor: pointer;
+        }
+        .od-notif-item:hover { background: rgba(255,255,255,0.04); }
+        .od-notif-item.unread { background: rgba(230,57,70,0.04); }
+        .od-notif-item.unread::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 3px; background: var(--od-accent); border-radius: 0 2px 2px 0;
+        }
+        .od-ni-icon {
+            width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .od-ni-icon.t-message { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .od-ni-icon.t-update  { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .od-ni-icon.t-vote    { background: rgba(16,185,129,0.15); color: #34d399; }
+        .od-ni-icon.t-expense { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .od-ni-icon.t-job     { background: rgba(230,57,70,0.15);  color: #e63946; }
+        .od-ni-icon.t-info    { background: rgba(255,255,255,0.06); color: #9ca3af; }
+        .od-ni-body { flex: 1; min-width: 0; }
+        .od-ni-title { font-size: 12px; font-weight: 600; color: #e8e8e8; line-height: 1.4; margin-bottom: 2px; }
+        .od-ni-sub   { font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .od-ni-time  { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 3px; }
     </style>
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#e63946">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Overdrive">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Overdrive">
+    <meta name="description" content="Overdrive — company management portal for modern teams.">
 </head>
 <body>
 
@@ -53,6 +117,37 @@
 
         <div class="od-topbar-actions">
             {% if current_user.is_authenticated %}
+            <!-- Notification Bell -->
+            <div class="dropdown">
+                <button class="od-icon-btn" id="od-notif-btn" data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside" aria-expanded="false" title="Notifications"
+                        style="position:relative;">
+                    <i class="fas fa-bell"></i>
+                    {% if notif_unread > 0 %}
+                    <span class="od-badge" id="od-notif-badge">{{ notif_unread if notif_unread < 99 else '99+' }}</span>
+                    {% else %}
+                    <span class="od-badge" id="od-notif-badge" style="display:none;"></span>
+                    {% endif %}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end od-notif-panel" id="od-notif-panel">
+                    <div class="od-notif-head">
+                        <span class="od-notif-panel-title">
+                            <i class="fas fa-bell" style="color:var(--od-accent);font-size:11px;"></i>
+                            Notifications
+                        </span>
+                        <button class="od-notif-readall" id="od-notif-readall">Mark all read</button>
+                    </div>
+                    <div id="od-notif-list">
+                        {% if notif_unread == 0 %}
+                        <div class="od-notif-empty">
+                            <i class="far fa-bell-slash" style="font-size:22px;display:block;margin-bottom:8px;"></i>
+                            All caught up!
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Messages -->
             <a href="{{ url_for('inbox') }}" class="od-icon-btn" title="Messages">
                 <i class="fas fa-envelope"></i>
@@ -668,5 +763,181 @@
 })();
 </script>
 {% block extra_js %}{% endblock %}
+
+<!-- ═══ OD_SOUND — Web Audio sound engine ═══════════════════════════════ -->
+<script>
+window.OD_SOUND = (function(){
+    let ctx = null;
+    function init() {
+        if (!ctx) {
+            try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch(e) { return false; }
+        }
+        if (ctx.state === 'suspended') ctx.resume().catch(()=>{});
+        return true;
+    }
+    function play(type) {
+        if (!init() || !ctx) return;
+        try {
+            if (type === 'send') {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination); o.type = 'sine';
+                o.frequency.setValueAtTime(620, ctx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(960, ctx.currentTime + 0.09);
+                g.gain.setValueAtTime(0.13, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+                o.start(); o.stop(ctx.currentTime + 0.14);
+            } else if (type === 'receive') {
+                [[523, 0], [659, 0.13]].forEach(([freq, delay]) => {
+                    const o = ctx.createOscillator(), g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination); o.type = 'sine';
+                    o.frequency.value = freq;
+                    const t = ctx.currentTime + delay;
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.11, t + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+                    o.start(t); o.stop(t + 0.38);
+                });
+            } else if (type === 'notif') {
+                [784, 1047].forEach((freq, i) => {
+                    const o = ctx.createOscillator(), g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination); o.type = 'triangle';
+                    o.frequency.value = freq;
+                    const t = ctx.currentTime + i * 0.16;
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.13, t + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+                    o.start(t); o.stop(t + 0.55);
+                });
+            } else if (type === 'open') {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination); o.type = 'sine';
+                o.frequency.setValueAtTime(440, ctx.currentTime);
+                o.frequency.linearRampToValueAtTime(660, ctx.currentTime + 0.16);
+                g.gain.setValueAtTime(0.09, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                o.start(); o.stop(ctx.currentTime + 0.2);
+            }
+        } catch(e) {}
+    }
+    // Unlock on first user gesture
+    ['click','keydown','touchstart'].forEach(ev =>
+        document.addEventListener(ev, () => init(), { once: true, passive: true })
+    );
+    return { play };
+})();
+</script>
+
+{% if current_user.is_authenticated %}
+<!-- ═══ NOTIFICATION POLLING ════════════════════════════════════════════ -->
+<script>
+(function(){
+    const badge    = document.getElementById('od-notif-badge');
+    const list     = document.getElementById('od-notif-list');
+    const readAll  = document.getElementById('od-notif-readall');
+    const bellBtn  = document.getElementById('od-notif-btn');
+    let lastCount  = parseInt('{{ notif_unread }}') || 0;
+    let loaded     = false;
+
+    const ICONS = {
+        message: '<i class="fas fa-envelope"></i>',
+        update:  '<i class="fas fa-bullhorn"></i>',
+        vote:    '<i class="fas fa-thumbs-up"></i>',
+        expense: '<i class="fas fa-receipt"></i>',
+        job:     '<i class="fas fa-briefcase"></i>',
+        info:    '<i class="fas fa-info-circle"></i>',
+    };
+
+    function setBadge(count) {
+        if (count > 0) {
+            badge.style.display = 'flex';
+            badge.textContent   = count > 99 ? '99+' : count;
+            if (count > lastCount && loaded) window.OD_SOUND?.play('notif');
+        } else {
+            badge.style.display = 'none';
+        }
+        lastCount = count;
+    }
+
+    function esc(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function render(data) {
+        setBadge(data.unread || 0);
+        if (!data.notifications || !data.notifications.length) {
+            list.innerHTML = `<div class="od-notif-empty">
+                <i class="far fa-bell-slash" style="font-size:22px;display:block;margin-bottom:8px;"></i>
+                All caught up!
+            </div>`;
+            return;
+        }
+        list.innerHTML = data.notifications.map(n => `
+            <a class="od-notif-item${n.is_read ? '' : ' unread'}"
+               href="${esc(n.link) || '#'}"
+               onclick="OD_NOTIF.read(${n.id})">
+                <div class="od-ni-icon t-${esc(n.type)}">${ICONS[n.type] || ICONS.info}</div>
+                <div class="od-ni-body">
+                    <div class="od-ni-title">${esc(n.title)}</div>
+                    ${n.body ? `<div class="od-ni-sub">${esc(n.body)}</div>` : ''}
+                    <div class="od-ni-time">${esc(n.time)}</div>
+                </div>
+            </a>`).join('');
+    }
+
+    async function fetch_notifs() {
+        try {
+            const r = await fetch('/notifications', { credentials: 'same-origin' });
+            if (!r.ok || !r.headers.get('content-type')?.includes('json')) return;
+            const data = await r.json();
+            render(data);
+        } catch(e) {}
+    }
+
+    window.OD_NOTIF = {
+        read: async function(id) {
+            try {
+                await fetch('/notifications/read', {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+            } catch(e) {}
+        }
+    };
+
+    readAll?.addEventListener('click', async e => {
+        e.preventDefault(); e.stopPropagation();
+        try {
+            await fetch('/notifications/read', {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            await fetch_notifs();
+        } catch(e) {}
+    });
+
+    // Fetch on bell click
+    bellBtn?.addEventListener('click', () => { fetch_notifs(); OD_SOUND?.play('open'); });
+
+    // Auto-poll every 20s
+    loaded = true;
+    setInterval(fetch_notifs, 20000);
+    // Initial fetch after 2s to avoid blocking page load
+    setTimeout(fetch_notifs, 2000);
+})();
+</script>
+
+<!-- ═══ PWA SERVICE WORKER ══════════════════════════════════════════════ -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+            .catch(e => console.warn('[SW]', e));
+    });
+}
+</script>
+{% endif %}
 </body>
 </html>

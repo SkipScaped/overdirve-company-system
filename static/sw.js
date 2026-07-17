@@ -1,67 +1,102 @@
-const CACHE_NAME = 'pjsmp-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/static/css/style.css',
-  '/static/js/script.js',
-  '/static/images/logo.webp',
-  '/static/manifest.json',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
+/* ═══════════════════════════════════════════════════
+   OVERDRIVE SERVICE WORKER — PWA Cache & Offline
+   Cache version: bump when static assets change
+═══════════════════════════════════════════════════ */
+const CACHE = 'overdrive-v1';
+const STATIC = [
+  '/static/css/overdrive.css',
+  '/static/images/overdrive_logo.png',
+  '/static/images/default_avatar.png',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css',
+  'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,800&display=swap'
 ];
 
-// Install: cache static assets
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)).catch(() => {})
+// Install: pre-cache static shell
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(STATIC).catch(() => {}))
   );
   self.skipWaiting();
 });
 
-// Activate: remove old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
+// Activate: clean old caches
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// Fetch: cache-first for static, network-first for pages
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+// Fetch strategy:
+// - Static assets: cache-first
+// - API/HTML: network-first with cache fallback
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
 
-  // Never cache chat/messages (always fresh)
-  if (url.pathname.startsWith('/messages') || url.pathname === '/chat') {
-    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
-    return;
-  }
+  // Skip non-GET, chrome-extension, and cross-origin non-CDN requests
+  if (e.request.method !== 'GET') return;
+  if (url.protocol === 'chrome-extension:') return;
 
-  // Cache-first for static assets
-  if (url.pathname.startsWith('/static/')) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+  const isStatic = url.pathname.startsWith('/static/') ||
+    url.hostname.includes('cdn.jsdelivr.net') ||
+    url.hostname.includes('cdnjs.cloudflare.com') ||
+    url.hostname.includes('fonts.gstatic.com') ||
+    url.hostname.includes('fonts.googleapis.com');
+
+  const isAPI = url.pathname.startsWith('/notifications') ||
+    url.pathname.startsWith('/ai/') ||
+    url.pathname.endsWith('/poll');
+
+  if (isStatic) {
+    // Cache first
+    e.respondWith(
+      caches.match(e.request).then(cached => cached ||
+        fetch(e.request).then(resp => {
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
           }
-          return response;
-        }).catch(() => cached);
-      })
+          return resp;
+        })
+      )
     );
+  } else if (isAPI) {
+    // Network only for real-time endpoints
     return;
+  } else {
+    // Network first, cache fallback for HTML pages
+    e.respondWith(
+      fetch(e.request).then(resp => {
+        if (resp.ok && e.request.destination === 'document') {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(e.request))
+    );
   }
+});
 
-  // Network-first for all pages
-  event.respondWith(
-    fetch(event.request).then(response => {
-      if (response.ok && event.request.method === 'GET') {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-      }
-      return response;
-    }).catch(() => caches.match(event.request))
+// Handle push notifications (if ever enabled)
+self.addEventListener('push', e => {
+  const data = e.data ? e.data.json() : { title: 'Overdrive', body: 'You have a new notification.' };
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Overdrive', {
+      body: data.body || '',
+      icon: '/static/images/overdrive_logo.png',
+      badge: '/static/images/overdrive_logo.png',
+      tag: 'overdrive-notif',
+      renotify: true,
+      data: { url: data.url || '/' }
+    })
   );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow(e.notification.data?.url || '/'));
 });

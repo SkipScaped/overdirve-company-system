@@ -52,7 +52,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 from models import (
     User, DirectMessage, GroupMessage,
     CompanyUpdate, ExpenseProposal, Suggestion, SuggestionVote,
-    JobListing, JobApplication, ServerConfig
+    JobListing, JobApplication, ServerConfig, Notification
 )
 
 with app.app_context():
@@ -81,15 +81,26 @@ def save_upload(file, prefix='file'):
     file.save(os.path.join(UPLOAD_FOLDER, fname))
     return f"/static/uploads/{fname}"
 
+def create_notification(user_id, ntype, title, body='', link=''):
+    """Queue a notification for user_id. Caller must db.session.commit()."""
+    try:
+        n = Notification(user_id=str(user_id), ntype=ntype, title=title[:200],
+                         body=body[:500], link=link[:300])
+        db.session.add(n)
+    except Exception as e:
+        logger.warning(f'create_notification error: {e}')
+
 @app.context_processor
 def inject_globals():
     unread = 0
+    notif_unread = 0
     if current_user.is_authenticated:
         try:
             unread = DirectMessage.query.filter_by(receiver_id=current_user.id, is_read=False).count()
+            notif_unread = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
         except Exception:
             pass
-    return dict(unread_count=unread, now=datetime.utcnow())
+    return dict(unread_count=unread, notif_unread=notif_unread, now=datetime.utcnow())
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -114,7 +125,8 @@ def register():
         else:
             flash('Account created! You can now sign in.', 'success')
         return redirect(url_for('login'))
-    return render_template('auth/register.html', form=form)
+    open_jobs = JobListing.query.filter_by(is_active=True).order_by(JobListing.created_at.desc()).limit(4).all()
+    return render_template('auth/register.html', form=form, open_jobs=open_jobs)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -130,7 +142,8 @@ def login():
             flash(f'Welcome back, {user.username}!', 'success')
             return redirect(next_page) if next_page else redirect(url_for('dashboard'))
         flash('Invalid email or password.', 'danger')
-    return render_template('auth/login.html', form=form)
+    open_jobs = JobListing.query.filter_by(is_active=True).order_by(JobListing.created_at.desc()).limit(4).all()
+    return render_template('auth/login.html', form=form, open_jobs=open_jobs)
 
 @app.route('/logout')
 def logout():
@@ -256,6 +269,13 @@ def new_update():
         )
         db.session.add(update)
         db.session.commit()
+        for u in User.query.filter(User.id != current_user.id).all():
+            create_notification(u.id, 'update', f'New update: {update.title}',
+                                body=update.content[:120], link=f'/updates/{update.id}')
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         flash('Update posted!', 'success')
         return redirect(url_for('updates'))
     return render_template('updates/new.html', form=form)
@@ -358,6 +378,11 @@ def review_expense(expense_id):
         proposal.review_notes = form.review_notes.data
         proposal.reviewer_id = current_user.id
         proposal.reviewed_at = datetime.utcnow()
+        status_label = 'approved ✓' if proposal.status == 'approved' else 'rejected'
+        create_notification(proposal.submitter_id, 'expense',
+                            f'Expense {status_label}: {proposal.title}',
+                            body=proposal.review_notes[:100] if proposal.review_notes else '',
+                            link=f'/expenses/{expense_id}')
         db.session.commit()
         flash(f'Expense proposal {form.status.data}.', 'success')
     return redirect(url_for('view_expense', expense_id=expense_id))
@@ -428,6 +453,11 @@ def vote_suggestion(suggestion_id):
         return jsonify({'voted': False, 'count': suggestion.vote_count()})
     vote = SuggestionVote(suggestion_id=suggestion_id, user_id=current_user.id)
     db.session.add(vote)
+    if suggestion.submitter_id != current_user.id:
+        create_notification(suggestion.submitter_id, 'vote',
+                            f'{current_user.username} upvoted your idea',
+                            body=suggestion.title[:100],
+                            link=f'/suggestions/{suggestion_id}')
     db.session.commit()
     return jsonify({'voted': True, 'count': suggestion.vote_count()})
 
@@ -536,6 +566,9 @@ def conversation(user_id):
             return redirect(url_for('conversation', user_id=user_id))
         msg = DirectMessage(sender_id=current_user.id, receiver_id=user_id, text=text)
         db.session.add(msg)
+        create_notification(user_id, 'message',
+                            f'New message from {current_user.username}',
+                            body=text[:100], link=f'/messages/{current_user.id}')
         db.session.commit()
         if is_ajax:
             return jsonify({'ok': True, 'message': {
@@ -764,6 +797,42 @@ def admin_review_application(app_id):
         db.session.commit()
         flash(f'Application {form.status.data}.', 'success')
     return redirect(url_for('admin_job_applications', job_id=application.job_id))
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+
+@app.route('/notifications')
+@login_required
+def get_notifications():
+    notifs = Notification.query.filter_by(user_id=current_user.id)\
+        .order_by(Notification.created_at.desc()).limit(25).all()
+    unread = sum(1 for n in notifs if not n.is_read)
+    return jsonify({
+        'unread': unread,
+        'notifications': [{
+            'id': n.id,
+            'type': n.ntype,
+            'title': n.title,
+            'body': n.body,
+            'link': n.link,
+            'is_read': n.is_read,
+            'time': n.created_at.strftime('%b %d, %H:%M')
+        } for n in notifs]
+    })
+
+@app.route('/notifications/read', methods=['POST'])
+@login_required
+def mark_notifications_read():
+    data = request.get_json(silent=True) or {}
+    nid = data.get('id')
+    if nid:
+        n = Notification.query.filter_by(id=nid, user_id=current_user.id).first()
+        if n:
+            n.is_read = True
+    else:
+        Notification.query.filter_by(user_id=current_user.id, is_read=False).update({'is_read': True})
+    db.session.commit()
+    return jsonify({'ok': True})
+
 
 # ─── Groq AI Chat ─────────────────────────────────────────────────────────────
 

@@ -1,38 +1,48 @@
 {
-  "name": "Private Java SMP",
-  "short_name": "PJ SMP",
-  "description": "Private Java SMP Minecraft server community gallery and hub.",
+  "name": "Overdrive Portal",
+  "short_name": "Overdrive",
+  "description": "Overdrive — Company Management Portal. Updates, expenses, ideas, and team communication in one place.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#222222",
-  "theme_color": "#856043",
-  "orientation": "any",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#e63946",
+  "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/static/images/logo.webp",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%230a0a0a'/%3E%3Cpath d='M30 20 L162 20 L135 172 L30 172 Z' fill='%23e63946'/%3E%3Ctext x='88' y='110' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,sans-serif' font-weight='900' font-style='italic' font-size='80' fill='white'%3EOD%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/webp",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/images/logo.webp",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230a0a0a'/%3E%3Cpath d='M80 54 L432 54 L360 458 L80 458 Z' fill='%23e63946'/%3E%3Ctext x='234' y='292' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,sans-serif' font-weight='900' font-style='italic' font-size='214' fill='white'%3EOD%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
-      "type": "image/webp",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "social"],
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "Gallery",
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "Go to your Overdrive dashboard",
       "url": "/",
-      "description": "Browse community screenshots"
+      "icons": [{ "src": "/static/images/overdrive_logo.png", "sizes": "96x96" }]
     },
     {
-      "name": "Group Chat",
-      "url": "/chat",
-      "description": "Server group chat"
+      "name": "Team Chat",
+      "short_name": "Chat",
+      "description": "Open team group chat",
+      "url": "/chat"
+    },
+    {
+      "name": "Job Openings",
+      "short_name": "Jobs",
+      "description": "Browse open positions",
+      "url": "/jobs"
     }
   ]
 }

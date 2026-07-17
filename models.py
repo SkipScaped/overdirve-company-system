@@ -604,3 +604,19 @@ def initialize_sample_data():
     except Exception as e:
         db.session.rollback()
         print(f"Error initializing sample data: {e}")
+
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    id         = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id    = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    ntype      = db.Column(db.String(30), default='info')   # info|message|update|vote|expense|job
+    title      = db.Column(db.String(200), nullable=False)
+    body       = db.Column(db.String(500), default='')
+    link       = db.Column(db.String(300), default='')
+    is_read    = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='notifications_list')

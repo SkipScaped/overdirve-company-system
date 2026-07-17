@@ -1,87 +1,429 @@
 {% extends 'base.html' %}
 {% block title %}Team Chat — Overdrive{% endblock %}
+
+{% block extra_css %}
+<script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js"></script>
+<style>
+/* ═══ Group Chat page layout ═══ */
+.od-main { padding: 0 !important; overflow: hidden; }
+.od-chat-page {
+    position: relative;
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0a0a0c;
+}
+
+/* Spline 3D background */
+.chat-spline-bg {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.chat-spline-bg spline-viewer { width: 100%; height: 100%; opacity: 0.22; display: block; }
+.chat-spline-wm {
+    position: absolute; bottom: 0; right: 0;
+    width: 220px; height: 64px;
+    background: #0a0a0c; z-index: 99; pointer-events: none;
+}
+.chat-spline-bg::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 100% 80% at 50% 50%, transparent 10%, rgba(10,10,12,0.75) 100%),
+        linear-gradient(to bottom, rgba(10,10,12,0.7) 0%, transparent 15%, transparent 85%, rgba(10,10,12,0.9) 100%);
+}
+
+/* ── Chat header ── */
+.chat-header {
+    position: relative; z-index: 2; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(10,10,12,0.75);
+    backdrop-filter: blur(24px);
+}
+.chat-header-info { display: flex; align-items: center; gap: 14px; }
+.chat-live-ring {
+    position: relative; width: 40px; height: 40px; flex-shrink: 0;
+}
+.chat-live-ring::before {
+    content: ''; position: absolute; inset: -4px;
+    border-radius: 50%; border: 2px solid rgba(74,222,128,0.25);
+    animation: ring-pulse 2.5s ease-in-out infinite;
+}
+@keyframes ring-pulse {
+    0%,100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.15); opacity: 0; }
+}
+.chat-live-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #e63946, #8b1a22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #fff;
+}
+.chat-live-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #4ade80; border: 2px solid #0a0a0c;
+    animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+    50% { box-shadow: 0 0 0 5px rgba(74,222,128,0); }
+}
+.chat-title { font-size: 15px; font-weight: 700; color: #f0f0f0; }
+.chat-subtitle { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+
+.chat-header-actions { display: flex; align-items: center; gap: 8px; }
+.chat-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 100px; padding: 5px 14px;
+    font-size: 11px; color: rgba(255,255,255,0.4);
+}
+.chat-pill i { font-size: 10px; color: #4ade80; }
+.chat-icon-btn {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.35); font-size: 12px;
+    transition: all 0.15s;
+}
+.chat-icon-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+.chat-icon-btn.sound-on { color: #e63946; border-color: rgba(230,57,70,0.3); }
+
+/* ── Messages area ── */
+.chat-messages-wrap {
+    flex: 1; overflow-y: auto;
+    position: relative; z-index: 2;
+    padding: 20px 24px 8px;
+    display: flex; flex-direction: column; gap: 2px;
+    scroll-behavior: smooth;
+}
+.chat-messages-wrap::-webkit-scrollbar { width: 4px; }
+.chat-messages-wrap::-webkit-scrollbar-track { background: transparent; }
+.chat-messages-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+/* Date separator */
+.chat-date-sep {
+    display: flex; align-items: center; gap: 12px;
+    margin: 18px 0 10px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.9px; color: rgba(255,255,255,0.18);
+}
+.chat-date-sep::before, .chat-date-sep::after {
+    content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06);
+}
+
+/* ── Message row ── */
+.od-msg-row {
+    display: flex; align-items: flex-end; gap: 10px;
+    max-width: 72%; animation: msg-in 0.18s ease-out;
+}
+@keyframes msg-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.od-msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
+.od-msg-row:not(.mine) { align-self: flex-start; }
+.od-msg-row.grouped { margin-top: 1px; }
+.od-msg-row.grouped .od-msg-avatar { visibility: hidden; }
+.od-msg-row.grouped .od-msg-meta { display: none; }
+
+/* Avatar */
+.od-msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.06);
+}
+.od-msg-row.mine .od-msg-avatar { border-color: rgba(230,57,70,0.3); }
+
+/* Content */
+.od-msg-content { display: flex; flex-direction: column; min-width: 0; }
+.od-msg-row.mine .od-msg-content { align-items: flex-end; }
+
+/* Meta */
+.od-msg-meta {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 4px; padding: 0 4px;
+}
+.od-msg-row.mine .od-msg-meta { flex-direction: row-reverse; }
+.od-msg-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.od-msg-row.mine .od-msg-name { color: rgba(230,57,70,0.7); }
+.od-msg-time-sm { font-size: 10px; color: rgba(255,255,255,0.18); white-space: nowrap; }
+
+/* Bubble */
+.od-bubble {
+    padding: 9px 14px; border-radius: 16px;
+    font-size: 14px; line-height: 1.52; word-break: break-word; white-space: pre-wrap;
+}
+.od-msg-row:not(.mine) .od-bubble {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-bottom-left-radius: 4px;
+    color: #e8e8e8;
+    backdrop-filter: blur(6px);
+}
+.od-msg-row.mine .od-bubble {
+    background: linear-gradient(135deg, #e63946 0%, #c0293a 100%);
+    border: 1px solid rgba(255,80,80,0.15);
+    border-bottom-right-radius: 4px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(230,57,70,0.3);
+}
+
+/* ── Input zone ── */
+.chat-input-zone {
+    position: relative; z-index: 2; flex-shrink: 0;
+    padding: 10px 20px 14px;
+    background: rgba(10,10,12,0.8);
+    backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.chat-input-inner {
+    display: flex; align-items: flex-end; gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 8px 8px 8px 16px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.chat-input-inner:focus-within {
+    border-color: rgba(230,57,70,0.45);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 3px rgba(230,57,70,0.08);
+}
+#chatInput {
+    flex: 1; background: none; border: none; outline: none;
+    color: #f0f0f0; font-family: inherit; font-size: 14px;
+    line-height: 1.4; resize: none; max-height: 120px; padding: 4px 0;
+}
+#chatInput::placeholder { color: rgba(255,255,255,0.18); }
+.chat-send-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: #e63946; border: none; cursor: pointer; color: #fff;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.chat-send-btn:hover { background: #d62f3b; transform: scale(1.05); box-shadow: 0 4px 16px rgba(230,57,70,0.4); }
+.chat-send-btn:active { transform: scale(0.95); }
+.chat-send-btn:disabled { background: #2a2a2a; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Char counter */
+.chat-input-footer {
+    display: flex; justify-content: flex-end; padding: 3px 4px 0;
+    font-size: 10px; color: rgba(255,255,255,0.18);
+}
+
+@media (max-width: 768px) {
+    .od-msg-row { max-width: 88%; }
+    .chat-header { padding: 12px 16px; }
+    .chat-messages-wrap { padding: 16px 14px 6px; }
+    .chat-input-zone { padding: 8px 12px 12px; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="od-chat-page">
 
-<div class="od-page-header" style="margin-bottom:12px;">
-    <div>
-        <h1 class="od-page-title"><i class="fas fa-comments" style="color:var(--od-accent);"></i> Team Chat</h1>
-        <p class="od-page-subtitle">Company-wide group chat for all team members.</p>
+    <!-- 3D Spline Background -->
+    <div class="chat-spline-bg">
+        <spline-viewer url="https://prod.spline.design/AATNdo0u4uGpBox4/scene.splinecode"
+                       loading="lazy" events-target="none"></spline-viewer>
+        <div class="chat-spline-wm"></div>
     </div>
-</div>
 
-<div class="od-card" style="display:flex;flex-direction:column;height:calc(100vh - 240px);min-height:400px;">
-    <div class="od-chat-messages" id="chatMessages">
-        {% for msg in messages %}
-        <div class="od-msg {% if msg.sender_id == current_user.id %}mine{% endif %}" data-id="{{ msg.id }}">
-            {% if msg.sender_id != current_user.id %}
-            <img src="{{ msg.sender.profile_pic_url }}" class="od-avatar-sm" style="align-self:flex-end;" onerror="this.src='/static/images/default_avatar.png'" title="{{ msg.sender.username }}">
-            {% endif %}
+    <!-- Header -->
+    <div class="chat-header">
+        <div class="chat-header-info">
+            <div class="chat-live-ring">
+                <div class="chat-live-avatar">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="chat-live-dot"></div>
+            </div>
             <div>
-                {% if msg.sender_id != current_user.id %}
-                <div style="font-size:11px;color:var(--od-text-dim);margin-bottom:2px;padding-left:2px;">{{ msg.sender.username }}</div>
-                {% endif %}
-                <div class="od-msg-bubble">{{ msg.text }}</div>
-                <span class="od-msg-time">{{ msg.created_at.strftime('%d %b %H:%M') }}</span>
+                <div class="chat-title">Team Chat</div>
+                <div class="chat-subtitle">Company-wide · all members</div>
             </div>
         </div>
+        <div class="chat-header-actions">
+            <div class="chat-pill">
+                <i class="fas fa-circle" style="font-size:7px;"></i>
+                <span>Live</span>
+            </div>
+            <button class="chat-icon-btn sound-on" id="soundToggle" title="Toggle sounds">
+                <i class="fas fa-volume-up" id="soundIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages-wrap" id="chatMessages">
+        {% set ns = namespace(prev_id=None, prev_date=None) %}
+        {% for msg in messages %}
+            {% set msg_date = msg.created_at.strftime('%B %d, %Y') %}
+            {% if msg_date != ns.prev_date %}
+                <div class="chat-date-sep">{{ msg_date }}</div>
+                {% set ns.prev_date = msg_date %}
+                {% set ns.prev_id = None %}
+            {% endif %}
+            {% set is_grouped = (ns.prev_id == msg.sender_id) %}
+            {% set ns.prev_id = msg.sender_id %}
+            <div class="od-msg-row {% if msg.sender_id == current_user.id %}mine{% endif %}{% if is_grouped %} grouped{% endif %}" data-id="{{ msg.id }}">
+                <img src="{{ msg.sender.profile_pic_url }}" class="od-msg-avatar"
+                     onerror="this.src='/static/images/default_avatar.png'"
+                     alt="{{ msg.sender.username }}">
+                <div class="od-msg-content">
+                    <div class="od-msg-meta">
+                        <span class="od-msg-name">{{ msg.sender.username }}</span>
+                        <span class="od-msg-time-sm">{{ msg.created_at.strftime('%H:%M') }}</span>
+                    </div>
+                    <div class="od-bubble">{{ msg.text }}</div>
+                </div>
+            </div>
         {% endfor %}
     </div>
-    <form class="od-chat-input-area" id="chatForm">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="ajax" value="1">
-        <input class="od-input" id="chatInput" name="text" placeholder="Message the team…" autocomplete="off">
-        <button type="submit" class="od-btn od-btn-primary"><i class="fas fa-paper-plane"></i></button>
-    </form>
-</div>
 
+    <!-- Input -->
+    <div class="chat-input-zone">
+        <form id="chatForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="ajax" value="1">
+            <div class="chat-input-inner">
+                <textarea id="chatInput" name="text" placeholder="Message the team…"
+                          rows="1" maxlength="2000" autocomplete="off"></textarea>
+                <button type="submit" class="chat-send-btn" id="chatSendBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+        </form>
+        <div class="chat-input-footer">
+            <span id="charCount">0 / 2000</span>
+        </div>
+    </div>
+</div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
-const chatMessages = document.getElementById('chatMessages');
-const chatForm = document.getElementById('chatForm');
-const chatInput = document.getElementById('chatInput');
-const currentUserId = '{{ current_user.id }}';
+(function(){
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm     = document.getElementById('chatForm');
+    const chatInput    = document.getElementById('chatInput');
+    const sendBtn      = document.getElementById('chatSendBtn');
+    const soundToggle  = document.getElementById('soundToggle');
+    const soundIcon    = document.getElementById('soundIcon');
+    const charCount    = document.getElementById('charCount');
+    const currentUserId = '{{ current_user.id }}';
+    const myAvatar      = '{{ current_user.profile_pic_url }}';
+    const myUsername    = '{{ current_user.username|escapejs if current_user.username else current_user.username }}';
 
-function scrollBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
-scrollBottom();
+    // ── Sound toggle ──────────────────────────────
+    let soundOn = localStorage.getItem('od_chat_sound') !== 'off';
+    function updateSoundUI() {
+        soundToggle.classList.toggle('sound-on', soundOn);
+        soundIcon.className = `fas fa-volume-${soundOn ? 'up' : 'mute'}`;
+    }
+    updateSoundUI();
+    soundToggle.addEventListener('click', () => {
+        soundOn = !soundOn;
+        localStorage.setItem('od_chat_sound', soundOn ? 'on' : 'off');
+        updateSoundUI();
+    });
 
-function getLastId() {
-    const msgs = chatMessages.querySelectorAll('[data-id]');
-    return msgs.length ? msgs[msgs.length-1].dataset.id : '';
-}
+    function playSound(type) {
+        if (!soundOn) return;
+        if (window.OD_SOUND) window.OD_SOUND.play(type);
+    }
 
-function addMsg(msg) {
-    const isMine = msg.sender_id === currentUserId;
-    const div = document.createElement('div');
-    div.className = 'od-msg' + (isMine ? ' mine' : '');
-    div.dataset.id = msg.id;
-    div.innerHTML = (isMine ? '' : `<img src="/profile-pic/${msg.sender_id}" class="od-avatar-sm" style="align-self:flex-end;" onerror="this.src='/static/images/default_avatar.png'" title="${msg.sender_username}">`)
-        + `<div>${!isMine ? `<div style="font-size:11px;color:var(--od-text-dim);margin-bottom:2px;padding-left:2px;">${msg.sender_username}</div>` : ''}<div class="od-msg-bubble">${msg.text.replace(/</g,'&lt;')}</div><span class="od-msg-time">${msg.time}</span></div>`;
-    chatMessages.appendChild(div);
-    scrollBottom();
-}
+    // ── Scroll ────────────────────────────────────
+    function scrollBottom(smooth) {
+        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+    }
+    scrollBottom(false);
 
-chatForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const text = chatInput.value.trim();
-    if (!text) return;
-    chatInput.value = '';
-    const fd = new FormData(chatForm);
-    fd.set('text', text);
-    const r = await fetch('/chat', {method:'POST', body: fd, credentials:'same-origin'});
-    const data = await r.json();
-    if (data.ok) addMsg(data.message);
-});
+    function getLastId() {
+        const items = chatMessages.querySelectorAll('[data-id]');
+        return items.length ? items[items.length - 1].dataset.id : '';
+    }
 
-setInterval(async () => {
-    const after = getLastId();
-    if (!after) return;
-    try {
-        const r = await fetch(`/chat/poll?after=${after}`, {credentials:'same-origin'});
-        if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return;
-        const data = await r.json();
-        (data.messages || []).forEach(addMsg);
-    } catch(e) {}
-}, 2500);
+    // ── Build message row ─────────────────────────
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                        .replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+    }
+
+    function buildRow(msg) {
+        const isMine = String(msg.sender_id) === String(currentUserId);
+        const avatar = isMine ? myAvatar : `/profile-pic/${msg.sender_id}`;
+        const name   = isMine ? myUsername : esc(msg.sender_username);
+        const row    = document.createElement('div');
+        row.className = 'od-msg-row' + (isMine ? ' mine' : '');
+        row.dataset.id = msg.id;
+        row.innerHTML = `
+            <img src="${avatar}" class="od-msg-avatar"
+                 onerror="this.src='/static/images/default_avatar.png'" alt="${name}">
+            <div class="od-msg-content">
+                <div class="od-msg-meta">
+                    <span class="od-msg-name">${name}</span>
+                    <span class="od-msg-time-sm">${msg.time}</span>
+                </div>
+                <div class="od-bubble">${esc(msg.text)}</div>
+            </div>`;
+        return row;
+    }
+
+    function addMsg(msg, withSound) {
+        chatMessages.appendChild(buildRow(msg));
+        scrollBottom(true);
+        if (withSound) playSound(String(msg.sender_id) === String(currentUserId) ? 'send' : 'receive');
+    }
+
+    // ── Send ──────────────────────────────────────
+    chatForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text || sendBtn.disabled) return;
+        chatInput.value = '';
+        chatInput.style.height = '';
+        charCount.textContent = '0 / 2000';
+        sendBtn.disabled = true;
+        const fd = new FormData(chatForm);
+        fd.set('text', text);
+        try {
+            const r = await fetch('/chat', { method: 'POST', body: fd, credentials: 'same-origin' });
+            const data = await r.json();
+            if (data.ok) addMsg(data.message, true);
+        } catch(err) { console.warn('Send failed', err); }
+        sendBtn.disabled = false;
+        chatInput.focus();
+    });
+
+    // ── Auto-grow textarea ────────────────────────
+    chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        charCount.textContent = chatInput.value.length + ' / 2000';
+    });
+
+    // ── Enter = send, Shift+Enter = newline ───────
+    chatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.requestSubmit(); }
+    });
+
+    // ── Poll new messages every 2.5s ─────────────
+    setInterval(async () => {
+        const after = getLastId();
+        if (!after) return;
+        try {
+            const r = await fetch(`/chat/poll?after=${after}`, { credentials: 'same-origin' });
+            if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return;
+            const data = await r.json();
+            (data.messages || []).forEach(m => addMsg(m, true));
+        } catch(e) {}
+    }, 2500);
+})();
 </script>
 {% endblock %}
