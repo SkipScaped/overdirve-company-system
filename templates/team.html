@@ -126,6 +126,16 @@
                class="od-btn od-btn-sm od-btn-ghost" title="View profile">
                 <i class="fas fa-user"></i>
             </a>
+            {% if current_user.is_admin and member.id != current_user.id %}
+            <form method="POST" action="{{ url_for('admin_delete_user', user_id=member.id) }}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Fire {{ member.username }}? This permanently removes them from Overdrive.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="od-btn od-btn-sm od-btn-danger" title="Fire member">
+                    <i class="fas fa-fire"></i>
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% endfor %}

@@ -45,6 +45,10 @@ Bootstrap dropdown adds/removes `.show` class. The panel must use `display:none`
 - DM conversation.html fully rewritten to match group chat style — same bubble/avatar pattern, image upload support, auto-grow textarea, poll every 2.5s.
 - Both support image uploads: group `/chat/upload`, DM `/messages/<user_id>/upload`.
 - Poll endpoints return `image_path` in each message object.
+- Links are auto-linkified via `linkify()` in both chat JS blocks (converts https:// to `<a>` tags).
+- Image button in group chat input uses `/chat/upload`; in DM uses `/messages/<user_id>/upload`.
+- **Critical bug that was fixed**: `|escapejs` Jinja2 filter does NOT exist — use `|tojson` instead for JS string literals.
+- **Critical bug fixed**: save `pendingImage` reference to a local var BEFORE calling `clearImage()` in send handlers.
 
 ## Roles System
 - Models: `Role` (name, color, icon, position, created_by) and `UserRole` (user_id, role_id, assigned_by).
@@ -67,6 +71,11 @@ Bootstrap dropdown adds/removes `.show` class. The panel must use `display:none`
 ## Startup Block Pattern
 - `db.create_all()` runs first, then safe `ALTER TABLE` for `image_path` columns via try/except rollback.
 - `ServerConfig` default seed runs last.
+
+## Global Spline Background
+- `templates/base.html` has a `position:fixed; z-index:-1` div containing the blackhole Spline (`AATNdo0u4uGpBox4`) at opacity 0.09 — visible on all authenticated pages.
+- Must use `z-index: -1` (not 0) — `z-index: 0` positioned elements appear ON TOP of static-flow content.
+- Group chat has its own higher-opacity Spline (0.22) layered inside the page as `z-index: 2` content.
 
 ## Key Patterns
 - `create_notification()` must be called BEFORE `db.session.commit()`.

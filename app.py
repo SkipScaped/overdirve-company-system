@@ -863,99 +863,141 @@ def ai_chat():
         messages = messages[-20:]
 
         # ── Gather live company context ────────────────────────────────────────
-        total_members   = User.query.count()
-        admin_users     = User.query.filter_by(is_admin=True).all()
+        all_members     = User.query.order_by(User.created_at.asc()).all()
+        total_members   = len(all_members)
+        admin_users     = [u for u in all_members if u.is_admin]
         active_jobs     = JobListing.query.filter_by(is_active=True).count()
+        all_jobs        = JobListing.query.filter_by(is_active=True).order_by(JobListing.created_at.desc()).limit(8).all()
         pending_exp     = ExpenseProposal.query.filter_by(status='pending').count()
         approved_exp    = ExpenseProposal.query.filter_by(status='approved').count()
+        rejected_exp    = ExpenseProposal.query.filter_by(status='rejected').count()
         total_updates   = CompanyUpdate.query.count()
         open_suggestions= Suggestion.query.filter_by(status='open').count()
         pinned_updates  = CompanyUpdate.query.filter_by(is_pinned=True).order_by(
                             CompanyUpdate.created_at.desc()).limit(3).all()
         recent_updates  = CompanyUpdate.query.order_by(
-                            CompanyUpdate.created_at.desc()).limit(5).all()
-        top_suggestions = Suggestion.query.filter_by(status='open').all()
-        top_suggestions.sort(key=lambda s: s.vote_count(), reverse=True)
-        top_suggestions = top_suggestions[:5]
-        open_jobs       = JobListing.query.filter_by(is_active=True).order_by(
-                            JobListing.created_at.desc()).limit(5).all()
+                            CompanyUpdate.created_at.desc()).limit(8).all()
+        all_suggestions = Suggestion.query.all()
+        all_suggestions.sort(key=lambda s: s.vote_count(), reverse=True)
+        top_suggestions = all_suggestions[:8]
+        recent_msgs     = GroupMessage.query.order_by(GroupMessage.created_at.desc()).limit(15).all()
+        recent_msgs     = list(reversed(recent_msgs))
+        all_expenses    = ExpenseProposal.query.order_by(ExpenseProposal.created_at.desc()).limit(10).all()
+        pending_apps    = JobApplication.query.filter_by(status='pending').count()
+        all_roles       = Role.query.order_by(Role.position.asc()).all()
+        total_chat_msgs = GroupMessage.query.count()
 
         # Current user context
-        my_expenses     = ExpenseProposal.query.filter_by(submitter_id=current_user.id).count()
+        my_expenses     = ExpenseProposal.query.filter_by(submitter_id=current_user.id).all()
         my_suggestions  = Suggestion.query.filter_by(submitter_id=current_user.id).count()
+        my_roles        = [ur.role_obj.name for ur in current_user.user_roles] if hasattr(current_user, 'user_roles') else []
 
         updates_summary = '\n'.join(
-            f"  • [{u.category}] {u.title} (by {u.author.username}, {u.created_at.strftime('%b %d')})"
+            f"  • [{u.category}] {u.title} (by {u.author.username}, {u.created_at.strftime('%b %d %Y')})\n    {u.content[:200]}"
             for u in recent_updates
         ) or '  (none yet)'
 
         suggestions_summary = '\n'.join(
-            f"  • {s.title} — {s.vote_count()} votes ({s.status})"
+            f"  • \"{s.title}\" — {s.vote_count()} votes, status: {s.status}"
+            + (f" (by {s.submitter.username if not s.is_anonymous else 'Anonymous'})" )
             for s in top_suggestions
         ) or '  (none yet)'
 
         jobs_summary = '\n'.join(
-            f"  • {j.title} [{j.department or j.job_type}] — {j.location}"
-            for j in open_jobs
+            f"  • {j.title} [{j.department or j.job_type}] @ {j.location} — {j.salary_range}"
+            for j in all_jobs
         ) or '  (none yet)'
 
         pinned_summary = '\n'.join(
-            f"  • {u.title}: {u.content[:120]}..."
+            f"  • {u.title}: {u.content[:200]}"
             for u in pinned_updates
         ) or '  (none pinned)'
 
         admin_names = ', '.join(u.username for u in admin_users) or 'none'
 
-        system_prompt = f"""You are Overdrive AI — the intelligent assistant built into the Overdrive company management portal. You are helpful, concise, and professional. You have full knowledge of the portal and live data about the company.
+        members_summary = '\n'.join(
+            f"  • {u.username} ({'Admin' if u.is_admin else 'Member'})"
+            + (f" — roles: {', '.join(ur.role_obj.name for ur in u.user_roles)}" if u.user_roles else '')
+            + f" — joined {u.created_at.strftime('%b %Y')}"
+            for u in all_members
+        ) or '  (none)'
 
-=== ABOUT OVERDRIVE PORTAL ===
-Overdrive is an internal company management platform. It provides:
-- Company Updates: announcements & news posted by admins (categories: General, Development, Finance, HR, Design, etc.)
-- Expense Proposals: team members submit expenses; admins approve or reject them
-- Ideas & Suggestions: anyone can post ideas; team votes on them
-- Job Openings: admin-posted positions; anyone can apply externally
-- Direct Messages: private 1-on-1 messaging between team members
-- Team Chat: real-time group chat for the whole team
-- Admin Panel: tabbed hub for posting updates, managing jobs, reviewing expenses and team
+        chat_summary = '\n'.join(
+            f"  [{m.created_at.strftime('%b %d %H:%M')}] {m.sender.username}: {m.text[:120]}"
+            for m in recent_msgs
+        ) or '  (no messages yet)'
 
-=== LIVE COMPANY DATA (as of right now) ===
-Team size: {total_members} member(s)
+        expenses_summary = '\n'.join(
+            f"  • {e.title} by {e.submitter.username} — {e.currency} {e.amount:.2f} [{e.status}] ({e.created_at.strftime('%b %d')})"
+            for e in all_expenses
+        ) or '  (none yet)'
+
+        roles_summary = '\n'.join(
+            f"  • {r.name} (color: {r.color}, {r.member_count} member{'s' if r.member_count != 1 else ''})"
+            for r in all_roles
+        ) or '  (no roles created yet)'
+
+        my_expenses_summary = '\n'.join(
+            f"  • {e.title} — {e.currency} {e.amount:.2f} [{e.status}]"
+            for e in my_expenses
+        ) or '  (none submitted)'
+
+        system_prompt = f"""You are Overdrive AI — the intelligent assistant built into the Overdrive company management portal. You are helpful, concise, and professional with full real-time knowledge of everything in the portal.
+
+=== PORTAL OVERVIEW ===
+Overdrive is an internal company management platform with:
+- Company Updates (admin announcements) · Expense Proposals (submit & approve) · Ideas & Suggestions (vote-based)
+- Job Openings (post & apply) · Direct Messages (1-on-1) · Team Chat (group) · Team directory
+- Admin Panel: post updates, manage jobs, review expenses, manage team & roles
+
+=== LIVE TEAM ({total_members} members) ===
 Admins: {admin_names}
-Active job openings: {active_jobs}
-Pending expense proposals: {pending_exp}
-Approved expenses: {approved_exp}
-Total company updates posted: {total_updates}
-Open suggestions: {open_suggestions}
+{members_summary}
 
-Pinned announcements:
+=== ROLES & POSITIONS ===
+{roles_summary}
+
+=== COMPANY UPDATES ({total_updates} total) ===
+Pinned:
 {pinned_summary}
 
-Recent updates:
+Recent:
 {updates_summary}
 
-Top open suggestions (by votes):
+=== EXPENSES ===
+Pending: {pending_exp} | Approved: {approved_exp} | Rejected: {rejected_exp}
+Recent expense proposals:
+{expenses_summary}
+
+=== IDEAS & SUGGESTIONS (open: {open_suggestions}) ===
 {suggestions_summary}
 
-Open job listings:
+=== JOB OPENINGS ({active_jobs} active, {pending_apps} pending applications) ===
 {jobs_summary}
 
-=== CURRENT USER ===
+=== RECENT TEAM CHAT ({total_chat_msgs} total messages) ===
+Last 15 messages:
+{chat_summary}
+
+=== ABOUT YOU (the current user) ===
 Name: {current_user.username}
 Email: {current_user.email}
-Role: {'Admin' if current_user.is_admin else 'Team Member'}
+Portal role: {'Admin' if current_user.is_admin else 'Team Member'}
+Your custom roles: {', '.join(my_roles) if my_roles else 'none assigned'}
 Member since: {current_user.created_at.strftime('%B %d, %Y')}
-Your expenses submitted: {my_expenses}
+Your expenses:
+{my_expenses_summary}
 Your suggestions submitted: {my_suggestions}
 
-=== YOUR CAPABILITIES ===
-- Answer questions about the portal features and how to use them
-- Summarise company updates, suggestions, job openings, or expenses
-- Help draft update announcements, expense descriptions, or suggestion titles
-- Give navigation tips (e.g. "Go to /expenses to submit a new expense")
-- Answer general work/productivity questions
-- You cannot make changes to the database directly — direct users to the relevant page for actions
+=== WHAT YOU CAN DO ===
+- Answer any question about the portal, team, updates, expenses, jobs, chat, roles
+- Summarise, analyse, or compare any data you see above
+- Help draft updates, expense descriptions, suggestion titles, or job descriptions
+- Give navigation guidance ("go to /expenses to submit", "admins can post at /admin")
+- Answer general work and productivity questions
+- You CANNOT modify data directly — direct users to the relevant page
 
-Keep responses clear and concise. Use bullet points when listing items. If you don't know something specific, say so honestly."""
+Be concise. Use bullet points for lists. Today's date context: {datetime.utcnow().strftime('%A, %B %d, %Y')}."""
 
         # ── Call Groq ──────────────────────────────────────────────────────────
         from groq import Groq

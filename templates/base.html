@@ -88,6 +88,19 @@
 </head>
 <body>
 
+<!-- ═══ GLOBAL SPLINE BLACKHOLE BACKGROUND ══════════════════════════════ -->
+{% if current_user.is_authenticated %}
+<div id="od-global-spline-bg" style="
+    position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden;
+">
+    <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js"></script>
+    <spline-viewer url="https://prod.spline.design/AATNdo0u4uGpBox4/scene.splinecode"
+                   loading="lazy" events-target="none"
+                   style="width:100%;height:100%;opacity:0.09;display:block;"></spline-viewer>
+    <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(10,10,12,0.82) 0%,rgba(10,10,12,0.6) 50%,rgba(10,10,12,0.82) 100%);pointer-events:none;"></div>
+</div>
+{% endif %}
+
 <!-- Top Bar -->
 <header class="od-topbar">
     <div class="od-topbar-inner">

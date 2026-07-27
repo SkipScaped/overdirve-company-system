@@ -288,11 +288,19 @@
 
     <!-- Input -->
     <div class="chat-input-zone">
+        <div id="chatImgPreviewStrip" style="display:none;align-items:center;gap:8px;padding:4px 0 8px;">
+            <img id="chatImgPreview" src="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+            <button onclick="clearChatImage()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:inherit;"><i class="fas fa-times"></i> Remove</button>
+        </div>
         <form id="chatForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="ajax" value="1">
+            <input type="file" id="chatImageInput" accept="image/*" style="display:none">
             <div class="chat-input-inner">
-                <textarea id="chatInput" name="text" placeholder="Message the team…"
+                <button type="button" class="chat-icon-btn" onclick="document.getElementById('chatImageInput').click()" title="Send image" style="flex-shrink:0;">
+                    <i class="fas fa-image"></i>
+                </button>
+                <textarea id="chatInput" name="text" placeholder="Message the team… (paste a link to share it)"
                           rows="1" maxlength="2000" autocomplete="off"></textarea>
                 <button type="submit" class="chat-send-btn" id="chatSendBtn">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -316,9 +324,27 @@
     const soundToggle  = document.getElementById('soundToggle');
     const soundIcon    = document.getElementById('soundIcon');
     const charCount    = document.getElementById('charCount');
+    const imageInput   = document.getElementById('chatImageInput');
+    const previewStrip = document.getElementById('chatImgPreviewStrip');
+    const previewImg   = document.getElementById('chatImgPreview');
     const currentUserId = '{{ current_user.id }}';
     const myAvatar      = '{{ current_user.profile_pic_url }}';
-    const myUsername    = '{{ current_user.username|escapejs if current_user.username else current_user.username }}';
+    const myUsername    = {{ current_user.username|tojson }};
+
+    // ── Image picker ──────────────────────────────
+    let pendingImage = null;
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        if (!file) return;
+        pendingImage = file;
+        const reader = new FileReader();
+        reader.onload = e => { previewImg.src = e.target.result; previewStrip.style.display = 'flex'; };
+        reader.readAsDataURL(file);
+    });
+    window.clearChatImage = function() {
+        pendingImage = null; imageInput.value = '';
+        previewStrip.style.display = 'none'; previewImg.src = '';
+    };
 
     // ── Sound toggle ──────────────────────────────
     let soundOn = localStorage.getItem('od_chat_sound') !== 'off';
@@ -349,10 +375,15 @@
         return items.length ? items[items.length - 1].dataset.id : '';
     }
 
-    // ── Build message row ─────────────────────────
+    // ── Helpers ───────────────────────────────────
     function esc(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                        .replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function linkify(text) {
+        // Escape first, then convert URLs to links
+        const escaped = esc(text).replace(/\n/g,'<br>');
+        return escaped.replace(/(https?:\/\/[^\s<&"]+)/g,
+            '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#93c5fd;text-decoration:underline;word-break:break-all;">$1</a>');
     }
 
     function buildRow(msg) {
@@ -362,15 +393,22 @@
         const row    = document.createElement('div');
         row.className = 'od-msg-row' + (isMine ? ' mine' : '');
         row.dataset.id = msg.id;
+        let bodyHtml = '';
+        if (msg.image_path) {
+            bodyHtml += `<img src="${esc(msg.image_path)}" style="max-width:240px;max-height:200px;border-radius:10px;display:block;cursor:pointer;margin-bottom:${msg.text ? '4px' : '0'};" onclick="window.open(this.src)" alt="image">`;
+        }
+        if (msg.text) {
+            bodyHtml += `<div class="od-bubble">${linkify(msg.text)}</div>`;
+        }
         row.innerHTML = `
-            <img src="${avatar}" class="od-msg-avatar"
-                 onerror="this.src='/static/images/default_avatar.png'" alt="${name}">
+            <img src="${esc(avatar)}" class="od-msg-avatar"
+                 onerror="this.src='/static/images/default_avatar.png'" alt="${esc(name)}">
             <div class="od-msg-content">
                 <div class="od-msg-meta">
-                    <span class="od-msg-name">${name}</span>
-                    <span class="od-msg-time-sm">${msg.time}</span>
+                    <span class="od-msg-name">${esc(name)}</span>
+                    <span class="od-msg-time-sm">${esc(msg.time)}</span>
                 </div>
-                <div class="od-bubble">${esc(msg.text)}</div>
+                ${bodyHtml}
             </div>`;
         return row;
     }
@@ -385,16 +423,28 @@
     chatForm.addEventListener('submit', async e => {
         e.preventDefault();
         const text = chatInput.value.trim();
-        if (!text || sendBtn.disabled) return;
+        const imgToSend = pendingImage;
+        if (!text && !imgToSend) return;
+        if (sendBtn.disabled) return;
+        sendBtn.disabled = true;
         chatInput.value = '';
         chatInput.style.height = '';
         charCount.textContent = '0 / 2000';
-        sendBtn.disabled = true;
-        const fd = new FormData(chatForm);
-        fd.set('text', text);
+        clearChatImage();
         try {
-            const r = await fetch('/chat', { method: 'POST', body: fd, credentials: 'same-origin' });
-            const data = await r.json();
+            let r, data;
+            if (imgToSend) {
+                const fd = new FormData();
+                fd.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+                fd.append('image', imgToSend);
+                fd.append('text', text);
+                r = await fetch('/chat/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
+            } else {
+                const fd = new FormData(chatForm);
+                fd.set('text', text);
+                r = await fetch('/chat', { method: 'POST', body: fd, credentials: 'same-origin' });
+            }
+            data = await r.json();
             if (data.ok) addMsg(data.message, true);
         } catch(err) { console.warn('Send failed', err); }
         sendBtn.disabled = false;

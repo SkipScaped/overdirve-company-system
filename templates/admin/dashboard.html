@@ -58,6 +58,7 @@
         {% if pending_expenses %}<span class="od-sidebar-badge" style="margin-left:4px;">{{ pending_expenses|length }}</span>{% endif %}
     </button>
     <button class="od-tab" data-tab="team"><i class="fas fa-users"></i> Team</button>
+    <button class="od-tab" data-tab="roles"><i class="fas fa-tags"></i> Roles</button>
 </div>
 
 <!-- ─── Overview Tab ───────────────────────────────── -->
@@ -415,6 +416,26 @@
             <p>Team members will appear here after they register.</p>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- ─── Roles Tab ──────────────────────────────── -->
+<div class="od-tab-pane" id="tab-roles">
+    <div class="od-card">
+        <div class="od-card-header">
+            <h2 class="od-card-title"><i class="fas fa-tags"></i> Roles & Positions</h2>
+            <a href="{{ url_for('admin_roles') }}" class="od-btn od-btn-primary od-btn-sm">
+                <i class="fas fa-external-link-alt"></i> Open Roles Manager
+            </a>
+        </div>
+        <div class="od-card-body" style="text-align:center;padding:40px 20px;">
+            <div style="font-size:42px;margin-bottom:16px;opacity:0.4;"><i class="fas fa-tags"></i></div>
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Manage Team Roles</h3>
+            <p style="color:var(--od-text-muted);font-size:13px;margin-bottom:20px;">Create custom roles, assign colors and icons, and assign members to positions. Roles appear as badges on team profiles.</p>
+            <a href="{{ url_for('admin_roles') }}" class="od-btn od-btn-primary">
+                <i class="fas fa-tags"></i> Go to Roles Manager
+            </a>
+        </div>
     </div>
 </div>
 

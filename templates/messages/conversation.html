@@ -350,8 +350,12 @@
 
     // ── Build row ─────────────────────────────────
     function esc(s) {
-        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                            .replace(/"/g,'&quot;');
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function linkify(text) {
+        const escaped = esc(text).replace(/\n/g,'<br>');
+        return escaped.replace(/(https?:\/\/[^\s<&"]+)/g,
+            '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#93c5fd;text-decoration:underline;word-break:break-all;">$1</a>');
     }
 
     function buildRow(msg) {
@@ -367,7 +371,7 @@
             bodyHtml += `<img src="${esc(msg.image_path)}" class="od-msg-img" onclick="window.open(this.src)" alt="Image">`;
         }
         if (msg.text) {
-            bodyHtml += `<div class="od-bubble">${esc(msg.text).replace(/\n/g,'<br>')}</div>`;
+            bodyHtml += `<div class="od-bubble">${linkify(msg.text)}</div>`;
         }
 
         row.innerHTML = `
@@ -400,6 +404,7 @@
 
         sendBtn.disabled = true;
         const originalText = text;
+        const imgToSend = pendingImage;   // capture before clearing
         dmInput.value = '';
         dmInput.style.height = '';
         charCount.textContent = '0 / 2000';
@@ -407,11 +412,11 @@
 
         try {
             let res, data;
-            if (pendingImage) {
+            if (imgToSend) {
                 // Upload with image
                 const fd = new FormData();
                 fd.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-                fd.append('image', pendingImage);
+                fd.append('image', imgToSend);
                 fd.append('text', originalText);
                 res = await fetch('/messages/{{ other.id }}/upload', {
                     method: 'POST', body: fd, credentials: 'same-origin'

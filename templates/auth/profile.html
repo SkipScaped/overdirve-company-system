@@ -11,22 +11,49 @@
             {{ user.username }}
             {% if user.is_admin %}<span class="od-admin-badge ms-2"><i class="fas fa-shield-alt"></i> Admin</span>{% endif %}
         </h1>
+        <!-- Role badges -->
+        {% if user.user_roles %}
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;">
+            {% for ur in user.user_roles %}
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;
+                         background:{{ ur.role_obj.color }}22;border:1px solid {{ ur.role_obj.color }}44;
+                         color:{{ ur.role_obj.color }};display:inline-flex;align-items:center;gap:4px;">
+                <i class="{{ ur.role_obj.icon }}" style="font-size:9px;"></i>
+                {{ ur.role_obj.name }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
         <p style="font-size:12px;color:var(--od-text-muted);margin:4px 0;">{{ user.email }}</p>
         {% if user.bio %}<p class="od-profile-bio">{{ user.bio }}</p>{% endif %}
-        <p style="font-size:12px;color:var(--od-text-dim);margin:8px 0 0;">
+        {% if user.minecraft_username %}
+        <p style="font-size:12px;color:var(--od-text-dim);margin:4px 0 0;">
+            <i class="fas fa-gamepad" style="color:#4ade80;margin-right:4px;"></i> {{ user.minecraft_username }}
+        </p>
+        {% endif %}
+        <p style="font-size:12px;color:var(--od-text-dim);margin:6px 0 0;">
             <i class="fas fa-calendar-alt"></i> Joined {{ user.created_at.strftime('%B %d, %Y') }}
         </p>
     </div>
-    {% if user.id == current_user.id %}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+        {% if user.id == current_user.id %}
         <a href="{{ url_for('edit_profile') }}" class="od-btn od-btn-outline">
             <i class="fas fa-pen"></i> Edit Profile
         </a>
         <a href="{{ url_for('change_password') }}" class="od-btn od-btn-ghost">
             <i class="fas fa-key"></i> Password
         </a>
+        {% else %}
+        <a href="{{ url_for('conversation', user_id=user.id) }}" class="od-btn od-btn-primary">
+            <i class="fas fa-comment-alt"></i> Send Message
+        </a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin_roles') }}" class="od-btn od-btn-ghost od-btn-sm" title="Manage roles">
+            <i class="fas fa-tags"></i> Manage Roles
+        </a>
+        {% endif %}
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <div class="row g-3">
@@ -37,33 +64,59 @@
             </div>
             <div class="od-card-body">
                 {% if user.bio %}
-                <p style="color:var(--od-text-muted);font-size:14px;margin:0;">{{ user.bio }}</p>
+                <p style="color:var(--od-text-muted);font-size:14px;margin:0;white-space:pre-wrap;">{{ user.bio }}</p>
                 {% else %}
                 <p style="color:var(--od-text-dim);font-size:13px;margin:0;">No bio set.</p>
                 {% endif %}
             </div>
         </div>
     </div>
-    {% if user.id == current_user.id %}
     <div class="col-md-6">
         <div class="od-card">
             <div class="od-card-header">
                 <h2 class="od-card-title"><i class="fas fa-bolt"></i> Actions</h2>
             </div>
             <div class="od-card-body" style="display:flex;flex-direction:column;gap:8px;">
+                {% if user.id == current_user.id %}
                 <a href="{{ url_for('inbox') }}" class="od-btn od-btn-outline od-btn-block">
                     <i class="fas fa-envelope"></i> Messages
                 </a>
                 <a href="{{ url_for('expenses') }}" class="od-btn od-btn-outline od-btn-block">
                     <i class="fas fa-receipt"></i> My Expenses
                 </a>
+                <a href="{{ url_for('team') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-users"></i> View Team
+                </a>
                 <a href="{{ url_for('logout') }}" class="od-btn od-btn-danger od-btn-block">
                     <i class="fas fa-sign-out-alt"></i> Sign Out
                 </a>
+                {% else %}
+                <a href="{{ url_for('conversation', user_id=user.id) }}" class="od-btn od-btn-primary od-btn-block">
+                    <i class="fas fa-comment-alt"></i> Send Direct Message
+                </a>
+                <a href="{{ url_for('team') }}" class="od-btn od-btn-outline od-btn-block">
+                    <i class="fas fa-users"></i> View Team
+                </a>
+                {% if current_user.is_admin %}
+                <form method="POST" action="{{ url_for('admin_toggle_admin', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="od-btn od-btn-ghost od-btn-block" style="width:100%;">
+                        <i class="fas fa-shield-{% if user.is_admin %}alt{% else %}slash{% endif %}"></i>
+                        {% if user.is_admin %}Remove Admin{% else %}Make Admin{% endif %}
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}"
+                      onsubmit="return confirm('Fire {{ user.username }}? This removes them permanently.')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="od-btn od-btn-danger od-btn-block" style="width:100%;">
+                        <i class="fas fa-fire"></i> Fire Member
+                    </button>
+                </form>
+                {% endif %}
+                {% endif %}
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 {% endblock %}
