@@ -21,8 +21,14 @@
             border: 1px solid rgba(255,255,255,0.09) !important;
             border-radius: 16px !important;
             box-shadow: 0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04) !important;
-            overflow: hidden; display: flex; flex-direction: column;
+            overflow: hidden;
             padding: 0 !important;
+            display: none;
+            flex-direction: column;
+        }
+        .od-notif-panel.show {
+            display: flex !important;
+            flex-direction: column !important;
         }
         .od-notif-head {
             display: flex; align-items: center; justify-content: space-between;
@@ -68,6 +74,8 @@
         .od-ni-sub   { font-size: 11px; color: rgba(255,255,255,0.38); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .od-ni-time  { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 3px; }
     </style>
+    <!-- Global CSRF token for JS fetch calls -->
+    <script>window.OD_CSRF = '{{ csrf_token() }}';</script>
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#e63946">
@@ -111,6 +119,9 @@
             </a>
             <a href="{{ url_for('group_chat') }}" class="od-nav-link {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
                 <i class="fas fa-comments"></i> Chat
+            </a>
+            <a href="{{ url_for('team') }}" class="od-nav-link {% if request.endpoint=='team' %}active{% endif %}">
+                <i class="fas fa-users"></i> Team
             </a>
         </nav>
         {% endif %}
@@ -238,6 +249,9 @@
                     <a href="{{ url_for('group_chat') }}" class="od-sidebar-link {% if 'chat' in (request.endpoint or '') %}active{% endif %}">
                         <i class="fas fa-comments"></i><span>Team Chat</span>
                     </a>
+                    <a href="{{ url_for('team') }}" class="od-sidebar-link {% if request.endpoint=='team' %}active{% endif %}">
+                        <i class="fas fa-users"></i><span>Team</span>
+                    </a>
                 </div>
 
                 {% if current_user.is_admin %}
@@ -251,6 +265,9 @@
                     </a>
                     <a href="{{ url_for('admin_jobs') }}" class="od-sidebar-link {% if 'admin_job' in (request.endpoint or '') %}active{% endif %}">
                         <i class="fas fa-user-tie"></i><span>Manage Jobs</span>
+                    </a>
+                    <a href="{{ url_for('admin_roles') }}" class="od-sidebar-link {% if 'role' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-tags"></i><span>Roles & Positions</span>
                     </a>
                 </div>
                 {% endif %}
@@ -681,7 +698,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+                    'X-CSRFToken': window.OD_CSRF || ''
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({ messages: history })
@@ -899,7 +916,10 @@ window.OD_SOUND = (function(){
             try {
                 await fetch('/notifications/read', {
                     method: 'POST', credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': window.OD_CSRF || ''
+                    },
                     body: JSON.stringify({ id })
                 });
             } catch(e) {}
@@ -911,7 +931,10 @@ window.OD_SOUND = (function(){
         try {
             await fetch('/notifications/read', {
                 method: 'POST', credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': window.OD_CSRF || ''
+                },
                 body: JSON.stringify({})
             });
             await fetch_notifs();

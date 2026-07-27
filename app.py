@@ -52,11 +52,21 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 from models import (
     User, DirectMessage, GroupMessage,
     CompanyUpdate, ExpenseProposal, Suggestion, SuggestionVote,
-    JobListing, JobApplication, ServerConfig, Notification
+    JobListing, JobApplication, ServerConfig, Notification,
+    Role, UserRole
 )
 
 with app.app_context():
     db.create_all()
+    # Safely add image_path columns if they don't exist yet
+    from sqlalchemy import text
+    with db.engine.connect() as _conn:
+        for _tbl, _col in [('direct_messages', 'image_path'), ('group_messages', 'image_path')]:
+            try:
+                _conn.execute(text(f"ALTER TABLE {_tbl} ADD COLUMN {_col} VARCHAR(300)"))
+                _conn.commit()
+            except Exception:
+                _conn.rollback()
     if not ServerConfig.query.filter_by(key='company_name').first():
         ServerConfig.set('company_name', 'Overdrive')
 
@@ -605,7 +615,8 @@ def message_poll(user_id):
     db.session.commit()
     result = [{'id': m.id, 'sender_id': m.sender_id,
                'sender_username': other.username if m.sender_id == user_id else current_user.username,
-               'text': m.text, 'time': m.created_at.strftime('%d %b %H:%M')} for m in msgs]
+               'text': m.text, 'image_path': m.image_path or '',
+               'time': m.created_at.strftime('%d %b %H:%M')} for m in msgs]
     return jsonify({'messages': result})
 
 @app.route('/chat', methods=['GET', 'POST'])
@@ -624,7 +635,8 @@ def group_chat():
             return jsonify({'ok': True, 'message': {
                 'id': msg.id, 'sender_id': msg.sender_id,
                 'sender_username': current_user.username,
-                'text': text, 'time': msg.created_at.strftime('%d %b %H:%M')
+                'text': text, 'image_path': msg.image_path or '',
+                'time': msg.created_at.strftime('%d %b %H:%M')
             }})
         return redirect(url_for('group_chat'))
     msgs = GroupMessage.query.order_by(GroupMessage.created_at.asc()).all()
@@ -645,7 +657,8 @@ def group_poll():
         msgs = []
     result = [{'id': m.id, 'sender_id': m.sender_id,
                'sender_username': m.sender.username,
-               'text': m.text, 'time': m.created_at.strftime('%d %b %H:%M')} for m in msgs]
+               'text': m.text, 'image_path': m.image_path or '',
+               'time': m.created_at.strftime('%d %b %H:%M')} for m in msgs]
     return jsonify({'messages': result})
 
 # ─── Admin ────────────────────────────────────────────────────────────────────
@@ -962,6 +975,119 @@ Keep responses clear and concise. Use bullet points when listing items. If you d
         logger.error(f'Groq AI error: {e}')
         return jsonify({'error': str(e)}), 500
 
+
+# ─── Team ────────────────────────────────────────────────────────────────────
+
+@app.route('/team')
+@login_required
+def team():
+    members = User.query.order_by(User.created_at.asc()).all()
+    return render_template('team.html', members=members)
+
+# ─── Roles ────────────────────────────────────────────────────────────────────
+
+@app.route('/admin/roles')
+@login_required
+@admin_required
+def admin_roles():
+    roles = Role.query.order_by(Role.position.asc(), Role.created_at.asc()).all()
+    members = User.query.order_by(User.username.asc()).all()
+    return render_template('admin/roles.html', roles=roles, members=members)
+
+@app.route('/admin/roles/create', methods=['POST'])
+@login_required
+@admin_required
+def create_role():
+    name  = request.form.get('name', '').strip()
+    color = request.form.get('color', '#6b7280').strip()
+    icon  = request.form.get('icon', 'fas fa-tag').strip()
+    if not name:
+        flash('Role name is required.', 'danger')
+        return redirect(url_for('admin_roles'))
+    if Role.query.filter_by(name=name).first():
+        flash('A role with that name already exists.', 'warning')
+        return redirect(url_for('admin_roles'))
+    role = Role(name=name, color=color, icon=icon, created_by=current_user.id)
+    db.session.add(role)
+    db.session.commit()
+    flash(f'Role "{name}" created.', 'success')
+    return redirect(url_for('admin_roles'))
+
+@app.route('/admin/roles/<role_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_role(role_id):
+    role = Role.query.get_or_404(role_id)
+    name = role.name
+    db.session.delete(role)
+    db.session.commit()
+    flash(f'Role "{name}" deleted.', 'success')
+    return redirect(url_for('admin_roles'))
+
+@app.route('/admin/roles/<role_id>/assign/<user_id>', methods=['POST'])
+@login_required
+@admin_required
+def assign_role(role_id, user_id):
+    Role.query.get_or_404(role_id)
+    User.query.get_or_404(user_id)
+    if not UserRole.query.filter_by(user_id=user_id, role_id=role_id).first():
+        ur = UserRole(user_id=user_id, role_id=role_id, assigned_by=current_user.id)
+        db.session.add(ur)
+        db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/admin/roles/<role_id>/unassign/<user_id>', methods=['POST'])
+@login_required
+@admin_required
+def unassign_role(role_id, user_id):
+    ur = UserRole.query.filter_by(user_id=user_id, role_id=role_id).first()
+    if ur:
+        db.session.delete(ur)
+        db.session.commit()
+    return jsonify({'ok': True})
+
+# ─── Media Uploads ────────────────────────────────────────────────────────────
+
+@app.route('/chat/upload', methods=['POST'])
+@login_required
+def chat_upload():
+    file = request.files.get('image')
+    if not file or not allowed_file(file.filename):
+        return jsonify({'ok': False, 'error': 'Invalid file'}), 400
+    image_path = save_upload(file, 'chat')
+    text = request.form.get('text', '').strip()
+    msg = GroupMessage(sender_id=current_user.id, text=text, image_path=image_path)
+    db.session.add(msg)
+    db.session.commit()
+    return jsonify({'ok': True, 'message': {
+        'id': msg.id, 'sender_id': msg.sender_id,
+        'sender_username': current_user.username,
+        'text': text, 'image_path': image_path,
+        'time': msg.created_at.strftime('%d %b %H:%M')
+    }})
+
+@app.route('/messages/<user_id>/upload', methods=['POST'])
+@login_required
+def message_upload(user_id):
+    User.query.get_or_404(user_id)
+    file = request.files.get('image')
+    if not file or not allowed_file(file.filename):
+        return jsonify({'ok': False, 'error': 'Invalid file'}), 400
+    image_path = save_upload(file, 'dm')
+    text = request.form.get('text', '').strip()
+    msg = DirectMessage(sender_id=current_user.id, receiver_id=user_id,
+                        text=text, image_path=image_path)
+    db.session.add(msg)
+    create_notification(user_id, 'message',
+                        f'New message from {current_user.username}',
+                        body='[Image]', link=f'/messages/{current_user.id}')
+    db.session.commit()
+    return jsonify({'ok': True, 'message': {
+        'id': msg.id, 'sender_id': msg.sender_id,
+        'sender_username': current_user.username,
+        'text': text, 'image_path': image_path,
+        'time': msg.created_at.strftime('%d %b %H:%M')
+    }})
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 

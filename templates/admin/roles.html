@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% block title %}Roles & Positions — Admin{% endblock %}
+{% block extra_css %}
+<style>
+.roles-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+@media(max-width:900px) { .roles-layout { grid-template-columns: 1fr; } }
+
+/* Role cards */
+.role-card {
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: 14px; padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 10px;
+    transition: border-color .2s;
+}
+.role-card:hover { border-color: rgba(255,255,255,0.14); }
+.role-color-dot {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+}
+.role-info { flex: 1; min-width: 0; }
+.role-name { font-size: 14px; font-weight: 700; color: var(--od-text); }
+.role-meta { font-size: 11px; color: var(--od-text-dim); margin-top: 2px; }
+.role-actions { display: flex; gap: 6px; }
+
+/* Create form */
+.create-role-form {
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: 16px; padding: 20px;
+    margin-bottom: 20px;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:600px) { .form-row { grid-template-columns: 1fr; } }
+
+/* Assign panel */
+.assign-panel {
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: 16px; overflow: hidden;
+}
+.assign-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--od-border);
+    display: flex; align-items: center; gap: 10px;
+}
+.assign-header h3 { font-size: 15px; font-weight: 700; margin: 0; }
+.member-list { max-height: 500px; overflow-y: auto; }
+.member-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background .15s;
+}
+.member-row:hover { background: rgba(255,255,255,0.03); }
+.member-row:last-child { border-bottom: none; }
+.member-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.member-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--od-text); }
+.member-roles { display: flex; gap: 4px; flex-wrap: wrap; }
+.mrole-pill {
+    font-size: 10px; padding: 1px 7px; border-radius: 100px;
+    border: 1px solid; display: inline-flex; align-items: center; gap: 3px;
+}
+.role-select-btn {
+    padding: 4px 10px; font-size: 11px; border-radius: 7px;
+    cursor: pointer; border: 1px solid var(--od-border);
+    background: rgba(255,255,255,0.05); color: var(--od-text-dim);
+    font-family: inherit; transition: all .15s;
+}
+.role-select-btn:hover { border-color: var(--od-accent); color: var(--od-accent); }
+
+/* Color presets */
+.color-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.color-swatch {
+    width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    border: 2px solid transparent;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected { border-color: #fff; }
+
+/* Role icon presets */
+.icon-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.icon-btn {
+    width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--od-text-dim); transition: all .15s;
+}
+.icon-btn:hover, .icon-btn.selected { background: rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.3); color: var(--od-accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="od-page-header" style="margin-bottom:20px;">
+    <div>
+        <h1 class="od-page-title">
+            <i class="fas fa-tags" style="color:var(--od-accent);"></i> Roles & Positions
+        </h1>
+        <p class="od-page-subtitle">Create positions, assign them to team members, show hierarchy.</p>
+    </div>
+</div>
+
+<div class="roles-layout">
+
+    <!-- LEFT: Create form + existing roles -->
+    <div>
+        <!-- Create form -->
+        <div class="create-role-form">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--od-text);">
+                <i class="fas fa-plus-circle" style="color:var(--od-accent);margin-right:6px;"></i>
+                Create New Role
+            </h3>
+            <form method="POST" action="{{ url_for('create_role') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="f-group" style="margin-bottom:14px;">
+                    <label class="od-label">Role Name</label>
+                    <input class="od-input" name="name" placeholder="e.g. Marketing Lead" required maxlength="50">
+                </div>
+                <div class="form-row" style="margin-bottom:14px;">
+                    <div>
+                        <label class="od-label">Color</label>
+                        <input class="od-input" type="text" name="color" id="colorPicker" value="#e63946" maxlength="7" style="font-family:monospace;">
+                        <div class="color-presets" id="colorPresets">
+                            {% for c in ['#e63946','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#6b7280','#ffffff'] %}
+                            <div class="color-swatch {% if loop.first %}selected{% endif %}"
+                                 style="background:{{ c }};" data-color="{{ c }}"
+                                 onclick="pickColor('{{ c }}', this)"></div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="od-label">Icon</label>
+                        <input class="od-input" name="icon" id="iconPicker" value="fas fa-tag" placeholder="fas fa-tag">
+                        <div class="icon-presets" id="iconPresets">
+                            {% for ic in ['fas fa-tag','fas fa-star','fas fa-crown','fas fa-shield-alt','fas fa-bolt','fas fa-fire','fas fa-code','fas fa-palette','fas fa-chart-line','fas fa-cogs','fas fa-pen','fas fa-briefcase','fas fa-graduation-cap','fas fa-globe'] %}
+                            <div class="icon-btn {% if loop.first %}selected{% endif %}"
+                                 data-icon="{{ ic }}" onclick="pickIcon('{{ ic }}', this)" title="{{ ic }}">
+                                <i class="{{ ic }}"></i>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="od-btn od-btn-primary" style="width:100%;">
+                    <i class="fas fa-plus"></i> Create Role
+                </button>
+            </form>
+        </div>
+
+        <!-- Existing roles -->
+        <div style="margin-bottom:12px;">
+            <div class="od-label" style="margin-bottom:10px;">{{ roles|length }} Role{{ 's' if roles|length != 1 }}</div>
+            {% for role in roles %}
+            <div class="role-card" id="role-{{ role.id }}">
+                <div class="role-color-dot" style="background:{{ role.color }}22;color:{{ role.color }};">
+                    <i class="{{ role.icon }}"></i>
+                </div>
+                <div class="role-info">
+                    <div class="role-name" style="color:{{ role.color }};">{{ role.name }}</div>
+                    <div class="role-meta">
+                        {{ role.member_count }} member{{ 's' if role.member_count != 1 }}
+                        · <code style="font-size:10px;color:var(--od-text-dim);">{{ role.color }}</code>
+                    </div>
+                </div>
+                <div class="role-actions">
+                    <button class="od-btn od-btn-sm od-btn-primary"
+                            onclick="selectRole('{{ role.id }}', '{{ role.name|e }}', '{{ role.color }}')"
+                            title="Assign to members">
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                    <form method="POST" action="{{ url_for('delete_role', role_id=role.id) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete role \'{{ role.name|e }}\'?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="od-btn od-btn-sm od-btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not roles %}
+            <div class="od-empty-state" style="padding:30px 0;">
+                <i class="fas fa-tags"></i>
+                <p>No roles yet. Create one above.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- RIGHT: Assign roles to members -->
+    <div class="assign-panel">
+        <div class="assign-header">
+            <div style="width:10px;height:10px;border-radius:50%;background:#6b7280;flex-shrink:0;" id="assignDot"></div>
+            <h3 id="assignTitle">Select a role to assign</h3>
+        </div>
+        <input class="od-input" id="memberSearch" placeholder="Search members…"
+               style="margin:12px 16px;width:calc(100% - 32px);" autocomplete="off">
+        <div class="member-list" id="memberList">
+            {% for member in members %}
+            <div class="member-row" data-name="{{ member.username|lower }}" data-uid="{{ member.id }}">
+                <img src="{{ member.profile_pic_url }}" class="member-avatar"
+                     onerror="this.src='/static/images/default_avatar.png'">
+                <div class="member-name">
+                    {{ member.username }}
+                    {% if member.is_admin %}<span class="od-admin-badge" style="font-size:9px;"><i class="fas fa-shield-alt"></i></span>{% endif %}
+                </div>
+                <div class="member-roles" id="mroles-{{ member.id }}">
+                    {% for ur in member.user_roles %}
+                    <span class="mrole-pill"
+                          style="background:{{ ur.role_obj.color }}22;border-color:{{ ur.role_obj.color }}44;color:{{ ur.role_obj.color }};"
+                          data-rid="{{ ur.role_id }}">
+                        <i class="{{ ur.role_obj.icon }}" style="font-size:8px;"></i>
+                        {{ ur.role_obj.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+                <div>
+                    <button class="role-select-btn" id="rbtn-{{ member.id }}"
+                            onclick="toggleRole(this, '{{ member.id }}')">
+                        Assign
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let activeRoleId   = null;
+let activeRoleName = '';
+let activeColor    = '#6b7280';
+
+function pickColor(color, el) {
+    document.getElementById('colorPicker').value = color;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+}
+function pickIcon(icon, el) {
+    document.getElementById('iconPicker').value = icon;
+    document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function selectRole(id, name, color) {
+    activeRoleId   = id;
+    activeRoleName = name;
+    activeColor    = color;
+    document.getElementById('assignTitle').textContent = 'Assigning: ' + name;
+    document.getElementById('assignDot').style.background = color;
+
+    // Update button states based on current assignments
+    document.querySelectorAll('.member-row').forEach(row => {
+        const uid  = row.dataset.uid;
+        const btn  = document.getElementById('rbtn-' + uid);
+        const hasRole = row.querySelector('[data-rid="' + id + '"]');
+        btn.textContent  = hasRole ? 'Remove' : 'Assign';
+        btn.style.color  = hasRole ? '#ef4444' : '';
+        btn.style.borderColor = hasRole ? '#ef444444' : '';
+    });
+}
+
+async function toggleRole(btn, uid) {
+    if (!activeRoleId) { alert('Select a role first'); return; }
+    const row     = btn.closest('.member-row');
+    const hasRole = !!row.querySelector('[data-rid="' + activeRoleId + '"]');
+    const url     = hasRole
+        ? `/admin/roles/${activeRoleId}/unassign/${uid}`
+        : `/admin/roles/${activeRoleId}/assign/${uid}`;
+    try {
+        const r = await fetch(url, {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'X-CSRFToken': window.OD_CSRF || '' }
+        });
+        const data = await r.json();
+        if (!data.ok) return;
+        const rolesEl = document.getElementById('mroles-' + uid);
+        if (hasRole) {
+            rolesEl.querySelector('[data-rid="' + activeRoleId + '"]')?.remove();
+            btn.textContent = 'Assign';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+        } else {
+            const pill = document.createElement('span');
+            pill.className = 'mrole-pill';
+            pill.dataset.rid = activeRoleId;
+            pill.style.cssText = `background:${activeColor}22;border-color:${activeColor}44;color:${activeColor}`;
+            pill.textContent = activeRoleName;
+            rolesEl.appendChild(pill);
+            btn.textContent = 'Remove';
+            btn.style.color = '#ef4444';
+            btn.style.borderColor = '#ef444444';
+        }
+    } catch(e) { console.error(e); }
+}
+
+// Member search
+document.getElementById('memberSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.member-row').forEach(r => {
+        r.style.display = !q || r.dataset.name.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

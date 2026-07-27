@@ -272,14 +272,15 @@ class Comment(db.Model):
 class DirectMessage(db.Model):
     __tablename__ = 'direct_messages'
 
-    id = db.Column(db.String(36), primary_key=True)
-    sender_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    id          = db.Column(db.String(36), primary_key=True)
+    sender_id   = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     receiver_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
-    text = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    text        = db.Column(db.Text, nullable=False, server_default='')
+    image_path  = db.Column(db.String(300), nullable=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read     = db.Column(db.Boolean, default=False, nullable=False)
 
-    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    sender   = db.relationship('User', foreign_keys=[sender_id],   backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
 
     def __init__(self, **kwargs):
@@ -291,9 +292,10 @@ class DirectMessage(db.Model):
 class GroupMessage(db.Model):
     __tablename__ = 'group_messages'
 
-    id = db.Column(db.String(36), primary_key=True)
-    sender_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
-    text = db.Column(db.Text, nullable=False)
+    id         = db.Column(db.String(36), primary_key=True)
+    sender_id  = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    text       = db.Column(db.Text, nullable=False, server_default='')
+    image_path = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     sender = db.relationship('User', foreign_keys=[sender_id], backref='group_messages')
@@ -620,3 +622,38 @@ class Notification(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', foreign_keys=[user_id], backref='notifications_list')
+
+
+# ─── Roles & Positions ────────────────────────────────────────────────────────
+
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id         = db.Column(db.String(36), primary_key=True)
+    name       = db.Column(db.String(50), nullable=False, unique=True)
+    color      = db.Column(db.String(7), default='#6b7280')   # hex color
+    icon       = db.Column(db.String(60), default='fas fa-tag')
+    position   = db.Column(db.Integer, default=0)             # display order
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    members    = db.relationship('UserRole', backref='role_obj', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+    @property
+    def member_count(self):
+        return len(self.members)
+
+
+class UserRole(db.Model):
+    __tablename__ = 'user_roles'
+    id          = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id     = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    role_id     = db.Column(db.String(36), db.ForeignKey('roles.id'), nullable=False)
+    assigned_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    assigned_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user        = db.relationship('User', foreign_keys=[user_id],     backref='user_roles')
+    assigner    = db.relationship('User', foreign_keys=[assigned_by])
+    __table_args__ = (db.UniqueConstraint('user_id', 'role_id', name='uq_user_role'),)

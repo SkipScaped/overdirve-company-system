@@ -1,90 +1,460 @@
 {% extends 'base.html' %}
-{% block title %}Chat with {{ other.username }} — Overdrive{% endblock %}
+{% block title %}{{ other.username }} — Overdrive{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══ DM page layout ═══ */
+.od-main { padding: 0 !important; overflow: hidden; }
+.od-dm-page {
+    position: relative;
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0a0a0c;
+}
+
+/* ── Header ── */
+.dm-header {
+    position: relative; z-index: 2; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(10,10,12,0.92);
+    backdrop-filter: blur(24px);
+}
+.dm-header-info { display: flex; align-items: center; gap: 12px; }
+.dm-avatar-wrap { position: relative; flex-shrink: 0; }
+.dm-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover; border: 2px solid rgba(230,57,70,0.3);
+}
+.dm-online-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #4ade80; border: 2px solid #0a0a0c;
+}
+.dm-title { font-size: 15px; font-weight: 700; color: #f0f0f0; }
+.dm-subtitle { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+.dm-header-actions { display: flex; align-items: center; gap: 8px; }
+.dm-icon-btn {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.35); font-size: 13px;
+    transition: all 0.15s; text-decoration: none;
+}
+.dm-icon-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+
+/* ── Messages area ── */
+.dm-messages-wrap {
+    flex: 1; overflow-y: auto;
+    position: relative; z-index: 2;
+    padding: 20px 24px 8px;
+    display: flex; flex-direction: column; gap: 2px;
+    scroll-behavior: smooth;
+    background: linear-gradient(to bottom, rgba(10,10,12,0.6), rgba(10,10,12,0.85));
+}
+.dm-messages-wrap::-webkit-scrollbar { width: 4px; }
+.dm-messages-wrap::-webkit-scrollbar-track { background: transparent; }
+.dm-messages-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+/* Date separator */
+.dm-date-sep {
+    display: flex; align-items: center; gap: 12px;
+    margin: 18px 0 10px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.9px; color: rgba(255,255,255,0.18);
+}
+.dm-date-sep::before, .dm-date-sep::after {
+    content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06);
+}
+
+/* ── Message row ── */
+.od-msg-row {
+    display: flex; align-items: flex-end; gap: 10px;
+    max-width: 72%; animation: msg-in 0.18s ease-out;
+}
+@keyframes msg-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.od-msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
+.od-msg-row:not(.mine) { align-self: flex-start; }
+.od-msg-row.grouped { margin-top: 1px; }
+.od-msg-row.grouped .od-msg-avatar { visibility: hidden; }
+.od-msg-row.grouped .od-msg-meta { display: none; }
+
+.od-msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.06);
+}
+.od-msg-row.mine .od-msg-avatar { border-color: rgba(230,57,70,0.3); }
+
+.od-msg-content { display: flex; flex-direction: column; min-width: 0; }
+.od-msg-row.mine .od-msg-content { align-items: flex-end; }
+
+.od-msg-meta {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 4px; padding: 0 4px;
+}
+.od-msg-row.mine .od-msg-meta { flex-direction: row-reverse; }
+.od-msg-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.od-msg-row.mine .od-msg-name { color: rgba(230,57,70,0.7); }
+.od-msg-time-sm { font-size: 10px; color: rgba(255,255,255,0.18); white-space: nowrap; }
+
+.od-bubble {
+    padding: 9px 14px; border-radius: 16px;
+    font-size: 14px; line-height: 1.52; word-break: break-word; white-space: pre-wrap;
+}
+.od-msg-row:not(.mine) .od-bubble {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-bottom-left-radius: 4px;
+    color: #e8e8e8;
+    backdrop-filter: blur(6px);
+}
+.od-msg-row.mine .od-bubble {
+    background: linear-gradient(135deg, #e63946 0%, #c0293a 100%);
+    border: 1px solid rgba(255,80,80,0.15);
+    border-bottom-right-radius: 4px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(230,57,70,0.3);
+}
+
+/* Image bubbles */
+.od-msg-img {
+    max-width: 260px; max-height: 220px;
+    border-radius: 12px; display: block;
+    cursor: pointer; transition: opacity .15s;
+}
+.od-msg-img:hover { opacity: 0.9; }
+
+/* ── Input zone ── */
+.dm-input-zone {
+    position: relative; z-index: 2; flex-shrink: 0;
+    padding: 10px 20px 14px;
+    background: rgba(10,10,12,0.92);
+    backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.dm-input-inner {
+    display: flex; align-items: flex-end; gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 8px 8px 8px 14px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.dm-input-inner:focus-within {
+    border-color: rgba(230,57,70,0.45);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 3px rgba(230,57,70,0.08);
+}
+#dmInput {
+    flex: 1; background: none; border: none; outline: none;
+    color: #f0f0f0; font-family: inherit; font-size: 14px;
+    line-height: 1.4; resize: none; max-height: 120px; padding: 4px 0;
+}
+#dmInput::placeholder { color: rgba(255,255,255,0.18); }
+.dm-action-btn {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer; color: rgba(255,255,255,0.35); font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: all .15s;
+}
+.dm-action-btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+.dm-send-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: #e63946; border: none; cursor: pointer; color: #fff;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background .15s, transform .15s, box-shadow .15s;
+}
+.dm-send-btn:hover { background: #d62f3b; transform: scale(1.05); box-shadow: 0 4px 16px rgba(230,57,70,0.4); }
+.dm-send-btn:active { transform: scale(0.95); }
+.dm-send-btn:disabled { background: #2a2a2a; cursor: not-allowed; transform: none; box-shadow: none; }
+.dm-input-footer {
+    display: flex; justify-content: flex-end; padding: 3px 4px 0;
+    font-size: 10px; color: rgba(255,255,255,0.18);
+}
+
+/* Image preview strip */
+#imagePreviewStrip {
+    display: none; align-items: center; gap: 8px;
+    padding: 6px 0 8px;
+}
+#imagePreviewStrip img {
+    width: 54px; height: 54px; object-fit: cover; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+#imagePreviewStrip button {
+    background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.25);
+    color: #ef4444; border-radius: 6px; padding: 2px 8px; font-size: 11px;
+    cursor: pointer; font-family: inherit;
+}
+
+@media (max-width: 768px) {
+    .od-msg-row { max-width: 88%; }
+    .dm-header { padding: 12px 16px; }
+    .dm-messages-wrap { padding: 16px 14px 6px; }
+    .dm-input-zone { padding: 8px 12px 12px; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="od-dm-page">
 
-<div class="od-page-header" style="margin-bottom:12px;">
-    <div style="display:flex;align-items:center;gap:12px;">
-        <a href="{{ url_for('inbox') }}" class="od-btn od-btn-ghost od-btn-sm"><i class="fas fa-arrow-left"></i></a>
-        <img src="{{ other.profile_pic_url }}" class="od-avatar-md" onerror="this.src='/static/images/default_avatar.png'">
-        <div>
-            <div style="font-weight:700;color:var(--od-text);">{{ other.username }}</div>
-            <div style="font-size:12px;color:var(--od-text-muted);">{{ other.email }}</div>
-        </div>
-    </div>
-</div>
-
-<div class="od-card" style="display:flex;flex-direction:column;height:calc(100vh - 240px);min-height:400px;">
-    <div class="od-chat-messages" id="chatMessages">
-        {% for msg in messages %}
-        <div class="od-msg {% if msg.sender_id == current_user.id %}mine{% endif %}" data-id="{{ msg.id }}">
-            {% if msg.sender_id != current_user.id %}
-            <img src="{{ other.profile_pic_url }}" class="od-avatar-sm" style="align-self:flex-end;" onerror="this.src='/static/images/default_avatar.png'">
-            {% endif %}
+    <!-- Header -->
+    <div class="dm-header">
+        <div class="dm-header-info">
+            <a href="{{ url_for('inbox') }}" class="dm-icon-btn" title="Back to inbox">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="dm-avatar-wrap">
+                <img src="{{ other.profile_pic_url }}" class="dm-avatar"
+                     onerror="this.src='/static/images/default_avatar.png'"
+                     alt="{{ other.username }}">
+                <div class="dm-online-dot"></div>
+            </div>
             <div>
-                <div class="od-msg-bubble">{{ msg.text }}</div>
-                <span class="od-msg-time">{{ msg.created_at.strftime('%d %b %H:%M') }}</span>
+                <div class="dm-title">{{ other.username }}</div>
+                <div class="dm-subtitle">
+                    {% if other.is_admin %}<i class="fas fa-shield-alt" style="color:var(--od-accent);font-size:9px;"></i> Admin · {% endif %}
+                    Direct message
+                </div>
             </div>
         </div>
+        <div class="dm-header-actions">
+            <a href="{{ url_for('user_profile', user_id=other.id) }}" class="dm-icon-btn" title="View profile">
+                <i class="fas fa-user"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="dm-messages-wrap" id="dmMessages">
+        {% set ns = namespace(prev_id=None, prev_date=None) %}
+        {% for msg in messages %}
+            {% set msg_date = msg.created_at.strftime('%B %d, %Y') %}
+            {% if msg_date != ns.prev_date %}
+                <div class="dm-date-sep">{{ msg_date }}</div>
+                {% set ns.prev_date = msg_date %}
+                {% set ns.prev_id = None %}
+            {% endif %}
+            {% set is_grouped = (ns.prev_id == msg.sender_id) %}
+            {% set ns.prev_id = msg.sender_id %}
+            <div class="od-msg-row {% if msg.sender_id == current_user.id %}mine{% endif %}{% if is_grouped %} grouped{% endif %}" data-id="{{ msg.id }}">
+                <img src="{{ msg.sender.profile_pic_url }}" class="od-msg-avatar"
+                     onerror="this.src='/static/images/default_avatar.png'"
+                     alt="{{ msg.sender.username }}">
+                <div class="od-msg-content">
+                    <div class="od-msg-meta">
+                        <span class="od-msg-name">{{ msg.sender.username }}</span>
+                        <span class="od-msg-time-sm">{{ msg.created_at.strftime('%H:%M') }}</span>
+                    </div>
+                    {% if msg.image_path %}
+                        <img src="{{ msg.image_path }}" class="od-msg-img"
+                             onclick="window.open(this.src)"
+                             alt="Image">
+                    {% endif %}
+                    {% if msg.text %}
+                        <div class="od-bubble">{{ msg.text }}</div>
+                    {% endif %}
+                </div>
+            </div>
         {% endfor %}
     </div>
-    <form class="od-chat-input-area" id="chatForm">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="ajax" value="1">
-        <input class="od-input" id="chatInput" name="text" placeholder="Write a message…" autocomplete="off">
-        <button type="submit" class="od-btn od-btn-primary"><i class="fas fa-paper-plane"></i></button>
-    </form>
-</div>
 
+    <!-- Input -->
+    <div class="dm-input-zone">
+        <div id="imagePreviewStrip">
+            <img id="imagePreview" src="" alt="Preview">
+            <button onclick="clearImage()"><i class="fas fa-times"></i> Remove</button>
+        </div>
+        <form id="dmForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="ajax" value="1">
+            <input type="file" id="imageInput" name="image" accept="image/*" style="display:none">
+            <div class="dm-input-inner">
+                <button type="button" class="dm-action-btn" onclick="document.getElementById('imageInput').click()" title="Send image">
+                    <i class="fas fa-image"></i>
+                </button>
+                <textarea id="dmInput" name="text" placeholder="Message {{ other.username }}…"
+                          rows="1" maxlength="2000" autocomplete="off"></textarea>
+                <button type="submit" class="dm-send-btn" id="dmSendBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+        </form>
+        <div class="dm-input-footer">
+            <span id="charCount">0 / 2000</span>
+        </div>
+    </div>
+</div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
-const chatMessages = document.getElementById('chatMessages');
-const chatForm = document.getElementById('chatForm');
-const chatInput = document.getElementById('chatInput');
-const currentUserId = '{{ current_user.id }}';
-const otherId = '{{ other.id }}';
+(function(){
+    const dmMessages  = document.getElementById('dmMessages');
+    const dmForm      = document.getElementById('dmForm');
+    const dmInput     = document.getElementById('dmInput');
+    const sendBtn     = document.getElementById('dmSendBtn');
+    const charCount   = document.getElementById('charCount');
+    const imageInput  = document.getElementById('imageInput');
+    const previewStrip = document.getElementById('imagePreviewStrip');
+    const previewImg  = document.getElementById('imagePreview');
 
-function scrollBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
-scrollBottom();
+    const currentUserId = '{{ current_user.id }}';
+    const otherId       = '{{ other.id }}';
+    const myAvatar      = '{{ current_user.profile_pic_url }}';
+    const otherAvatar   = '{{ other.profile_pic_url }}';
+    const myUsername    = {{ current_user.username | tojson }};
+    const otherUsername = {{ other.username | tojson }};
 
-function getLastId() {
-    const msgs = chatMessages.querySelectorAll('[data-id]');
-    return msgs.length ? msgs[msgs.length-1].dataset.id : '';
-}
+    let pendingImage = null;
 
-function addMsg(msg) {
-    const isMine = msg.sender_id === currentUserId;
-    const div = document.createElement('div');
-    div.className = 'od-msg' + (isMine ? ' mine' : '');
-    div.dataset.id = msg.id;
-    div.innerHTML = (isMine ? '' : `<img src="/profile-pic/${otherId}" class="od-avatar-sm" style="align-self:flex-end;" onerror="this.src='/static/images/default_avatar.png'">`)
-        + `<div><div class="od-msg-bubble">${msg.text.replace(/</g,'&lt;')}</div><span class="od-msg-time">${msg.time}</span></div>`;
-    chatMessages.appendChild(div);
-    scrollBottom();
-}
+    // ── Image picker ──────────────────────────────
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        if (!file) return;
+        pendingImage = file;
+        const reader = new FileReader();
+        reader.onload = e => {
+            previewImg.src = e.target.result;
+            previewStrip.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    });
 
-chatForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const text = chatInput.value.trim();
-    if (!text) return;
-    chatInput.value = '';
-    const fd = new FormData(chatForm);
-    fd.set('text', text);
-    const r = await fetch('/messages/{{ other.id }}', {method:'POST', body: fd, credentials:'same-origin'});
-    const data = await r.json();
-    if (data.ok) addMsg(data.message);
-});
+    window.clearImage = function() {
+        pendingImage = null;
+        imageInput.value = '';
+        previewStrip.style.display = 'none';
+        previewImg.src = '';
+    };
 
-// Poll for new messages
-setInterval(async () => {
-    const after = getLastId();
-    if (!after) return;
-    try {
-        const r = await fetch(`/messages/{{ other.id }}/poll?after=${after}`, {credentials:'same-origin'});
-        if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return;
-        const data = await r.json();
-        (data.messages || []).forEach(addMsg);
-    } catch(e) {}
-}, 2500);
+    // ── Scroll ────────────────────────────────────
+    function scrollBottom(smooth) {
+        dmMessages.scrollTo({ top: dmMessages.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+    }
+    scrollBottom(false);
+
+    function getLastId() {
+        const items = dmMessages.querySelectorAll('[data-id]');
+        return items.length ? items[items.length - 1].dataset.id : '';
+    }
+
+    // ── Build row ─────────────────────────────────
+    function esc(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                            .replace(/"/g,'&quot;');
+    }
+
+    function buildRow(msg) {
+        const isMine = String(msg.sender_id) === String(currentUserId);
+        const avatar = isMine ? myAvatar : otherAvatar;
+        const name   = isMine ? myUsername : otherUsername;
+        const row    = document.createElement('div');
+        row.className = 'od-msg-row' + (isMine ? ' mine' : '');
+        row.dataset.id = msg.id;
+
+        let bodyHtml = '';
+        if (msg.image_path) {
+            bodyHtml += `<img src="${esc(msg.image_path)}" class="od-msg-img" onclick="window.open(this.src)" alt="Image">`;
+        }
+        if (msg.text) {
+            bodyHtml += `<div class="od-bubble">${esc(msg.text).replace(/\n/g,'<br>')}</div>`;
+        }
+
+        row.innerHTML = `
+            <img src="${esc(avatar)}" class="od-msg-avatar"
+                 onerror="this.src='/static/images/default_avatar.png'" alt="${esc(name)}">
+            <div class="od-msg-content">
+                <div class="od-msg-meta">
+                    <span class="od-msg-name">${esc(name)}</span>
+                    <span class="od-msg-time-sm">${esc(msg.time)}</span>
+                </div>
+                ${bodyHtml}
+            </div>`;
+        return row;
+    }
+
+    function addMsg(msg) {
+        dmMessages.appendChild(buildRow(msg));
+        scrollBottom(true);
+        if (window.OD_SOUND) {
+            OD_SOUND.play(String(msg.sender_id) === String(currentUserId) ? 'send' : 'receive');
+        }
+    }
+
+    // ── Send ──────────────────────────────────────
+    dmForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const text = dmInput.value.trim();
+        if (!text && !pendingImage) return;
+        if (sendBtn.disabled) return;
+
+        sendBtn.disabled = true;
+        const originalText = text;
+        dmInput.value = '';
+        dmInput.style.height = '';
+        charCount.textContent = '0 / 2000';
+        clearImage();
+
+        try {
+            let res, data;
+            if (pendingImage) {
+                // Upload with image
+                const fd = new FormData();
+                fd.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+                fd.append('image', pendingImage);
+                fd.append('text', originalText);
+                res = await fetch('/messages/{{ other.id }}/upload', {
+                    method: 'POST', body: fd, credentials: 'same-origin'
+                });
+            } else {
+                const fd = new FormData(dmForm);
+                fd.set('text', originalText);
+                res = await fetch('/messages/{{ other.id }}', {
+                    method: 'POST', body: fd, credentials: 'same-origin'
+                });
+            }
+            data = await res.json();
+            if (data.ok) addMsg(data.message);
+        } catch(err) {
+            console.warn('Send failed', err);
+        }
+        sendBtn.disabled = false;
+        dmInput.focus();
+    });
+
+    // ── Auto-grow textarea ────────────────────────
+    dmInput.addEventListener('input', () => {
+        dmInput.style.height = 'auto';
+        dmInput.style.height = Math.min(dmInput.scrollHeight, 120) + 'px';
+        charCount.textContent = dmInput.value.length + ' / 2000';
+    });
+
+    // ── Enter = send, Shift+Enter = newline ───────
+    dmInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dmForm.requestSubmit(); }
+    });
+
+    // ── Poll new messages every 2.5s ─────────────
+    setInterval(async () => {
+        const after = getLastId();
+        if (!after) return;
+        try {
+            const r = await fetch(`/messages/{{ other.id }}/poll?after=${after}`, { credentials: 'same-origin' });
+            if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return;
+            const data = await r.json();
+            (data.messages || []).forEach(addMsg);
+        } catch(e) {}
+    }, 2500);
+})();
 </script>
 {% endblock %}

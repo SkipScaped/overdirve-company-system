@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}Team — Overdrive{% endblock %}
+{% block extra_css %}
+<style>
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+}
+.team-card {
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color .2s, background .2s;
+}
+.team-card:hover {
+    border-color: rgba(230,57,70,0.25);
+    background: rgba(230,57,70,0.03);
+}
+.team-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+    border: 2px solid var(--od-border-light);
+    transition: border-color .2s;
+}
+.team-card:hover .team-avatar { border-color: rgba(230,57,70,0.4); }
+.team-info { flex: 1; min-width: 0; }
+.team-name {
+    font-size: 14px; font-weight: 700; color: var(--od-text);
+    display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+}
+.team-roles { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+.team-role-pill {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 100px; border: 1px solid;
+    display: inline-flex; align-items: center; gap: 4px;
+    letter-spacing: 0.2px;
+}
+.team-role-pill.default {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: var(--od-text-dim);
+}
+.team-joined { font-size: 11px; color: var(--od-text-dim); }
+.team-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.team-search-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+}
+.team-search-input {
+    flex: 1; max-width: 360px;
+    background: var(--od-surface); border: 1px solid var(--od-border);
+    border-radius: 10px; padding: 9px 14px; color: var(--od-text);
+    font-family: inherit; font-size: 14px; outline: none;
+    transition: border-color .2s;
+}
+.team-search-input:focus { border-color: var(--od-accent); }
+.team-count { font-size: 12px; color: var(--od-text-dim); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="od-page-header" style="margin-bottom:20px;">
+    <div>
+        <h1 class="od-page-title">
+            <i class="fas fa-users" style="color:var(--od-accent);"></i> Team
+        </h1>
+        <p class="od-page-subtitle">All members of the Overdrive workspace.</p>
+    </div>
+</div>
+
+<div class="team-search-bar">
+    <input class="team-search-input" id="teamSearch" placeholder="Search members…" autocomplete="off">
+    <span class="team-count" id="teamCount">{{ members|length }} member{{ 's' if members|length != 1 }}</span>
+</div>
+
+<div class="team-grid" id="teamGrid">
+    {% for member in members %}
+    <div class="team-card" data-name="{{ member.username|lower }}">
+        <a href="{{ url_for('user_profile', user_id=member.id) }}">
+            <img src="{{ member.profile_pic_url }}" class="team-avatar"
+                 onerror="this.src='/static/images/default_avatar.png'"
+                 alt="{{ member.username }}">
+        </a>
+        <div class="team-info">
+            <div class="team-name">
+                {{ member.username }}
+                {% if member.is_admin %}
+                <span class="od-admin-badge" style="font-size:9px;padding:1px 6px;">
+                    <i class="fas fa-shield-alt"></i> Admin
+                </span>
+                {% endif %}
+                {% if member.id == current_user.id %}
+                <span style="font-size:10px;color:var(--od-text-dim);">(you)</span>
+                {% endif %}
+            </div>
+            <div class="team-roles">
+                {% for ur in member.user_roles %}
+                <span class="team-role-pill"
+                      style="background:{{ ur.role_obj.color }}22;border-color:{{ ur.role_obj.color }}44;color:{{ ur.role_obj.color }};">
+                    <i class="{{ ur.role_obj.icon }}" style="font-size:8px;"></i>
+                    {{ ur.role_obj.name }}
+                </span>
+                {% endfor %}
+                {% if not member.user_roles %}
+                <span class="team-role-pill default">Member</span>
+                {% endif %}
+            </div>
+            <div class="team-joined">
+                <i class="fas fa-calendar-alt" style="font-size:9px;margin-right:3px;"></i>
+                Joined {{ member.created_at.strftime('%b %Y') }}
+            </div>
+        </div>
+        <div class="team-actions">
+            {% if member.id != current_user.id %}
+            <a href="{{ url_for('conversation', user_id=member.id) }}"
+               class="od-btn od-btn-sm od-btn-primary" title="Send message">
+                <i class="fas fa-comment-alt"></i>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('user_profile', user_id=member.id) }}"
+               class="od-btn od-btn-sm od-btn-ghost" title="View profile">
+                <i class="fas fa-user"></i>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not members %}
+<div class="od-empty-state">
+    <i class="fas fa-users"></i>
+    <p>No team members yet.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const search = document.getElementById('teamSearch');
+const grid   = document.getElementById('teamGrid');
+const count  = document.getElementById('teamCount');
+
+search.addEventListener('input', () => {
+    const q = search.value.toLowerCase().trim();
+    let visible = 0;
+    grid.querySelectorAll('.team-card').forEach(card => {
+        const show = !q || card.dataset.name.includes(q);
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    count.textContent = visible + ' member' + (visible !== 1 ? 's' : '');
+});
+</script>
+{% endblock %}
