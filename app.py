@@ -53,7 +53,8 @@ from models import (
     User, DirectMessage, GroupMessage,
     CompanyUpdate, ExpenseProposal, Suggestion, SuggestionVote,
     JobListing, JobApplication, ServerConfig, Notification,
-    Role, UserRole
+    Role, UserRole,
+    EnergyDrinkBrand, EnergyDrinkProduct, StockMovement, EmailVerification
 )
 
 with app.app_context():
@@ -69,6 +70,10 @@ with app.app_context():
                 _conn.rollback()
     if not ServerConfig.query.filter_by(key='company_name').first():
         ServerConfig.set('company_name', 'Overdrive')
+    # Seed default energy drink brand
+    if not EnergyDrinkBrand.query.first():
+        db.session.add(EnergyDrinkBrand())
+        db.session.commit()
 
 from functools import wraps
 
@@ -1130,6 +1135,273 @@ def message_upload(user_id):
         'text': text, 'image_path': image_path,
         'time': msg.created_at.strftime('%d %b %H:%M')
     }})
+
+# ─── Energy Drink White-Label Store ──────────────────────────────────────────
+
+@app.route('/store')
+@login_required
+def store():
+    brand    = EnergyDrinkBrand.query.first()
+    products = EnergyDrinkProduct.query.filter_by(is_active=True).order_by(EnergyDrinkProduct.name.asc()).all()
+    return render_template('store/index.html', brand=brand, products=products)
+
+@app.route('/admin/store')
+@login_required
+@admin_required
+def admin_store():
+    brand     = EnergyDrinkBrand.query.first()
+    products  = EnergyDrinkProduct.query.order_by(EnergyDrinkProduct.name.asc()).all()
+    movements = StockMovement.query.order_by(StockMovement.created_at.desc()).limit(60).all()
+    return render_template('admin/store.html', brand=brand, products=products, movements=movements)
+
+@app.route('/admin/store/brand', methods=['POST'])
+@login_required
+@admin_required
+def admin_store_brand():
+    brand = EnergyDrinkBrand.query.first()
+    if not brand:
+        brand = EnergyDrinkBrand(); db.session.add(brand)
+    brand.brand_name    = request.form.get('brand_name', 'Overdrive Energy').strip()[:100]
+    brand.tagline       = request.form.get('tagline', '').strip()[:200]
+    brand.primary_color = request.form.get('primary_color', '#e63946').strip()[:7]
+    brand.accent_color  = request.form.get('accent_color', '#ff6b35').strip()[:7]
+    brand.website_url   = request.form.get('website_url', '').strip()[:255]
+    brand.instagram_url = request.form.get('instagram_url', '').strip()[:255]
+    brand.distributor   = request.form.get('distributor', '').strip()[:200]
+    logo = request.files.get('logo')
+    if logo and logo.filename and allowed_file(logo.filename):
+        brand.logo_path = save_upload(logo, 'brand_logo')
+    db.session.commit()
+    flash('Brand settings saved!', 'success')
+    return redirect(url_for('admin_store') + '?tab=brand')
+
+@app.route('/admin/store/product/add', methods=['POST'])
+@login_required
+@admin_required
+def admin_store_add_product():
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Product name is required.', 'danger')
+        return redirect(url_for('admin_store'))
+    sku      = request.form.get('sku', '').strip() or None
+    flavor   = request.form.get('flavor', 'Original').strip()
+    size_ml  = int(request.form.get('size_ml', 0) or 0)
+    price_c  = float(request.form.get('price_cost', 0) or 0)
+    price_r  = float(request.form.get('price_retail', 0) or 0)
+    stock_q  = int(request.form.get('stock_quantity', 0) or 0)
+    min_stock= int(request.form.get('min_stock', 10) or 10)
+    desc     = request.form.get('description', '').strip()
+    ingr     = request.form.get('ingredients', '').strip()
+    img      = request.files.get('image')
+    img_path = save_upload(img, 'product') if img and img.filename and allowed_file(img.filename) else ''
+    p = EnergyDrinkProduct(name=name, sku=sku, flavor=flavor, size_ml=size_ml,
+                           price_cost=price_c, price_retail=price_r,
+                           stock_quantity=stock_q, min_stock=min_stock,
+                           image_path=img_path, description=desc, ingredients=ingr)
+    db.session.add(p)
+    db.session.flush()
+    if stock_q > 0:
+        db.session.add(StockMovement(product_id=p.id, quantity=stock_q,
+                                     reason='initial', notes='Initial stock setup',
+                                     created_by=current_user.id))
+    db.session.commit()
+    flash(f'Product "{name}" added.', 'success')
+    return redirect(url_for('admin_store'))
+
+@app.route('/admin/store/product/<product_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def admin_store_edit_product(product_id):
+    p = EnergyDrinkProduct.query.get_or_404(product_id)
+    p.name         = request.form.get('name', p.name).strip()
+    p.sku          = request.form.get('sku', p.sku or '').strip() or None
+    p.flavor       = request.form.get('flavor', p.flavor).strip()
+    p.size_ml      = int(request.form.get('size_ml', p.size_ml) or 0)
+    p.price_cost   = float(request.form.get('price_cost', p.price_cost) or 0)
+    p.price_retail = float(request.form.get('price_retail', p.price_retail) or 0)
+    p.min_stock    = int(request.form.get('min_stock', p.min_stock) or 10)
+    p.description  = request.form.get('description', p.description).strip()
+    p.ingredients  = request.form.get('ingredients', p.ingredients).strip()
+    p.is_active    = request.form.get('is_active') == 'on'
+    img = request.files.get('image')
+    if img and img.filename and allowed_file(img.filename):
+        p.image_path = save_upload(img, 'product')
+    db.session.commit()
+    flash('Product updated.', 'success')
+    return redirect(url_for('admin_store'))
+
+@app.route('/admin/store/product/<product_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_store_delete_product(product_id):
+    p = EnergyDrinkProduct.query.get_or_404(product_id)
+    name = p.name
+    db.session.delete(p)
+    db.session.commit()
+    flash(f'Product "{name}" deleted.', 'success')
+    return redirect(url_for('admin_store'))
+
+@app.route('/admin/store/product/<product_id>/stock', methods=['POST'])
+@login_required
+@admin_required
+def admin_store_adjust_stock(product_id):
+    p      = EnergyDrinkProduct.query.get_or_404(product_id)
+    qty    = int(request.form.get('quantity', 0) or 0)
+    reason = request.form.get('reason', 'manual').strip()
+    notes  = request.form.get('notes', '').strip()
+    batch  = request.form.get('batch_number', '').strip()
+    if qty == 0:
+        flash('Quantity cannot be zero.', 'warning')
+        return redirect(url_for('admin_store'))
+    p.stock_quantity = max(0, p.stock_quantity + qty)
+    db.session.add(StockMovement(product_id=p.id, quantity=qty, reason=reason,
+                                  notes=notes, batch_number=batch, created_by=current_user.id))
+    db.session.commit()
+    sign = f"+{qty}" if qty > 0 else str(qty)
+    flash(f'Stock adjusted {sign} for {p.name}. New total: {p.stock_quantity}', 'success')
+    return redirect(url_for('admin_store'))
+
+@app.route('/admin/store/import', methods=['POST'])
+@login_required
+@admin_required
+def admin_store_import():
+    import csv, io
+    file = request.files.get('csv_file')
+    if not file or not file.filename.endswith('.csv'):
+        flash('Please upload a valid .csv file.', 'danger')
+        return redirect(url_for('admin_store') + '?tab=import')
+    text   = file.read().decode('utf-8-sig', errors='replace')
+    reader = csv.DictReader(io.StringIO(text))
+    added = skipped = 0
+    for row in reader:
+        name = (row.get('name') or '').strip()
+        if not name: skipped += 1; continue
+        sku = (row.get('sku') or '').strip() or None
+        if sku and EnergyDrinkProduct.query.filter_by(sku=sku).first(): skipped += 1; continue
+        p = EnergyDrinkProduct(
+            name=name, sku=sku,
+            flavor=(row.get('flavor') or 'Original').strip(),
+            size_ml=int(row.get('size_ml') or 0),
+            price_cost=float(row.get('price_cost') or 0),
+            price_retail=float(row.get('price_retail') or 0),
+            stock_quantity=int(row.get('stock_quantity') or 0),
+            description=(row.get('description') or '').strip(),
+        )
+        db.session.add(p)
+        db.session.flush()
+        if p.stock_quantity > 0:
+            db.session.add(StockMovement(product_id=p.id, quantity=p.stock_quantity,
+                                          reason='import', notes='CSV import',
+                                          created_by=current_user.id))
+        added += 1
+    db.session.commit()
+    flash(f'Import complete: {added} product(s) added, {skipped} skipped.', 'success')
+    return redirect(url_for('admin_store'))
+
+@app.route('/admin/store/csv-template')
+@login_required
+@admin_required
+def admin_store_csv_template():
+    csv_content = ('name,sku,flavor,size_ml,price_cost,price_retail,stock_quantity,description\n'
+                   'Overdrive Original,OD-001,Original,500,0.80,1.99,100,Classic energy drink\n'
+                   'Overdrive Berry Blast,OD-002,Berry Blast,500,0.80,1.99,50,Berry flavoured variety\n'
+                   'Overdrive Zero Sugar,OD-003,Zero Sugar,500,0.85,2.09,75,Sugar-free version\n')
+    return Response(csv_content, mimetype='text/csv',
+                    headers={'Content-Disposition': 'attachment; filename=overdrive_products_template.csv'})
+
+# ─── Voice / Video Calls (Jitsi WebRTC) ──────────────────────────────────────
+
+@app.route('/call/<room_id>')
+@login_required
+def call_room(room_id):
+    import re
+    room_id    = re.sub(r'[^a-zA-Z0-9\-_]', '', room_id)[:64]
+    video_only = request.args.get('video', 'true') != 'false'
+    return render_template('calls/room.html', room_id=room_id, video_only=video_only)
+
+@app.route('/call/start/<user_id>', methods=['POST'])
+@login_required
+def call_start(user_id):
+    other     = User.query.get_or_404(user_id)
+    call_type = request.form.get('type', 'video')
+    room_id   = f"od-{uuid.uuid4().hex[:20]}"
+    call_url  = url_for('call_room', room_id=room_id, _external=False)
+    emoji     = '📞' if call_type == 'voice' else '🎥'
+    dm = DirectMessage(sender_id=current_user.id, receiver_id=user_id,
+                       text=f"{emoji} {current_user.username} is calling you! Join: {call_url}")
+    db.session.add(dm)
+    create_notification(user_id, 'message',
+                        f'{"Voice" if call_type=="voice" else "Video"} call from {current_user.username}',
+                        body='Tap to join the call', link=call_url)
+    db.session.commit()
+    return jsonify({'ok': True, 'room_id': room_id, 'call_url': call_url})
+
+# ─── Email Verification ───────────────────────────────────────────────────────
+
+def send_email(to_email, subject, body_html):
+    """Send email via SMTP. Set MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD in Replit Secrets."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    smtp_host = os.environ.get('MAIL_SERVER', '')
+    smtp_port = int(os.environ.get('MAIL_PORT', '587'))
+    smtp_user = os.environ.get('MAIL_USERNAME', '')
+    smtp_pass = os.environ.get('MAIL_PASSWORD', '')
+    mail_from = os.environ.get('MAIL_FROM', smtp_user)
+    if not all([smtp_host, smtp_user, smtp_pass]):
+        logger.info(f'[MAIL] Not configured — would send to {to_email}: {subject}')
+        return False
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From']    = mail_from
+        msg['To']      = to_email
+        msg.attach(MIMEText(body_html, 'html'))
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as srv:
+            srv.starttls()
+            srv.login(smtp_user, smtp_pass)
+            srv.sendmail(mail_from, to_email, msg.as_string())
+        return True
+    except Exception as e:
+        logger.error(f'[MAIL] Send error: {e}')
+        return False
+
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    ev = EmailVerification.query.filter_by(token=token, is_used=False).first()
+    if not ev:
+        flash('Invalid or expired verification link.', 'danger')
+        return redirect(url_for('login'))
+    if (datetime.utcnow() - ev.created_at).total_seconds() > 86400:
+        flash('Verification link expired. Request a new one from your profile.', 'warning')
+        return redirect(url_for('login'))
+    ev.is_used = True
+    db.session.commit()
+    flash('✅ Email verified! You can now sign in.', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/resend-verification', methods=['POST'])
+@login_required
+def resend_verification():
+    EmailVerification.query.filter_by(user_id=current_user.id, is_used=False).update({'is_used': True})
+    ev = EmailVerification(user_id=current_user.id)
+    db.session.add(ev)
+    db.session.commit()
+    company     = ServerConfig.get('company_name', 'Overdrive')
+    verify_url  = url_for('verify_email', token=ev.token, _external=True)
+    html = f'''<div style="font-family:sans-serif;background:#0a0a0a;color:#f0f0f0;padding:40px;border-radius:12px;max-width:500px;">
+        <h2 style="color:#e63946;margin-top:0;">⚡ {company}</h2>
+        <p>Hi {current_user.username},</p>
+        <p>Click below to verify your email address:</p>
+        <a href="{verify_url}" style="display:inline-block;background:#e63946;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:16px 0;">Verify Email</a>
+        <p style="color:#666;font-size:12px;">Or copy: {verify_url}</p>
+        <p style="color:#666;font-size:12px;">Link expires in 24 hours.</p></div>'''
+    sent = send_email(current_user.email, f'Verify your {company} account', html)
+    if sent:
+        flash(f'Verification email sent to {current_user.email}.', 'success')
+    else:
+        flash('Email not configured. Set MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD in Replit Secrets.', 'warning')
+    return redirect(url_for('profile'))
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 

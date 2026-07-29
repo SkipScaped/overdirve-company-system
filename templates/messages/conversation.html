@@ -228,6 +228,12 @@
             </div>
         </div>
         <div class="dm-header-actions">
+            <button class="dm-icon-btn" title="Voice call" id="voiceCallBtn" onclick="startCall('voice')">
+                <i class="fas fa-phone"></i>
+            </button>
+            <button class="dm-icon-btn" title="Video call" id="videoCallBtn" onclick="startCall('video')">
+                <i class="fas fa-video"></i>
+            </button>
             <a href="{{ url_for('user_profile', user_id=other.id) }}" class="dm-icon-btn" title="View profile">
                 <i class="fas fa-user"></i>
             </a>
@@ -461,5 +467,30 @@
         } catch(e) {}
     }, 2500);
 })();
+
+// ── Voice / Video Call ────────────────────────────────
+async function startCall(type) {
+    const btn = type === 'voice'
+        ? document.getElementById('voiceCallBtn')
+        : document.getElementById('videoCallBtn');
+    if (btn) { btn.style.opacity = '0.5'; btn.disabled = true; }
+    try {
+        const fd = new FormData();
+        fd.append('csrf_token', window.OD_CSRF || '');
+        fd.append('type', type);
+        const res  = await fetch('/call/start/{{ other.id }}', {
+            method: 'POST', body: fd, credentials: 'same-origin'
+        });
+        const data = await res.json();
+        if (data.ok) {
+            // Open call room in new tab
+            window.open(data.call_url, '_blank', 'noopener,noreferrer');
+        }
+    } catch(e) {
+        alert('Could not start call. Please try again.');
+    } finally {
+        if (btn) { btn.style.opacity = ''; btn.disabled = false; }
+    }
+}
 </script>
 {% endblock %}

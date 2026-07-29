@@ -1,290 +1,282 @@
-# Private Java SMP — Website
+# ⚡ OVERDRIVE — Company Management Portal
 
-A Minecraft community website built with Flask. Features a screenshot gallery, user authentication, admin panel, real-time AJAX messaging (DMs + group chat), shop system, VIP ranks, Discord integration, and PWA support.
-
-**Server IP:** `private-java-smp.aternos.me:40115`  
-**Discord:** https://discord.gg/XFphHZujM  
-**Made by:** SkipScaped
+> Built by **Aaliyan** · Premium internal team management platform
 
 ---
 
-## Tech Stack
+## 🚀 Overview
+
+**Overdrive** is a full-featured, premium dark-themed internal company management portal built entirely from scratch by Aaliyan. It centralises everything a modern team needs: company announcements, expense tracking, idea management, job postings, real-time team chat, direct messaging, an AI assistant, and an energy drink inventory system — all in one sleek interface.
+
+The project runs on Python/Flask with a PostgreSQL database, featuring a Groq-powered AI assistant, Spline 3D animations, and a fully installable PWA experience.
+
+---
+
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Web Framework | Flask |
-| ORM | Flask-SQLAlchemy |
-| Auth | Flask-Login + Werkzeug password hashing |
-| Forms & CSRF | Flask-WTF + CSRFProtect |
-| Database | PostgreSQL |
-| Frontend | Jinja2 templates, Bootstrap 5, React (Babel standalone) |
-| Messaging | AJAX fetch + server-side poll (no page reloads) |
-| Server | Gunicorn |
+| **Backend** | Python 3.11 · Flask 3 · SQLAlchemy · Flask-WTF · Flask-Login |
+| **Database** | PostgreSQL (Replit managed) |
+| **AI** | Groq API · `llama-3.3-70b-versatile` model |
+| **Frontend** | Bootstrap 5.3 · Custom dark CSS design system |
+| **3D / Animation** | Spline (WebGL) · GSAP |
+| **Fonts** | Inter (Google Fonts) |
+| **Icons** | Font Awesome 6 |
+| **Audio** | Web Audio API (no audio files — synthesised sounds) |
+| **PWA** | Web App Manifest · Service Worker (offline capable) |
+| **Voice/Video** | Jitsi Meet (WebRTC, no API key needed) |
+| **Server** | Gunicorn (WSGI) · Replit deployment |
 
 ---
 
-## Features
+## ✨ Features
 
-- **Gallery** — upload screenshots, browse by category, comment on images
-- **User accounts** — register/login, profile pics, bio, Minecraft username
-- **Direct Messages** — real-time 1-on-1 chat via AJAX polling (no page reload)
-- **Group Chat** — server-wide chat room, same seamless AJAX experience
-- **Shop** — admin-managed categories & products; players click Discord to purchase
-- **VIP Ranks** — displayed on the homepage
-- **Admin Panel** — manage images, comments, users, server IP, and the shop
-- **Profanity filter** — applied to uploads, comments, and all chat messages
-- **PWA** — installable on mobile via service worker
-- **Mobile responsive** — Bootstrap 5 grid throughout
+### 🏠 Dashboard
+- Company stats at a glance
+- Pinned announcements
+- Open suggestions feed
+- Active job listings
+
+### 📢 Company Updates
+- Rich announcement system with categories (General, Dev, Finance, HR, Design…)
+- Pin/unpin important updates
+- Full CRUD for admins
+
+### 💸 Expense Proposals
+- Submit expenses with receipt attachments
+- Admin approve/reject workflow with review notes
+- Full expense history per user
+
+### 💡 Ideas & Suggestions
+- Anyone can post ideas (anonymous option)
+- Team voting system
+- Status tracking (Open → Reviewed → Implemented)
+
+### 💼 Job Openings
+- Admin posts open positions
+- External applications with cover letter + resume
+- Application review pipeline
+
+### 💬 Team Chat & DMs
+- Real-time group chat with image sharing
+- Private 1-on-1 direct messages
+- Message polling every 2.5s
+- Clickable URL detection (linkify)
+- Web Audio sound effects
+
+### 🤖 Overdrive AI
+- Powered by Groq (llama-3.3-70b-versatile)
+- Full live company context injected as system prompt
+- Knows team members, roles, recent messages, expenses, suggestions, jobs
+- Floating chat widget accessible from any page
+
+### 👥 Team & Roles
+- Team directory with member cards
+- Custom role/position system (create roles with colours and icons)
+- Assign multiple roles to members
+- Role badges on profiles and team cards
+
+### 🧃 Energy Drink Inventory (White-Label)
+- White-label brand settings (name, logo, colours, tagline)
+- Full product catalogue (SKU, flavour, size, pricing)
+- Real-time stock tracking with movement history
+- Low-stock alerts
+- CSV bulk import
+- Public-facing store page
+
+### 📱 PWA (Progressive Web App)
+- Installable on iOS, Android, and desktop
+- Service worker for offline support
+- Smooth transitions and mobile-optimised layout
+
+### 🔐 Admin Panel
+- Tabbed admin dashboard (Overview, Updates, Jobs, Expenses, Team, Roles)
+- Toggle admin status for users
+- Remove members
+- Full store inventory management
+
+### 📞 Voice & Video Calling
+- Jitsi Meet integration (WebRTC, free, no API key required)
+- Start calls from DM conversations
+- Auto-notifies the other person with a join link
+- Voice-only or full video
+
+### 🌍 Notifications
+- Real-time notification bell with polling
+- Typed notifications (message, update, expense, job, vote)
+- Mark individual or all as read
 
 ---
 
-## Backend Structure
+## 🏗️ Project Structure
 
 ```
-/
-├── main.py                    # Entry point — imports app from app.py
-├── app.py                     # App factory, config, all routes
-├── models.py                  # SQLAlchemy ORM models
-├── forms.py                   # Flask-WTF form definitions
-├── utils.py                   # File validation, category helpers
-├── profanity.py               # Bad-word filter
-│
+overdrive/
+├── app.py                    # All Flask routes and application setup
+├── models.py                 # SQLAlchemy database models
+├── forms.py                  # Flask-WTF form definitions
+├── main.py                   # Gunicorn entry point
 ├── static/
-│   ├── css/style.css          # Minecraft-themed custom styles
-│   ├── js/script.js           # Client-side JS (copy IP, image preview)
-│   ├── js/react/              # React components (Babel standalone)
-│   │   ├── gallery.jsx
-│   │   ├── comments.jsx
-│   │   └── profile.jsx
-│   ├── uploads/               # User-uploaded images (auto-created)
-│   └── images/
-│       ├── vip/               # VIP rank badge images
-│       ├── logo.webp
-│       └── favicon.ico
-│
+│   ├── css/
+│   │   └── overdrive.css     # Full custom dark design system
+│   ├── images/               # Logos and static assets
+│   ├── uploads/              # User-uploaded files (images, receipts)
+│   ├── manifest.json         # PWA manifest
+│   └── sw.js                 # Service Worker (offline cache)
 ├── templates/
-│   ├── base.html              # Base layout (navbar, footer, scripts)
-│   ├── index.html             # Homepage
-│   ├── shop.html              # Public shop page
-│   ├── upload.html
-│   ├── image.html
-│   ├── search.html
-│   ├── category.html
-│   ├── 403.html / 404.html
+│   ├── base.html             # Master layout (topbar, sidebar, AI widget, notifications)
+│   ├── dashboard.html        # Main dashboard
+│   ├── team.html             # Team directory
 │   ├── auth/
-│   │   ├── login.html
-│   │   ├── register.html
-│   │   ├── profile.html
-│   │   ├── edit_profile.html
-│   │   └── change_password.html
+│   │   ├── login.html        # Standalone login (GSAP + Spline)
+│   │   ├── register.html     # Standalone register
+│   │   ├── profile.html      # User profile with roles and actions
+│   │   └── edit_profile.html
 │   ├── messages/
-│   │   ├── inbox.html
-│   │   ├── conversation.html  # AJAX DM chat (no page reload)
-│   │   └── group_chat.html    # AJAX group chat (no page reload)
-│   └── admin/
-│       ├── dashboard.html
-│       └── shop.html          # Admin shop management
-│
-└── migrations/
-    ├── run_migration.py
-    └── db_update.sql
+│   │   ├── inbox.html        # DM inbox
+│   │   ├── conversation.html # 1-on-1 chat with call button
+│   │   └── group_chat.html   # Team group chat with Spline BG
+│   ├── admin/
+│   │   ├── dashboard.html    # Admin tabbed hub
+│   │   ├── roles.html        # Role management
+│   │   ├── store.html        # Energy drink inventory admin
+│   │   └── applications.html
+│   ├── store/
+│   │   └── index.html        # Public energy drink store
+│   ├── calls/
+│   │   └── room.html         # Jitsi voice/video call room
+│   └── ...
+└── README.md
 ```
 
 ---
 
-## Database Models
+## ⚙️ Environment Variables / Secrets
 
-### `User`
-| Column | Type | Notes |
-|---|---|---|
-| `id` | String(36) | UUID primary key |
-| `username` | String(50) | Unique |
-| `email` | String(120) | Unique |
-| `password_hash` | String(256) | Werkzeug hashed |
-| `profile_pic` | String(255) | Avatar path |
-| `bio` | Text | Optional |
-| `minecraft_username` | String(50) | Optional |
-| `is_admin` | Boolean | First registered user auto-gets True |
-| `created_at` | DateTime | Auto-set |
+Set these in **Replit Secrets** (never commit them):
 
-### `Image`
-| Column | Type | Notes |
+| Secret | Required | Description |
 |---|---|---|
-| `id` | String(36) | UUID primary key |
-| `title` | String(100) | Required |
-| `description` | Text | Required |
-| `category` | String(50) | e.g. Builds |
-| `filename` | String(255) | Stored filename |
-| `filepath` | String(255) | `/static/uploads/<uuid>.<ext>` |
-| `uploaded_at` | DateTime | Auto-set |
-| `uploader` | String(50) | Display name |
-| `user_id` | String(36) | FK → `users.id` |
-
-### `Comment`
-| Column | Type | Notes |
-|---|---|---|
-| `id` | String(36) | UUID PK |
-| `image_id` | String(36) | FK → `images.id` |
-| `username` | String(50) | Display name |
-| `text` | Text | Required |
-| `created_at` | DateTime | Auto-set |
-| `user_id` | String(36) | FK → `users.id` |
-
-### `DirectMessage`
-| Column | Type | Notes |
-|---|---|---|
-| `id` | String(36) | UUID PK |
-| `sender_id` | String(36) | FK → `users.id` |
-| `receiver_id` | String(36) | FK → `users.id` |
-| `text` | Text | Required |
-| `created_at` | DateTime | Auto-set |
-| `is_read` | Boolean | Marked True when recipient polls |
-
-### `GroupMessage`
-| Column | Type | Notes |
-|---|---|---|
-| `id` | String(36) | UUID PK |
-| `sender_id` | String(36) | FK → `users.id` |
-| `text` | Text | Required |
-| `created_at` | DateTime | Auto-set |
-
-### `ShopCategory`
-| Column | Type | Notes |
-|---|---|---|
-| `id` | String(36) | UUID PK |
-| `name` | String(100) | Required |
-| `description` | Text | Optional |
-| `image_path` | String(255) | Optional banner |
-| `created_at` | DateTime | Auto-set |
-
-### `ShopProduct`
-| Column | Type | Notes |
-|---|---|---|
-| `id` | String(36) | UUID PK |
-| `category_id` | String(36) | FK → `shop_categories.id` |
-| `name` | String(100) | Required |
-| `description` | Text | Optional |
-| `price` | String(50) | e.g. `$5.00` or `Free` |
-| `image_path` | String(255) | Optional |
-| `in_stock` | Boolean | Default True |
-| `created_at` | DateTime | Auto-set |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string (auto-set by Replit DB) |
+| `SESSION_SECRET` | ✅ | Flask session signing key (random long string) |
+| `GROQ_API_KEY` | ✅ | Groq API key for the AI assistant |
+| `MAIL_SERVER` | Optional | SMTP host (e.g. `smtp.gmail.com`) for email verification |
+| `MAIL_PORT` | Optional | SMTP port (default `587`) |
+| `MAIL_USERNAME` | Optional | SMTP username / email address |
+| `MAIL_PASSWORD` | Optional | SMTP app password |
+| `MAIL_FROM` | Optional | From address for sent emails |
 
 ---
 
-## Routes Reference
+## 📧 Email Verification Setup
 
-### Public
-| Method | Route | Description |
-|---|---|---|
-| GET | `/` | Homepage |
-| GET | `/image/<id>` | Image detail + comments |
-| GET | `/category/<name>` | Gallery filtered by category |
-| GET | `/search?q=...` | Search images |
-| GET | `/shop` | Public shop page |
+Email verification is **optional** — if `MAIL_SERVER` is not set, accounts are auto-verified.
 
-### Auth
-| Method | Route | Description |
-|---|---|---|
-| GET/POST | `/register` | Sign up (first user auto-gets admin) |
-| GET/POST | `/login` | Log in |
-| GET | `/logout` | Log out |
-| GET/POST | `/profile/edit` | Edit profile |
-| GET/POST | `/profile/change_password` | Change password |
-
-### Messaging (login required)
-| Method | Route | Description |
-|---|---|---|
-| GET | `/messages` | Inbox |
-| GET/POST | `/messages/<user_id>` | DM chat (POST returns JSON for AJAX) |
-| GET | `/messages/<user_id>/poll` | Poll for new DMs |
-| GET/POST | `/chat` | Group chat (POST returns JSON for AJAX) |
-| GET | `/chat/poll` | Poll for new group messages |
-
-### Admin (admin only)
-| Method | Route | Description |
-|---|---|---|
-| GET | `/admin` | Dashboard |
-| POST | `/admin/set-ip` | Update server IP |
-| POST | `/admin/delete/image/<id>` | Delete image |
-| POST | `/admin/delete/comment/<id>` | Delete comment |
-| POST | `/admin/toggle-admin/<user_id>` | Grant/revoke admin |
-| GET | `/admin/shop` | Shop management |
-| POST | `/admin/shop/category/add` | Add category |
-| POST | `/admin/shop/category/delete/<id>` | Delete category (+ its products) |
-| POST | `/admin/shop/product/add` | Add product |
-| POST | `/admin/shop/product/delete/<id>` | Delete product |
-| POST | `/admin/shop/product/toggle/<id>` | Toggle in/out of stock |
+To enable email verification:
+1. **Gmail**: Enable 2-Step Verification → Google Account → Security → App Passwords → Generate for "Mail"
+2. Add Replit Secrets:
+   ```
+   MAIL_SERVER = smtp.gmail.com
+   MAIL_PORT = 587
+   MAIL_USERNAME = youraddress@gmail.com
+   MAIL_PASSWORD = xxxx xxxx xxxx xxxx  (16-char App Password)
+   MAIL_FROM = Overdrive <youraddress@gmail.com>
+   ```
+3. Email verification tokens are stored in the database and expire after 24 hours
 
 ---
 
-## Running Locally
+## 📞 Voice & Video Calling
 
-### 1. Prerequisites
+Overdrive uses **Jitsi Meet** (free, open-source WebRTC) — **no API key required**.
 
-- Python 3.11+
-- PostgreSQL running locally
+**How it works:**
+1. Open a DM conversation with a team member
+2. Click the 📞 (voice) or 🎥 (video) button in the top-right corner
+3. A unique private room is created and a call link is sent to the other person as a DM
+4. Both users join via the Jitsi iframe in Overdrive
 
-### 2. Install dependencies
+**Why Jitsi?**
+- Free, unlimited minutes
+- Works on HTTPS (Replit deployed apps are HTTPS ✅)
+- No account or API key needed
+- Full WebRTC: end-to-end encrypted
+
+**Upgrade options:**
+- [Daily.co](https://daily.co) — 10,000 free minutes/month, custom UI, recording
+- [Agora.io](https://agora.io) — 10,000 free minutes/month, lower latency
+- [LiveKit](https://livekit.io) — open source, self-hostable
+
+---
+
+## 🚀 Getting Started (Local Development)
 
 ```bash
-pip install -r requirements.txt
-```
+# Clone the repo
+git clone <repo-url>
+cd overdrive
 
-### 3. Set environment variables
+# Install dependencies
+pip install flask flask-sqlalchemy flask-login flask-wtf groq gunicorn psycopg2-binary
 
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/your_db
-SESSION_SECRET=any-long-random-string
-```
+# Set environment variables
+export DATABASE_URL="postgresql://..."
+export SESSION_SECRET="your-secret-key"
+export GROQ_API_KEY="your-groq-key"
 
-### 4. Start the server
-
-```bash
+# Run
 gunicorn --bind 0.0.0.0:5000 --reload main:app
 ```
 
-Open `http://localhost:5000`. **First registered account is automatically admin.**
-
 ---
 
-## Admin Panel Guide
+## 🗄️ Database Models
 
-Access at `/admin` — requires `is_admin = True`.
-
-| Tab | What you can do |
+| Model | Purpose |
 |---|---|
-| Server IP | Change the IP shown site-wide (stored in DB) |
-| Images | View all uploads; delete any image (also removes file from disk) |
-| Comments | View all comments; delete inappropriate ones |
-| Users | View all accounts; grant or revoke admin |
-| Shop | Create categories, add products with images/prices, toggle stock |
-
-### Shop setup
-1. Go to **Admin → Shop**
-2. Create a **category** (e.g. "VIP Ranks")
-3. Add **products** with name, price, description, image, stock status
-4. Players see the shop at `/shop` and click **Get → Discord** to contact you
-
----
-
-## Messaging
-
-Both DMs (`/messages/<id>`) and group chat (`/chat`) use **AJAX fetch polling**:
-
-- Sending a message does a `fetch()` POST — the page never reloads and your input is never cleared
-- New messages from other users appear automatically every 3 seconds via a poll endpoint
-- A `Set` of known message IDs prevents any duplicate bubbles
+| `User` | Team members with auth, profile, admin flag |
+| `CompanyUpdate` | Announcements with categories and pinning |
+| `ExpenseProposal` | Expense submissions and approval workflow |
+| `Suggestion` | Ideas with voting |
+| `SuggestionVote` | Per-user votes on suggestions |
+| `JobListing` | Open positions |
+| `JobApplication` | Applications for jobs |
+| `DirectMessage` | 1-on-1 messages (with image support) |
+| `GroupMessage` | Team chat messages (with image support) |
+| `Notification` | In-app notifications |
+| `Role` | Custom team roles/positions |
+| `UserRole` | Role assignments |
+| `ServerConfig` | Key-value config store |
+| `EnergyDrinkBrand` | White-label brand settings |
+| `EnergyDrinkProduct` | Drink products with stock tracking |
+| `StockMovement` | Inventory movement history |
+| `EmailVerification` | Email verification tokens |
 
 ---
 
-## Content Moderation
+## 🎨 Design System
 
-`profanity.py` blocks banned words in image uploads, comments, DMs, and group chat before saving.
+The portal uses a custom dark design system defined in `overdrive.css`:
+
+- **Background**: `#0a0a0a` (near-black)
+- **Surface levels**: `#111`, `#181818`, `#1f1f1f`, `#252525` (layered depth)
+- **Accent**: `#e63946` (Overdrive red)
+- **Typography**: Inter (variable weight: 400–900)
+- **Border radius**: 10px (cards), 14px (modals), 20px (pills)
+- **Shadows**: layered with high opacity for depth
+- **3D**: Spline blackhole background (`AATNdo0u4uGpBox4`) at 9% opacity
 
 ---
 
-## Notes
+## 👤 Creator
 
-- The Babel standalone warning in console is expected — React components compile in-browser for convenience
-- Server IP is stored in `server_config` DB table and injected into every template via a context processor
-- `db.create_all()` auto-creates all tables on first startup; new columns require `ALTER TABLE` manually
+**Aaliyan** — built Overdrive end-to-end as an internal company management portal.
+
+The project was developed iteratively with full-stack ownership: database schema design, Flask routing, Jinja2 templating, custom CSS design system, AI integration, WebRTC calling, and PWA implementation.
+
+---
+
+## 📜 License
+
+Private — internal use only.

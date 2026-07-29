@@ -136,6 +136,9 @@
             <a href="{{ url_for('team') }}" class="od-nav-link {% if request.endpoint=='team' %}active{% endif %}">
                 <i class="fas fa-users"></i> Team
             </a>
+            <a href="{{ url_for('store') }}" class="od-nav-link {% if 'store' in (request.endpoint or '') %}active{% endif %}">
+                <i class="fas fa-bolt"></i> Store
+            </a>
         </nav>
         {% endif %}
 
@@ -265,6 +268,9 @@
                     <a href="{{ url_for('team') }}" class="od-sidebar-link {% if request.endpoint=='team' %}active{% endif %}">
                         <i class="fas fa-users"></i><span>Team</span>
                     </a>
+                    <a href="{{ url_for('store') }}" class="od-sidebar-link {% if 'store' in (request.endpoint or '') and 'admin' not in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-bolt"></i><span>Energy Store</span>
+                    </a>
                 </div>
 
                 {% if current_user.is_admin %}
@@ -281,6 +287,9 @@
                     </a>
                     <a href="{{ url_for('admin_roles') }}" class="od-sidebar-link {% if 'role' in (request.endpoint or '') %}active{% endif %}">
                         <i class="fas fa-tags"></i><span>Roles & Positions</span>
+                    </a>
+                    <a href="{{ url_for('admin_store') }}" class="od-sidebar-link {% if 'admin_store' in (request.endpoint or '') %}active{% endif %}">
+                        <i class="fas fa-warehouse"></i><span>Store Inventory</span>
                     </a>
                 </div>
                 {% endif %}
@@ -973,6 +982,49 @@ if ('serviceWorker' in navigator) {
             .catch(e => console.warn('[SW]', e));
     });
 }
+</script>
+{% endif %}
+
+<!-- ═══ 3D BACKGROUND TOGGLE ════════════════════════════════════════════ -->
+{% if current_user.is_authenticated %}
+<button id="od-3d-toggle" title="Toggle 3D background" style="
+    position:fixed; bottom:20px; right:20px; z-index:9000;
+    width:38px; height:38px; border-radius:10px;
+    background:rgba(10,10,12,.84); border:1px solid rgba(255,255,255,.1);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,.45); font-size:14px;
+    transition:all .2s; box-shadow:0 4px 16px rgba(0,0,0,.5);
+" aria-label="Toggle 3D background">
+    <i class="fas fa-cube"></i>
+</button>
+<script>
+(function(){
+    const splineBg = document.getElementById('od-global-spline-bg');
+    const btn      = document.getElementById('od-3d-toggle');
+    if (!btn) return;
+    let show = localStorage.getItem('od_3d') !== 'off';
+    function apply() {
+        if (splineBg) splineBg.style.display = show ? '' : 'none';
+        btn.style.color        = show ? 'rgba(230,57,70,.8)' : 'rgba(255,255,255,.3)';
+        btn.style.borderColor  = show ? 'rgba(230,57,70,.3)' : 'rgba(255,255,255,.08)';
+        btn.title = show ? 'Hide 3D background (on)' : 'Show 3D background (off)';
+        btn.querySelector('i').className = show ? 'fas fa-cube' : 'fas fa-vector-square';
+    }
+    apply();
+    btn.addEventListener('click', () => {
+        show = !show;
+        localStorage.setItem('od_3d', show ? 'on' : 'off');
+        apply();
+        try { window.OD_SOUND?.play(show ? 'open' : 'close'); } catch(e){}
+    });
+    btn.addEventListener('mouseenter', () => {
+        btn.style.background = 'rgba(22,22,28,.98)';
+    });
+    btn.addEventListener('mouseleave', () => {
+        btn.style.background = 'rgba(10,10,12,.84)';
+    });
+})();
 </script>
 {% endif %}
 </body>

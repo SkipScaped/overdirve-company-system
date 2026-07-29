@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}Call — Overdrive{% endblock %}
+
+{% block extra_css %}
+<style>
+.od-main { padding: 0 !important; overflow: hidden; }
+.call-room {
+    position: fixed;
+    inset: 0;
+    top: var(--od-topbar-h);
+    background: #050505;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+}
+.call-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    background: rgba(10,10,12,0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+    backdrop-filter: blur(20px);
+}
+.call-title {
+    font-size: 14px; font-weight: 700; color: #f0f0f0;
+    display: flex; align-items: center; gap: 10px;
+}
+.call-live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #4ade80;
+    animation: pulse-live 1.5s ease infinite;
+}
+@keyframes pulse-live {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(1.3); }
+}
+.call-frame { flex: 1; width: 100%; border: none; display: block; }
+.call-actions { display: flex; gap: 8px; align-items: center; }
+.call-btn {
+    height: 34px; padding: 0 14px; border-radius: 9px; font-size: 12px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.6); cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.15s; text-decoration: none;
+}
+.call-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.call-btn.danger { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #f87171; }
+.call-btn.danger:hover { background: rgba(239,68,68,0.3); }
+.call-info-bar {
+    padding: 6px 20px;
+    background: rgba(10,10,12,0.8);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 11px; color: var(--od-text-muted);
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.call-room-id {
+    font-family: monospace; font-size: 10px;
+    color: var(--od-text-dim);
+    background: var(--od-surface-2);
+    padding: 2px 8px; border-radius: 4px;
+    cursor: pointer;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="call-room">
+    <div class="call-header">
+        <div class="call-title">
+            <div class="call-live-dot"></div>
+            <i class="fas fa-video" style="color:#e63946;"></i>
+            Overdrive Call
+        </div>
+        <div class="call-actions">
+            <button class="call-btn" onclick="copyRoomLink()">
+                <i class="fas fa-link"></i> Copy Invite Link
+            </button>
+            <a href="{{ url_for('inbox') }}" class="call-btn danger">
+                <i class="fas fa-phone-slash"></i> Leave
+            </a>
+        </div>
+    </div>
+    <div class="call-info-bar">
+        <span><i class="fas fa-lock" style="color:#4ade80;margin-right:4px;"></i>End-to-end encrypted via WebRTC</span>
+        <span>Room: <span class="call-room-id" id="roomIdSpan" onclick="copyRoomLink()" title="Click to copy">{{ room_id }}</span></span>
+        <span><i class="fas fa-users" style="margin-right:3px;"></i>Share the link below for others to join</span>
+    </div>
+    <iframe
+        id="callFrame"
+        class="call-frame"
+        src="https://meet.jit.si/overdrive-{{ room_id }}{% if video_only == false %}#config.startWithVideoMuted=true{% endif %}"
+        allow="camera; microphone; fullscreen; display-capture; autoplay; clipboard-write"
+        allowfullscreen
+    ></iframe>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyRoomLink() {
+    const url = `${location.origin}/call/{{ room_id }}`;
+    navigator.clipboard.writeText(url).then(() => {
+        const span = document.getElementById('roomIdSpan');
+        const orig = span.textContent;
+        span.textContent = 'Copied!';
+        setTimeout(() => span.textContent = orig, 1800);
+    });
+}
+// Keyboard shortcut: Escape = leave
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        if (confirm('Leave the call?')) location.href = '{{ url_for("inbox") }}';
+    }
+});
+</script>
+{% endblock %}

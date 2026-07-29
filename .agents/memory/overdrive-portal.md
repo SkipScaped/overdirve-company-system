@@ -77,6 +77,29 @@ Bootstrap dropdown adds/removes `.show` class. The panel must use `display:none`
 - Must use `z-index: -1` (not 0) — `z-index: 0` positioned elements appear ON TOP of static-flow content.
 - Group chat has its own higher-opacity Spline (0.22) layered inside the page as `z-index: 2` content.
 
+## Energy Drink White-Label Store
+- Models: `EnergyDrinkBrand` (brand settings), `EnergyDrinkProduct` (inventory), `StockMovement` (history)
+- Routes: `/store` (public), `/admin/store` (admin hub with tabs), `/admin/store/brand`, `/admin/store/product/add|edit|delete|stock`, `/admin/store/import`, `/admin/store/csv-template`
+- CSV bulk import: columns name,sku,flavor,size_ml,price_cost,price_retail,stock_quantity,description; duplicate SKUs skipped
+- Admin store template uses Bootstrap modals for Add/Edit/Stock-adjust; `openEditModal(p|tojson)` sets form fields
+
+## Voice/Video Calling (Jitsi)
+- Routes: `/call/<room_id>` (room page), `/call/start/<user_id>` (POST — creates room, sends DM + notification to other user)
+- No API key needed — uses `meet.jit.si` iframe embed
+- Call button in conversation.html header calls `startCall('voice'|'video')` which POSTs to `/call/start/<user_id>` then opens room in new tab
+- Room ID format: `od-{20 hex chars}` (random per call)
+
+## Email Verification
+- Model: `EmailVerification` (user_id, token, is_used, created_at)
+- Routes: `/verify-email/<token>` (GET), `/resend-verification` (POST)
+- `send_email()` helper uses stdlib smtplib; reads MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, MAIL_PORT, MAIL_FROM from env — gracefully skips if not configured
+- If MAIL_SERVER not set: logs a warning but never errors
+
+## 3D Toggle
+- `#od-3d-toggle` floating button (bottom-right, z-index 9000) in base.html — toggles `#od-global-spline-bg` visibility
+- Preference saved to `localStorage('od_3d')` as 'on'|'off' (default on)
+- On mobile (≤768px) the button moves up to `bottom:72px` to avoid mobile nav overlap
+
 ## Key Patterns
 - `create_notification()` must be called BEFORE `db.session.commit()`.
 - `inject_globals()` context processor provides `unread_count` and `notif_unread` to all templates.

@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+{% block title %}Store Inventory — Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+.stock-badge { display:inline-block; font-size:10px; font-weight:700; padding:3px 9px; border-radius:100px; letter-spacing:.4px; }
+.sb-ok  { background:rgba(34,197,94,.12); color:#4ade80; border:1px solid rgba(34,197,94,.2); }
+.sb-low { background:rgba(234,179,8,.12);  color:#facc15; border:1px solid rgba(234,179,8,.2); }
+.sb-out { background:rgba(239,68,68,.12);  color:#f87171; border:1px solid rgba(239,68,68,.2); }
+.inv-stat { background:var(--od-surface);border:1px solid var(--od-border);border-radius:14px;padding:18px 22px;text-align:center; }
+.inv-stat-num { font-size:26px;font-weight:900;color:#f0f0f0;margin-bottom:2px; }
+.inv-stat-lbl { font-size:11px;color:var(--od-text-muted); }
+.store-product-row img { width:38px;height:38px;border-radius:8px;object-fit:cover;background:var(--od-surface-2); }
+.reason-pill { font-size:10px;padding:2px 8px;border-radius:100px;font-weight:600; }
+.r-purchase   { background:rgba(34,197,94,.12);color:#4ade80; }
+.r-sale       { background:rgba(239,68,68,.12);color:#f87171; }
+.r-adjustment { background:rgba(59,130,246,.12);color:#60a5fa; }
+.r-damaged    { background:rgba(234,179,8,.12);color:#facc15; }
+.r-return     { background:rgba(168,85,247,.12);color:#c084fc; }
+.r-import,.r-initial,.r-manual { background:rgba(255,255,255,.06);color:#9ca3af; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="od-page-header">
+    <div>
+        <h1 class="od-page-title"><i class="fas fa-bolt" style="color:{{ brand.primary_color }};"></i> Store Inventory</h1>
+        <p class="od-page-sub">{{ brand.brand_name }} — Manage products, stock levels and brand settings</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('store') }}" class="od-btn od-btn-outline od-btn-sm" target="_blank">
+            <i class="fas fa-external-link-alt"></i> Public Store
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+{% set out_of_stock = products|selectattr('stock_status','eq','out')|list|length %}
+{% set low_stock    = products|selectattr('stock_status','eq','low')|list|length %}
+{% set total_val    = products|sum(attribute='inventory_value') %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="inv-stat">
+        <div class="inv-stat-num">{{ products|length }}</div>
+        <div class="inv-stat-lbl">Total Products</div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="inv-stat">
+        <div class="inv-stat-num" style="color:#f87171;">{{ out_of_stock }}</div>
+        <div class="inv-stat-lbl">Out of Stock</div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="inv-stat">
+        <div class="inv-stat-num" style="color:#facc15;">{{ low_stock }}</div>
+        <div class="inv-stat-lbl">Low Stock</div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="inv-stat">
+        <div class="inv-stat-num" style="color:#4ade80;">£{{ '%.2f'|format(total_val) }}</div>
+        <div class="inv-stat-lbl">Inventory Value</div>
+    </div></div>
+</div>
+
+<!-- Tabs -->
+<div class="od-tabs" id="storeTabs">
+    <button class="od-tab active" data-tab="products"><i class="fas fa-box"></i> Products</button>
+    <button class="od-tab" data-tab="brand"><i class="fas fa-palette"></i> Brand Settings</button>
+    <button class="od-tab" data-tab="import"><i class="fas fa-file-import"></i> Import</button>
+    <button class="od-tab" data-tab="history"><i class="fas fa-history"></i> Stock History</button>
+</div>
+
+<!-- ═══ Products Tab ═══ -->
+<div class="od-tab-pane active" id="tab-products">
+    <div class="od-card">
+        <div class="od-card-header">
+            <h2 class="od-card-title"><i class="fas fa-box"></i> Products</h2>
+            <button class="od-btn od-btn-primary od-btn-sm" onclick="document.getElementById('addProductModal').style.display='flex'">
+                <i class="fas fa-plus"></i> Add Product
+            </button>
+        </div>
+        <div class="od-card-body p-0">
+            {% if products %}
+            <div style="overflow-x:auto;">
+            <table class="od-table">
+                <thead><tr>
+                    <th>Product</th><th>SKU</th><th>Flavor</th><th>Size</th>
+                    <th>Cost</th><th>Retail</th><th>Stock</th><th>Status</th><th>Actions</th>
+                </tr></thead>
+                <tbody>
+                {% for p in products %}
+                <tr>
+                    <td style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:38px;height:38px;border-radius:8px;background:var(--od-surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                            {% if p.image_path %}<img src="{{ p.image_path }}" style="width:38px;height:38px;object-fit:cover;">
+                            {% else %}<i class="fas fa-bolt" style="color:{{ brand.primary_color }};font-size:14px;opacity:0.5;"></i>{% endif %}
+                        </div>
+                        <span style="font-weight:600;font-size:13px;">{{ p.name }}{% if not p.is_active %} <span style="font-size:10px;color:var(--od-text-dim);">(inactive)</span>{% endif %}</span>
+                    </td>
+                    <td><code style="font-size:11px;color:var(--od-text-muted);">{{ p.sku or '—' }}</code></td>
+                    <td style="font-size:12px;">{{ p.flavor }}</td>
+                    <td style="font-size:12px;">{{ p.size_ml }}ml</td>
+                    <td style="font-size:12px;">£{{ '%.2f'|format(p.price_cost) }}</td>
+                    <td style="font-size:12px;font-weight:700;">£{{ '%.2f'|format(p.price_retail) }}</td>
+                    <td style="font-size:13px;font-weight:700;">{{ p.stock_quantity }}</td>
+                    <td><span class="stock-badge sb-{{ p.stock_status }}">
+                        {% if p.stock_status=='ok' %}In Stock{% elif p.stock_status=='low' %}Low{% else %}Out{% endif %}
+                    </span></td>
+                    <td>
+                        <div style="display:flex;gap:6px;">
+                            <button class="od-btn od-btn-ghost od-btn-sm" title="Adjust stock"
+                                    onclick="openStockModal('{{ p.id }}','{{ p.name|replace("'","\\'")|e }}',{{ p.stock_quantity }})">
+                                <i class="fas fa-boxes"></i>
+                            </button>
+                            <button class="od-btn od-btn-ghost od-btn-sm" title="Edit"
+                                    onclick="openEditModal({{ p|tojson }})">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <form method="POST" action="{{ url_for('admin_store_delete_product', product_id=p.id) }}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Delete {{ p.name }}? This cannot be undone.')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="od-btn od-btn-danger od-btn-sm" type="submit" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:60px 20px;color:var(--od-text-dim);">
+                <i class="fas fa-bolt" style="font-size:40px;margin-bottom:16px;opacity:0.15;"></i>
+                <p style="font-size:14px;">No products yet. Click <strong>Add Product</strong> to get started.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Brand Settings Tab ═══ -->
+<div class="od-tab-pane" id="tab-brand">
+    <div class="od-card">
+        <div class="od-card-header"><h2 class="od-card-title"><i class="fas fa-palette"></i> White-Label Brand Settings</h2></div>
+        <div class="od-card-body">
+            <form method="POST" action="{{ url_for('admin_store_brand') }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <!-- Preview -->
+                <div style="background:{{ brand.primary_color }}12;border:1px solid {{ brand.primary_color }}30;border-radius:12px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+                    {% if brand.logo_path %}
+                    <img src="{{ brand.logo_path }}" style="height:40px;object-fit:contain;" id="brandLogoPreview">
+                    {% else %}
+                    <div id="brandLogoPreview" style="width:40px;height:40px;border-radius:8px;background:{{ brand.primary_color }};display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-bolt" style="color:#fff;font-size:18px;"></i>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div id="brandNamePreview" style="font-size:18px;font-weight:900;color:{{ brand.primary_color }};">{{ brand.brand_name }}</div>
+                        <div id="brandTaglinePreview" style="font-size:12px;color:var(--od-text-muted);">{{ brand.tagline or 'Your tagline here' }}</div>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="od-label">Brand Name</label>
+                        <input type="text" name="brand_name" class="od-input" value="{{ brand.brand_name }}" required maxlength="100"
+                               oninput="document.getElementById('brandNamePreview').textContent=this.value">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="od-label">Tagline</label>
+                        <input type="text" name="tagline" class="od-input" value="{{ brand.tagline }}" maxlength="200"
+                               oninput="document.getElementById('brandTaglinePreview').textContent=this.value||'Your tagline here'">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="od-label">Primary Colour</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="color" name="primary_color" value="{{ brand.primary_color }}" style="width:38px;height:38px;border:none;background:none;cursor:pointer;border-radius:6px;">
+                            <input type="text" id="primaryColorText" value="{{ brand.primary_color }}" class="od-input" style="flex:1;" maxlength="7"
+                                   oninput="this.previousElementSibling.previousElementSibling.value=this.value">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="od-label">Accent Colour</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="color" name="accent_color" value="{{ brand.accent_color }}" style="width:38px;height:38px;border:none;background:none;cursor:pointer;border-radius:6px;">
+                            <input type="text" value="{{ brand.accent_color }}" class="od-input" style="flex:1;" maxlength="7">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="od-label">Brand Logo</label>
+                        <input type="file" name="logo" class="od-input" accept=".png,.jpg,.jpeg,.svg,.webp">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="od-label">Website URL</label>
+                        <input type="url" name="website_url" class="od-input" value="{{ brand.website_url }}" placeholder="https://yourbrand.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="od-label">Instagram URL</label>
+                        <input type="url" name="instagram_url" class="od-input" value="{{ brand.instagram_url }}" placeholder="https://instagram.com/yourbrand">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="od-label">Distributor / Supplier Name</label>
+                        <input type="text" name="distributor" class="od-input" value="{{ brand.distributor }}" placeholder="e.g. XYZ Distribution Ltd" maxlength="200">
+                    </div>
+                </div>
+                <div style="margin-top:20px;">
+                    <button type="submit" class="od-btn od-btn-primary">
+                        <i class="fas fa-save"></i> Save Brand Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Import Tab ═══ -->
+<div class="od-tab-pane" id="tab-import">
+    <div class="od-card">
+        <div class="od-card-header">
+            <h2 class="od-card-title"><i class="fas fa-file-import"></i> Bulk Import Products</h2>
+            <a href="{{ url_for('admin_store_csv_template') }}" class="od-btn od-btn-outline od-btn-sm">
+                <i class="fas fa-download"></i> Download CSV Template
+            </a>
+        </div>
+        <div class="od-card-body">
+            <div style="background:var(--od-surface-2);border:1px solid var(--od-border);border-radius:10px;padding:16px;margin-bottom:20px;font-size:12px;color:var(--od-text-muted);">
+                <strong style="color:#f0f0f0;"><i class="fas fa-info-circle" style="color:var(--od-blue);"></i> CSV Format:</strong><br>
+                Required columns: <code>name</code><br>
+                Optional: <code>sku, flavor, size_ml, price_cost, price_retail, stock_quantity, description</code><br>
+                Products with a duplicate SKU will be skipped. Download the template for an example.
+            </div>
+            <form method="POST" action="{{ url_for('admin_store_import') }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="od-upload-area" style="border:2px dashed var(--od-border-light);border-radius:12px;padding:40px;text-align:center;cursor:pointer;"
+                     onclick="document.getElementById('csvFileInput').click()">
+                    <i class="fas fa-file-csv" style="font-size:32px;color:var(--od-text-dim);margin-bottom:12px;display:block;"></i>
+                    <div style="font-size:14px;font-weight:600;color:#f0f0f0;margin-bottom:4px;" id="csvFileName">Drop your CSV here or click to browse</div>
+                    <div style="font-size:12px;color:var(--od-text-muted);">Accepts .csv files</div>
+                    <input type="file" id="csvFileInput" name="csv_file" accept=".csv" required style="display:none;"
+                           onchange="document.getElementById('csvFileName').textContent=this.files[0]?.name||'No file selected'">
+                </div>
+                <div style="margin-top:16px;">
+                    <button type="submit" class="od-btn od-btn-primary">
+                        <i class="fas fa-upload"></i> Import Products
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Stock History Tab ═══ -->
+<div class="od-tab-pane" id="tab-history">
+    <div class="od-card">
+        <div class="od-card-header"><h2 class="od-card-title"><i class="fas fa-history"></i> Stock Movement History</h2></div>
+        <div class="od-card-body p-0">
+            {% if movements %}
+            <div style="overflow-x:auto;">
+            <table class="od-table">
+                <thead><tr><th>Date</th><th>Product</th><th>Change</th><th>Reason</th><th>Batch</th><th>Notes</th><th>By</th></tr></thead>
+                <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td style="font-size:11px;color:var(--od-text-muted);white-space:nowrap;">{{ m.created_at.strftime('%d %b %Y %H:%M') }}</td>
+                    <td style="font-size:13px;font-weight:600;">{{ m.product.name if m.product else '—' }}</td>
+                    <td style="font-size:14px;font-weight:800;color:{% if m.quantity > 0 %}#4ade80{% else %}#f87171{% endif %};">
+                        {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
+                    </td>
+                    <td><span class="reason-pill r-{{ m.reason }}">{{ m.reason }}</span></td>
+                    <td style="font-size:11px;font-family:monospace;color:var(--od-text-muted);">{{ m.batch_number or '—' }}</td>
+                    <td style="font-size:12px;color:var(--od-text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ m.notes or '—' }}</td>
+                    <td style="font-size:12px;">{{ m.creator.username if m.creator else '—' }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:40px;color:var(--od-text-dim);font-size:13px;">No stock movements recorded yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Add Product Modal ═══ -->
+<div id="addProductModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+    <div style="background:var(--od-surface);border:1px solid var(--od-border-light);border-radius:20px;padding:28px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <h3 style="font-size:16px;font-weight:800;margin:0;"><i class="fas fa-plus" style="color:var(--od-accent);"></i> Add Product</h3>
+            <button onclick="document.getElementById('addProductModal').style.display='none'" style="background:none;border:none;color:var(--od-text-muted);font-size:18px;cursor:pointer;">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin_store_add_product') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-8"><label class="od-label">Product Name *</label><input type="text" name="name" class="od-input" required maxlength="100"></div>
+                <div class="col-4"><label class="od-label">SKU</label><input type="text" name="sku" class="od-input" maxlength="50" placeholder="OD-001"></div>
+                <div class="col-6"><label class="od-label">Flavor</label><input type="text" name="flavor" class="od-input" value="Original" maxlength="100"></div>
+                <div class="col-6"><label class="od-label">Size (ml)</label><input type="number" name="size_ml" class="od-input" value="500" min="0"></div>
+                <div class="col-4"><label class="od-label">Cost Price (£)</label><input type="number" name="price_cost" class="od-input" value="0" step="0.01" min="0"></div>
+                <div class="col-4"><label class="od-label">Retail Price (£)</label><input type="number" name="price_retail" class="od-input" value="0" step="0.01" min="0"></div>
+                <div class="col-4"><label class="od-label">Initial Stock</label><input type="number" name="stock_quantity" class="od-input" value="0" min="0"></div>
+                <div class="col-6"><label class="od-label">Low-Stock Alert Threshold</label><input type="number" name="min_stock" class="od-input" value="10" min="0"></div>
+                <div class="col-6"><label class="od-label">Product Image</label><input type="file" name="image" class="od-input" accept=".png,.jpg,.jpeg,.webp"></div>
+                <div class="col-12"><label class="od-label">Description</label><textarea name="description" class="od-input" rows="2" style="resize:vertical;"></textarea></div>
+                <div class="col-12"><label class="od-label">Ingredients</label><textarea name="ingredients" class="od-input" rows="2" style="resize:vertical;" placeholder="Water, Sugar, Caffeine…"></textarea></div>
+            </div>
+            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="od-btn od-btn-ghost" onclick="document.getElementById('addProductModal').style.display='none'">Cancel</button>
+                <button type="submit" class="od-btn od-btn-primary"><i class="fas fa-plus"></i> Add Product</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ Edit Product Modal ═══ -->
+<div id="editProductModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+    <div style="background:var(--od-surface);border:1px solid var(--od-border-light);border-radius:20px;padding:28px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <h3 style="font-size:16px;font-weight:800;margin:0;"><i class="fas fa-pen" style="color:var(--od-accent);"></i> Edit Product</h3>
+            <button onclick="document.getElementById('editProductModal').style.display='none'" style="background:none;border:none;color:var(--od-text-muted);font-size:18px;cursor:pointer;">&times;</button>
+        </div>
+        <form id="editProductForm" method="POST" action="" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-8"><label class="od-label">Product Name *</label><input type="text" name="name" id="ep_name" class="od-input" required></div>
+                <div class="col-4"><label class="od-label">SKU</label><input type="text" name="sku" id="ep_sku" class="od-input"></div>
+                <div class="col-6"><label class="od-label">Flavor</label><input type="text" name="flavor" id="ep_flavor" class="od-input"></div>
+                <div class="col-6"><label class="od-label">Size (ml)</label><input type="number" name="size_ml" id="ep_size" class="od-input"></div>
+                <div class="col-4"><label class="od-label">Cost (£)</label><input type="number" name="price_cost" id="ep_cost" class="od-input" step="0.01"></div>
+                <div class="col-4"><label class="od-label">Retail (£)</label><input type="number" name="price_retail" id="ep_retail" class="od-input" step="0.01"></div>
+                <div class="col-4"><label class="od-label">Min Stock Alert</label><input type="number" name="min_stock" id="ep_min" class="od-input"></div>
+                <div class="col-6"><label class="od-label">New Image (optional)</label><input type="file" name="image" class="od-input" accept=".png,.jpg,.jpeg,.webp"></div>
+                <div class="col-6" style="display:flex;align-items:flex-end;padding-bottom:6px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--od-text-muted);">
+                        <input type="checkbox" name="is_active" id="ep_active" value="on" style="width:16px;height:16px;">
+                        Active (visible in store)
+                    </label>
+                </div>
+                <div class="col-12"><label class="od-label">Description</label><textarea name="description" id="ep_desc" class="od-input" rows="2" style="resize:vertical;"></textarea></div>
+                <div class="col-12"><label class="od-label">Ingredients</label><textarea name="ingredients" id="ep_ingr" class="od-input" rows="2" style="resize:vertical;"></textarea></div>
+            </div>
+            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="od-btn od-btn-ghost" onclick="document.getElementById('editProductModal').style.display='none'">Cancel</button>
+                <button type="submit" class="od-btn od-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ Stock Adjust Modal ═══ -->
+<div id="stockModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:var(--od-surface);border:1px solid var(--od-border-light);border-radius:20px;padding:28px;max-width:440px;width:100%;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <h3 style="font-size:16px;font-weight:800;margin:0;"><i class="fas fa-boxes" style="color:var(--od-accent);"></i> Adjust Stock — <span id="stockModalName"></span></h3>
+            <button onclick="document.getElementById('stockModal').style.display='none'" style="background:none;border:none;color:var(--od-text-muted);font-size:18px;cursor:pointer;">&times;</button>
+        </div>
+        <p style="font-size:12px;color:var(--od-text-muted);margin-bottom:16px;">Current stock: <strong id="stockModalCurrent" style="color:#f0f0f0;"></strong></p>
+        <form id="stockForm" method="POST" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="od-label">Quantity Change</label>
+                <div style="font-size:11px;color:var(--od-text-muted);margin-bottom:6px;">Use a positive number to add stock, negative to remove.</div>
+                <input type="number" name="quantity" class="od-input" placeholder="+50 or -10" required style="font-size:18px;font-weight:700;">
+            </div>
+            <div class="mb-3">
+                <label class="od-label">Reason</label>
+                <select name="reason" class="od-input">
+                    <option value="purchase">📦 Purchase (restocked)</option>
+                    <option value="sale">💰 Sale</option>
+                    <option value="adjustment">🔧 Manual Adjustment</option>
+                    <option value="damaged">💔 Damaged / Waste</option>
+                    <option value="return">↩️ Return</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="od-label">Batch Number (optional)</label>
+                <input type="text" name="batch_number" class="od-input" placeholder="e.g. BATCH-2024-07">
+            </div>
+            <div class="mb-3">
+                <label class="od-label">Notes (optional)</label>
+                <input type="text" name="notes" class="od-input" placeholder="Any additional notes…">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="od-btn od-btn-ghost" onclick="document.getElementById('stockModal').style.display='none'">Cancel</button>
+                <button type="submit" class="od-btn od-btn-primary"><i class="fas fa-check"></i> Adjust Stock</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tab switching
+document.querySelectorAll('.od-tab').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.od-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.od-tab-pane').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+    });
+});
+// Auto-select tab from URL hash
+const hash = location.search.match(/tab=(\w+)/);
+if (hash) {
+    const btn = document.querySelector(`.od-tab[data-tab="${hash[1]}"]`);
+    if (btn) btn.click();
+}
+
+function openStockModal(id, name, current) {
+    document.getElementById('stockModalName').textContent = name;
+    document.getElementById('stockModalCurrent').textContent = current;
+    document.getElementById('stockForm').action = `/admin/store/product/${id}/stock`;
+    document.getElementById('stockModal').style.display = 'flex';
+}
+
+function openEditModal(p) {
+    document.getElementById('ep_name').value   = p.name || '';
+    document.getElementById('ep_sku').value    = p.sku || '';
+    document.getElementById('ep_flavor').value = p.flavor || '';
+    document.getElementById('ep_size').value   = p.size_ml || 0;
+    document.getElementById('ep_cost').value   = p.price_cost || 0;
+    document.getElementById('ep_retail').value = p.price_retail || 0;
+    document.getElementById('ep_min').value    = p.min_stock || 10;
+    document.getElementById('ep_desc').value   = p.description || '';
+    document.getElementById('ep_ingr').value   = p.ingredients || '';
+    document.getElementById('ep_active').checked = p.is_active;
+    document.getElementById('editProductForm').action = `/admin/store/product/${p.id}/edit`;
+    document.getElementById('editProductModal').style.display = 'flex';
+}
+
+// Close modals on backdrop click
+['addProductModal','editProductModal','stockModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block title %}{{ brand.brand_name if brand else 'Store' }} — Overdrive{% endblock %}
+
+{% block extra_css %}
+<style>
+.store-hero {
+    background: linear-gradient(135deg, {{ brand.primary_color if brand else '#e63946' }}18 0%, transparent 60%);
+    border: 1px solid {{ brand.primary_color if brand else '#e63946' }}22;
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+}
+.store-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: {{ brand.primary_color if brand else '#e63946' }}12;
+    border-radius: 50%;
+    pointer-events: none;
+}
+.store-hero-brand {
+    font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: {{ brand.primary_color if brand else '#e63946' }};
+    margin-bottom: 8px;
+}
+.store-hero-title {
+    font-size: 32px; font-weight: 900; color: #f2f2f2; margin-bottom: 6px;
+    letter-spacing: -0.5px;
+}
+.store-hero-tagline { font-size: 14px; color: var(--od-text-muted); margin-bottom: 20px; }
+.store-filter-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.store-filter-btn {
+    padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--od-border-light);
+    background: var(--od-surface-2); color: var(--od-text-muted);
+    cursor: pointer; transition: all 0.15s;
+}
+.store-filter-btn.active,
+.store-filter-btn:hover {
+    background: {{ brand.primary_color if brand else '#e63946' }};
+    border-color: {{ brand.primary_color if brand else '#e63946' }};
+    color: #fff;
+}
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+.product-card {
+    background: var(--od-surface);
+    border: 1px solid var(--od-border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    cursor: default;
+}
+.product-card:hover {
+    transform: translateY(-3px);
+    border-color: {{ brand.primary_color if brand else '#e63946' }}44;
+    box-shadow: 0 8px 32px {{ brand.primary_color if brand else '#e63946' }}18;
+}
+.product-img {
+    width: 100%; height: 180px; object-fit: cover;
+    background: var(--od-surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; color: var(--od-text-dim);
+}
+.product-img img { width: 100%; height: 100%; object-fit: cover; }
+.product-body { padding: 16px; }
+.product-sku { font-size: 10px; font-weight: 600; letter-spacing: 2px; color: var(--od-text-dim); text-transform: uppercase; margin-bottom: 4px; }
+.product-name { font-size: 15px; font-weight: 700; color: #f0f0f0; margin-bottom: 2px; }
+.product-flavor { font-size: 12px; color: var(--od-text-muted); margin-bottom: 8px; }
+.product-meta { display: flex; align-items: center; justify-content: space-between; }
+.product-price {
+    font-size: 16px; font-weight: 800;
+    color: {{ brand.primary_color if brand else '#e63946' }};
+}
+.product-size { font-size: 11px; color: var(--od-text-dim); }
+.stock-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px;
+    letter-spacing: 0.5px;
+}
+.stock-ok  { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+.stock-low { background: rgba(234,179,8,0.12);  color: #facc15; border: 1px solid rgba(234,179,8,0.2); }
+.stock-out { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--od-text-dim); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="store-hero">
+    {% if brand and brand.logo_path %}
+    <img src="{{ brand.logo_path }}" alt="{{ brand.brand_name }}" style="height:40px;margin-bottom:12px;display:block;">
+    {% endif %}
+    <div class="store-hero-brand">
+        {% if brand %}{{ brand.brand_name }}{% else %}Energy Store{% endif %}
+    </div>
+    <h1 class="store-hero-title">
+        {% if brand and brand.tagline %}{{ brand.tagline }}{% else %}Our Product Line{% endif %}
+    </h1>
+    <p class="store-hero-tagline">
+        {{ products|length }} product{{ 's' if products|length != 1 }} available
+        {% if brand and brand.website_url %}
+        · <a href="{{ brand.website_url }}" target="_blank" style="color:{{ brand.primary_color }};text-decoration:underline;">Visit website</a>
+        {% endif %}
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        {% if brand and brand.instagram_url %}
+        <a href="{{ brand.instagram_url }}" target="_blank" class="od-btn od-btn-ghost od-btn-sm">
+            <i class="fab fa-instagram"></i> Instagram
+        </a>
+        {% endif %}
+        {% if brand and brand.distributor %}
+        <span style="font-size:12px;color:var(--od-text-muted);">
+            <i class="fas fa-truck" style="margin-right:4px;"></i>Distributed by {{ brand.distributor }}
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filter bar -->
+<div class="store-filter-bar">
+    <button class="store-filter-btn active" data-filter="all">All Products</button>
+    <button class="store-filter-btn" data-filter="in-stock">In Stock</button>
+    <button class="store-filter-btn" data-filter="low-stock">Low Stock</button>
+    <button class="store-filter-btn" data-filter="out">Out of Stock</button>
+    {% set flavors = products | map(attribute='flavor') | unique | list %}
+    {% for f in flavors %}
+    <button class="store-filter-btn" data-filter="flavor-{{ f }}">{{ f }}</button>
+    {% endfor %}
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('admin_store') }}" class="od-btn od-btn-outline od-btn-sm ms-auto">
+        <i class="fas fa-cog"></i> Manage Store
+    </a>
+    {% endif %}
+</div>
+
+<!-- Product grid -->
+{% if products %}
+<div class="product-grid" id="productGrid">
+    {% for p in products %}
+    <div class="product-card"
+         data-stock="{{ p.stock_status }}"
+         data-flavor="flavor-{{ p.flavor }}">
+        <div class="product-img">
+            {% if p.image_path %}
+            <img src="{{ p.image_path }}" alt="{{ p.name }}">
+            {% else %}
+            <i class="fas fa-bolt" style="color:{{ brand.primary_color if brand else '#e63946' }};opacity:0.4;"></i>
+            {% endif %}
+        </div>
+        <div class="product-body">
+            {% if p.sku %}<div class="product-sku">{{ p.sku }}</div>{% endif %}
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-flavor">{{ p.flavor }}
+                {% if p.size_ml %} · {{ p.size_ml }}ml{% endif %}
+            </div>
+            {% if p.description %}
+            <div style="font-size:12px;color:var(--od-text-muted);margin-bottom:8px;line-height:1.5;">{{ p.description[:120] }}</div>
+            {% endif %}
+            <div class="product-meta">
+                <div>
+                    <div class="product-price">
+                        {% if p.price_retail > 0 %}£{{ '%.2f'|format(p.price_retail) }}{% else %}—{% endif %}
+                    </div>
+                </div>
+                <span class="stock-badge stock-{{ p.stock_status }}">
+                    {% if p.stock_status == 'ok' %}In Stock ({{ p.stock_quantity }})
+                    {% elif p.stock_status == 'low' %}Low Stock ({{ p.stock_quantity }})
+                    {% else %}Out of Stock{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-bolt" style="font-size:48px;margin-bottom:16px;opacity:0.2;"></i>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:6px;">No products yet</h3>
+    <p style="font-size:13px;">{% if current_user.is_admin %}<a href="{{ url_for('admin_store') }}">Add your first product →</a>{% else %}Check back soon.{% endif %}</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.store-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.store-filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const f = this.dataset.filter;
+        document.querySelectorAll('.product-card').forEach(card => {
+            if (f === 'all') { card.style.display = ''; return; }
+            if (f === 'in-stock')  { card.style.display = card.dataset.stock === 'ok' ? '' : 'none'; return; }
+            if (f === 'low-stock') { card.style.display = card.dataset.stock === 'low' ? '' : 'none'; return; }
+            if (f === 'out')       { card.style.display = card.dataset.stock === 'out' ? '' : 'none'; return; }
+            // flavor filter
+            card.style.display = card.dataset.flavor === f ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

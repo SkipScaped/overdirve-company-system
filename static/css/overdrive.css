@@ -956,3 +956,174 @@ img { max-width: 100%; }
 .dropdown-toggle::after { display: none; }
 .btn-close { filter: invert(1) opacity(.4); }
 .row { --bs-gutter-x: 1.25rem; --bs-gutter-y: 1.25rem; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE & PWA IMPROVEMENTS
+   Optimised for iPhone, Android, and tablet viewports
+═══════════════════════════════════════════════════════════ */
+
+/* ── Prevent iOS input zoom (font-size must be ≥16px on inputs) ── */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Safe area insets for notched phones ── */
+.od-topbar {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Better touch targets: min 44×44px ── */
+@media (max-width: 1024px) {
+  .od-btn,
+  .od-icon-btn,
+  .od-sidebar-link,
+  .od-tab,
+  .dm-icon-btn,
+  .store-filter-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .od-sidebar-link {
+    padding: 10px 14px;
+  }
+  .od-tab {
+    padding: 10px 16px;
+  }
+}
+
+/* ── Mobile layout tweaks ── */
+@media (max-width: 768px) {
+  .od-main {
+    padding: 14px;
+  }
+  .od-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .od-page-title {
+    font-size: 20px;
+  }
+  .od-card {
+    border-radius: 12px;
+  }
+  .od-card-body {
+    padding: 14px;
+  }
+  /* Tables: horizontal scroll on mobile */
+  .od-table {
+    font-size: 12px;
+  }
+  .od-table th,
+  .od-table td {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+  /* Tabs: scrollable */
+  .od-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .od-tabs::-webkit-scrollbar { display: none; }
+  .od-tab {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 8px 14px;
+  }
+  /* Profile */
+  .od-profile-header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  /* Store grid */
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  /* Notification panel */
+  .od-notif-panel {
+    width: calc(100vw - 20px) !important;
+    right: -10px;
+  }
+  /* Stat cards */
+  .inv-stat {
+    padding: 12px 10px;
+  }
+  .inv-stat-num {
+    font-size: 20px;
+  }
+}
+
+/* ── Chat pages use dynamic viewport height (avoids iOS keyboard issue) ── */
+@supports (height: 100dvh) {
+  .od-dm-page {
+    height: calc(100dvh - 64px) !important;
+  }
+}
+
+/* ── PWA standalone: add top padding to account for status bar ── */
+@media all and (display-mode: standalone) {
+  .od-topbar {
+    padding-top: max(env(safe-area-inset-top, 0px), 8px);
+    height: calc(var(--od-topbar-h) + env(safe-area-inset-top, 0px));
+  }
+  .od-layout {
+    margin-top: calc(var(--od-topbar-h) + env(safe-area-inset-top, 0px));
+  }
+  .od-sidebar {
+    top: calc(var(--od-topbar-h) + env(safe-area-inset-top, 0px));
+  }
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* ── 3D toggle: move up on mobile to avoid overlap with mobile nav ── */
+@media (max-width: 768px) {
+  #od-3d-toggle {
+    bottom: 72px;
+    right: 14px;
+  }
+}
+
+/* ── Improve tap feedback ── */
+@media (hover: none) {
+  .od-btn:active,
+  .od-sidebar-link:active,
+  .od-tab:active {
+    transform: scale(0.97);
+    opacity: 0.8;
+  }
+}
+
+/* ── Desktop nav: hide on narrow screens (already done via d-none d-xl-flex, but reinforce) ── */
+@media (max-width: 1199px) {
+  .od-desktop-nav { display: none !important; }
+}
+
+/* ── Mobile bottom action bars (for chat pages) ── */
+@media (max-width: 600px) {
+  .dm-input-zone {
+    padding: 6px 8px 8px;
+  }
+  .dm-send-btn {
+    width: 38px;
+    height: 38px;
+  }
+}

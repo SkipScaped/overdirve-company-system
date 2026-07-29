@@ -657,3 +657,94 @@ class UserRole(db.Model):
     user        = db.relationship('User', foreign_keys=[user_id],     backref='user_roles')
     assigner    = db.relationship('User', foreign_keys=[assigned_by])
     __table_args__ = (db.UniqueConstraint('user_id', 'role_id', name='uq_user_role'),)
+
+
+# ─── Energy Drink White-Label Store ──────────────────────────────────────────
+
+class EnergyDrinkBrand(db.Model):
+    """White-label brand settings for the energy drink product line."""
+    __tablename__ = 'energy_drink_brands'
+    id            = db.Column(db.Integer, primary_key=True)
+    brand_name    = db.Column(db.String(100), default='Overdrive Energy')
+    tagline       = db.Column(db.String(200), default='')
+    logo_path     = db.Column(db.String(255), default='')
+    primary_color = db.Column(db.String(7),   default='#e63946')
+    accent_color  = db.Column(db.String(7),   default='#ff6b35')
+    website_url   = db.Column(db.String(255), default='')
+    instagram_url = db.Column(db.String(255), default='')
+    distributor   = db.Column(db.String(200), default='')
+    updated_at    = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class EnergyDrinkProduct(db.Model):
+    __tablename__ = 'energy_drink_products'
+    id             = db.Column(db.String(36), primary_key=True)
+    name           = db.Column(db.String(100), nullable=False)
+    sku            = db.Column(db.String(50), unique=True, nullable=True)
+    flavor         = db.Column(db.String(100), default='Original')
+    size_ml        = db.Column(db.Integer, default=500)
+    price_cost     = db.Column(db.Float, default=0.0)    # wholesale / cost price
+    price_retail   = db.Column(db.Float, default=0.0)    # selling price
+    stock_quantity = db.Column(db.Integer, default=0)
+    min_stock      = db.Column(db.Integer, default=10)   # low-stock alert threshold
+    image_path     = db.Column(db.String(255), default='')
+    description    = db.Column(db.Text, default='')
+    ingredients    = db.Column(db.Text, default='')
+    is_active      = db.Column(db.Boolean, default=True)
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow)
+    movements      = db.relationship('StockMovement', backref='product', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+    @property
+    def stock_status(self):
+        if self.stock_quantity <= 0:
+            return 'out'
+        elif self.stock_quantity <= self.min_stock:
+            return 'low'
+        return 'ok'
+
+    @property
+    def inventory_value(self):
+        return self.stock_quantity * self.price_cost
+
+
+class StockMovement(db.Model):
+    __tablename__ = 'stock_movements'
+    id           = db.Column(db.String(36), primary_key=True)
+    product_id   = db.Column(db.String(36), db.ForeignKey('energy_drink_products.id'), nullable=False)
+    quantity     = db.Column(db.Integer, nullable=False)   # positive = stock in, negative = stock out
+    reason       = db.Column(db.String(50), default='manual')   # purchase/sale/adjustment/damaged/return/import/initial
+    notes        = db.Column(db.Text, default='')
+    batch_number = db.Column(db.String(50), default='')
+    created_by   = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    creator      = db.relationship('User', foreign_keys=[created_by])
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        super().__init__(**kwargs)
+
+
+# ─── Email Verification ───────────────────────────────────────────────────────
+
+class EmailVerification(db.Model):
+    __tablename__ = 'email_verifications'
+    id         = db.Column(db.String(36), primary_key=True)
+    user_id    = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    token      = db.Column(db.String(128), unique=True, nullable=False)
+    is_used    = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user       = db.relationship('User', foreign_keys=[user_id])
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = str(uuid.uuid4())
+        if 'token' not in kwargs:
+            import secrets
+            kwargs['token'] = secrets.token_urlsafe(48)
+        super().__init__(**kwargs)
